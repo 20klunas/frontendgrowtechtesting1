@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Cookies from "js-cookie"
-import { useAuth } from "@/app/hooks/useAuth"
+import { useAuth } from "../../../app/hooks/useAuth"
 
 function OAuthCallbackContent() {
   const router = useRouter()
