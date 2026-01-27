@@ -200,38 +200,54 @@ export default function KontakPage() {
         title={editing ? 'Edit Kontak' : 'Tambah Kontak'}
       >
         <div className="space-y-4">
-          <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
+          {/* TYPE */}
+          <select
+            className="input"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            disabled={editing} // key tidak boleh diganti saat edit
+          >
             {CONTACT_TYPES.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
             ))}
           </select>
 
+          {/* NAME */}
           <input
             className="input"
-            placeholder="Nama (contoh: Discord)"
+            placeholder="Nama Kontak (contoh: Discord)"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
 
+          {/* LINK */}
           <input
             className="input"
-            placeholder="Link URL"
+            placeholder="Link URL (https://...)"
             value={link}
             onChange={(e) => setLink(e.target.value)}
           />
 
+          {/* DISPLAY */}
           <input
             className="input"
-            placeholder="Teks Display"
+            placeholder="Teks Display (discord.gg/xxxx)"
             value={display}
             onChange={(e) => setDisplay(e.target.value)}
           />
 
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setIconFile(e.target.files[0])}
-          />
+          {/* ICON */}
+          <div className="space-y-2">
+            {iconUrl && (
+              <img src={iconUrl} className="w-12 h-12 object-contain rounded" />
+            )}
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setIconFile(e.target.files[0])}
+            />
+          </div>
 
           <button
             onClick={handleSubmit}
