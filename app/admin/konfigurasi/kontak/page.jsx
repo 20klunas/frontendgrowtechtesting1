@@ -31,7 +31,7 @@ export default function KontakPage() {
   const loadContacts = async () => {
     const token = Cookies.get('token')
 
-    const res = await fetch(`${API}/admin/settings?group=contact`, {
+    const res = await fetch(`${API}/api/v1/admin/settings?group=contact`, {
       headers: { Authorization: `Bearer ${token}` },
     })
 
@@ -49,7 +49,7 @@ export default function KontakPage() {
 
     const token = Cookies.get('token')
 
-    const signRes = await fetch(`${API}/admin/settings/icon/sign`, {
+    const signRes = await fetch(`${API}/api/v1/admin/settings/icon/sign`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export default function KontakPage() {
     const token = Cookies.get('token')
     const uploaded = await uploadIcon()
 
-    await fetch(`${API}/admin/settings/upsert`, {
+    await fetch(`${API}/api/v1/admin/settings/upsert`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ export default function KontakPage() {
 
     const token = Cookies.get('token')
 
-    await fetch(`${API}/admin/settings`, {
+    await fetch(`${API}/api/v1/admin/settings`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
