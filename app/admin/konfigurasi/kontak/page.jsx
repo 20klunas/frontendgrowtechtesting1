@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Cookies from 'js-cookie'
 import SectionCard from '../../../components/admin/SectionCard'
-// import ActionButtons from '../../../../components/admin/ActionButtons'
 import Modal from '../../../components/ui/Modal'
+
+const API = process.env.NEXT_PUBLIC_API_URL
 
 const CONTACT_TYPES = [
   { label: 'WhatsApp', value: 'whatsapp' },
@@ -18,66 +20,136 @@ export default function KontakPage() {
   const [editing, setEditing] = useState(null)
 
   const [type, setType] = useState('whatsapp')
-  const [value, setValue] = useState('')
+  const [name, setName] = useState('')
+  const [link, setLink] = useState('')
+  const [display, setDisplay] = useState('')
+  const [iconFile, setIconFile] = useState(null)
+  const [iconPath, setIconPath] = useState('')
+  const [iconUrl, setIconUrl] = useState('')
 
-  /* ================= LOAD ================= */
-  useEffect(() => {
-    const saved = localStorage.getItem('kontak_data')
-    if (saved) setContacts(JSON.parse(saved))
-  }, [])
+  /* ================= LOAD DATA ================= */
+  const loadContacts = async () => {
+    const token = Cookies.get('token')
 
-  /* ================= SAVE ================= */
-  const saveContacts = (data) => {
-    setContacts(data)
-    localStorage.setItem('kontak_data', JSON.stringify(data))
+    const res = await fetch(`${API}/admin/settings?group=contact`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    const json = await res.json()
+    setContacts(json.data || [])
   }
 
-  /* ================= ADD / EDIT ================= */
+  useEffect(() => {
+    loadContacts()
+  }, [])
+
+  /* ================= ICON UPLOAD ================= */
+  const uploadIcon = async () => {
+    if (!iconFile) return { path: iconPath, url: iconUrl }
+
+    const token = Cookies.get('token')
+
+    const signRes = await fetch(`${API}/admin/settings/icon/sign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ mime: iconFile.type }),
+    })
+
+    const signData = await signRes.json()
+
+    await fetch(signData.data.signed_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': iconFile.type },
+      body: iconFile,
+    })
+
+    return {
+      path: signData.data.path,
+      url: signData.data.public_url,
+    }
+  }
+
+  /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
-    const token = Cookies.get("token")
+    const token = Cookies.get('token')
+    const uploaded = await uploadIcon()
 
     await fetch(`${API}/admin/settings/upsert`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        group: "contact",
-        data: {
-          [type]: value,
+        group: 'contact',
+        key: type,
+        is_public: true,
+        value: {
+          name,
+          link,
+          display,
+          icon_path: uploaded.path,
+          icon_url: uploaded.url,
         },
       }),
     })
 
     resetModal()
+    loadContacts()
   }
 
+  /* ================= DELETE ================= */
+  const handleDelete = async (key) => {
+    if (!confirm('Hapus kontak ini?')) return
+
+    const token = Cookies.get('token')
+
+    await fetch(`${API}/admin/settings`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        group: 'contact',
+        key,
+      }),
+    })
+
+    loadContacts()
+  }
+
+  /* ================= EDIT ================= */
+  const handleEdit = (item) => {
+    setEditing(item)
+    setType(item.key)
+    setName(item.value.name)
+    setLink(item.value.link)
+    setDisplay(item.value.display || '')
+    setIconPath(item.value.icon_path)
+    setIconUrl(item.value.icon_url)
+    setModalOpen(true)
+  }
 
   const resetModal = () => {
     setModalOpen(false)
     setEditing(null)
     setType('whatsapp')
-    setValue('')
-  }
-
-  const handleEdit = (item) => {
-    setEditing(item)
-    setType(item.type)
-    setValue(item.value)
-    setModalOpen(true)
-  }
-
-  const handleDelete = (id) => {
-    if (!confirm('Hapus kontak ini?')) return
-    saveContacts(contacts.filter(c => c.id !== id))
+    setName('')
+    setLink('')
+    setDisplay('')
+    setIconFile(null)
+    setIconPath('')
+    setIconUrl('')
   }
 
   return (
     <>
       <SectionCard title="Kelola Kontak">
         <div className="space-y-4">
-
           <button
             onClick={() => setModalOpen(true)}
             className="bg-purple-700 px-4 py-2 rounded-lg w-fit"
@@ -85,14 +157,22 @@ export default function KontakPage() {
             + Tambah Kontak
           </button>
 
-          {contacts.map(item => (
+          {contacts.map((item) => (
             <div
-              key={item.id}
+              key={item.key}
               className="border border-purple-700 rounded-xl p-4 flex justify-between items-center"
             >
-              <span className="capitalize">
-                {item.type} - {item.value}
-              </span>
+              <div className="flex items-center gap-3">
+                <img
+                  src={item.value.icon_url}
+                  className="w-8 h-8 object-contain"
+                  alt={item.value.name}
+                />
+                <div>
+                  <div className="font-semibold">{item.value.name}</div>
+                  <div className="text-sm text-gray-400">{item.value.display}</div>
+                </div>
+              </div>
 
               <div className="flex gap-2">
                 <button
@@ -102,7 +182,7 @@ export default function KontakPage() {
                   ✎
                 </button>
                 <button
-                  onClick={() => handleDelete(item.id)}
+                  onClick={() => handleDelete(item.key)}
                   className="bg-red-600 p-2 rounded-lg"
                 >
                   🗑
@@ -120,23 +200,37 @@ export default function KontakPage() {
         title={editing ? 'Edit Kontak' : 'Tambah Kontak'}
       >
         <div className="space-y-4">
-          <select
-            className="input"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            {CONTACT_TYPES.map(c => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
+          <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
+            {CONTACT_TYPES.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
             ))}
           </select>
 
           <input
             className="input"
-            placeholder="Masukkan kontak"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
+            placeholder="Nama (contoh: Discord)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+
+          <input
+            className="input"
+            placeholder="Link URL"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+          />
+
+          <input
+            className="input"
+            placeholder="Teks Display"
+            value={display}
+            onChange={(e) => setDisplay(e.target.value)}
+          />
+
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setIconFile(e.target.files[0])}
           />
 
           <button
