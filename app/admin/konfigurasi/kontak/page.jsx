@@ -201,7 +201,7 @@ export default function KontakPage() {
       >
         <div className="space-y-4">
           {/* TYPE */}
-          <select
+          {/* <select
             className="input"
             value={type}
             onChange={(e) => setType(e.target.value)}
@@ -210,7 +210,7 @@ export default function KontakPage() {
             {CONTACT_TYPES.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
             ))}
-          </select>
+          </select> */}
 
           {/* NAME */}
           <input
