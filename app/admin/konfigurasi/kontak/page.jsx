@@ -75,6 +75,12 @@ export default function KontakPage() {
   /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
     const token = Cookies.get('token')
+
+    if (!editing && !iconFile) {
+      alert("Icon wajib diupload")
+      return
+    }
+
     const uploaded = await uploadIcon()
 
     const res = await fetch(`${API}/api/v1/admin/settings/upsert`, {
@@ -99,9 +105,17 @@ export default function KontakPage() {
 
     console.log("UPSERT STATUS:", res.status)
 
+    if (!res.ok) {
+      const err = await res.text()
+      console.log("ERROR BODY:", err)
+      alert("Gagal simpan, cek console")
+      return
+    }
+
     resetModal()
     loadContacts()
   }
+
 
 
     resetModal()
