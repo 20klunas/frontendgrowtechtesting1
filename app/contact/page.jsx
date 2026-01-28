@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -25,6 +27,8 @@ export default function ContactPage() {
   }, [])
 
   return (
+    <>
+    <Navbar />
     <section className="max-w-6xl mx-auto px-6 py-24">
       <h1 className="text-4xl font-bold text-center mb-4">Hubungi Kami</h1>
       <p className="text-center text-gray-400 mb-16">Kami siap membantu Anda 24/7</p>
@@ -58,5 +62,7 @@ export default function ContactPage() {
         </div>
       )}
     </section>
+    <Footer />
+    </>
   )
 }
