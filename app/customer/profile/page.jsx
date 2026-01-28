@@ -178,7 +178,12 @@ export default function ProfilePage() {
           <div className="flex justify-center mb-10">
             <div className="relative w-56 h-56 rounded-3xl border-2 border-purple-500">
               <Image
-                src={user?.avatar_url || "/logoherosection.png"}
+                key={user?.avatar_url}
+                src={
+                  user?.avatar_url
+                    ? `${user.avatar_url}?t=${Date.now()}`
+                    : "/logoherosection.png"
+                }
                 alt="Profile"
                 fill
                 className="rounded-2xl object-cover"
