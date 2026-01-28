@@ -65,7 +65,7 @@ export default function ProfilePage() {
           body: JSON.stringify({ mime: avatarFile.type }),
         });
 
-        const { path, signed_url, public_url } = signRes.data.data;
+        const { path, signed_url, public_url } = signRes.data;
 
         await fetch(signed_url, {
           method: "PUT",
@@ -81,6 +81,7 @@ export default function ProfilePage() {
           }),
         });
 
+        saveRes.data
         setUser(saveRes.data);
         alert("Avatar berhasil diperbarui");
       } catch (err) {
