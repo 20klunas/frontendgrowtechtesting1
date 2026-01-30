@@ -3,77 +3,9 @@
 import { useState } from "react"
 import { X, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { useEffect } from "react"
 
-/* ================= DATA ================= */
-
-const PRESETS = [
-  { label: "Rp 10K", value: 10000 },
-  { label: "Rp 25K", value: 25000 },
-  { label: "Rp 50K", value: 50000 },
-  { label: "Rp 100K", value: 100000 },
-  { label: "Rp 150K", value: 150000 },
-  { label: "Rp 300K", value: 300000 },
-]
-
-const PAYMENT_METHODS = [
-  {
-    id: "midtrans",
-    name: "QRIS Midtrans",
-    desc: "Scan QR Code Untuk Pembayaran Instant",
-    fee: 35,
-    prefix: "MID",
-  },
-  {
-    id: "duitku",
-    name: "QRIS Duitku",
-    desc: "Scan QR Code Untuk Pembayaran Instant",
-    fee: 50,
-    prefix: "DKU",
-  },
-]
-
-const HISTORY = [
-  {
-    no: 1,
-    amount: "Rp 100.000",
-    method: "QRIS Midtrans",
-    datetime: "20 Dec 2024 14:30",
-    status: "Completed",
-    id: "MID-20241220-001",
-  },
-  {
-    no: 2,
-    amount: "Rp 100.000",
-    method: "Transfer Bank",
-    datetime: "20 Dec 2024 14:30",
-    status: "Completed",
-    id: "TRANS-19-12-001",
-  },
-  {
-    no: 3,
-    amount: "Rp 50.000",
-    method: "Transfer Bank",
-    datetime: "20 Dec 2024 14:30",
-    status: "Pending",
-    id: "TRANS-19-12-001",
-  },
-  {
-    no: 4,
-    amount: "Rp 75.000",
-    method: "Transfer Bank",
-    datetime: "20 Dec 2024 14:30",
-    status: "Pending",
-    id: "TRANS-19-12-001",
-  },
-  {
-    no: 5,
-    amount: "Rp 25.000",
-    method: "QRIS Duitku",
-    datetime: "20 Dec 2024 14:30",
-    status: "Completed",
-    id: "DKU-20241220-001",
-  },
-]
 
 /* ================= PAGE ================= */
 
@@ -84,6 +16,66 @@ export default function TopUpPage() {
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0])
   const [showConfirm, setShowConfirm] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+
+  const [wallet, setWallet] = useState(null)
+  const [history, setHistory] = useState([])
+
+
+  const API = process.env.NEXT_PUBLIC_API_URL
+
+  const handleTopup = async () => {
+    try {
+      const res = await fetch(`${API}/api/v1/wallet/topups/init`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // "Authorization": `Bearer ${token}` ← kalau pakai auth
+        },
+        body: JSON.stringify({
+          amount: amount
+        })
+      })
+
+      const result = await res.json()
+
+      if (!result.success) throw new Error("Gagal membuat topup")
+
+      const orderId = result.data.order_id
+
+      // 🔥 AUTO SIMULATE BAYAR (biar langsung masuk saldo saat dev)
+      await fetch(`${API}${result.data.simulate_pay_endpoint}`, {
+        method: "POST"
+      })
+
+      setShowSuccess(true)
+      fetchWalletSummary() // refresh saldo & history
+
+    } catch (err) {
+      console.error(err)
+      alert("Topup gagal")
+    }
+  }
+
+  const fetchWalletSummary = async () => {
+    try {
+      const res = await fetch(`${API}/api/v1/wallet/summary`)
+      const result = await res.json()
+
+      if (result.success) {
+        setWallet(result.data.wallet)
+        setHistory(result.data.last_entries || [])
+      }
+    } catch (err) {
+      console.error("Gagal ambil wallet", err)
+    }
+  }
+
+  useEffect(() => {
+    fetchWalletSummary()
+  }, [])
+
+
+
 
   const fee = paymentMethod.fee
   const total = amount + fee
@@ -110,7 +102,7 @@ export default function TopUpPage() {
             <Header title="Saldo Wallet Anda" icon="💼" />
             <p className="text-sm text-gray-400">Total Saldo</p>
             <p className="text-3xl font-bold mt-2 mb-2">
-              Rp {saldoAwal.toLocaleString()}
+              Rp {wallet ? wallet.balance.toLocaleString() : 0}
             </p>
             <p className="text-sm text-red-500">
               ⚠️ Topup untuk melakukan pembelian lebih banyak
@@ -169,7 +161,8 @@ export default function TopUpPage() {
             </div>
 
             <button
-              onClick={() => setShowConfirm(true)}
+              // onClick={() => setShowConfirm(true)}
+              onClick={handleTopup}
               className="mt-6 w-full rounded-xl border border-purple-500 py-3 font-semibold hover:bg-purple-500/10"
             >
               Lanjutkan Pembayaran
@@ -219,16 +212,16 @@ export default function TopUpPage() {
               </tr>
             </thead>
             <tbody>
-              {HISTORY.map((row) => (
+              {history.map((row, i) => (
                 <tr key={row.id} className="border-b border-purple-800/40">
-                  <td className="py-3">{row.no}</td>
-                  <td>{row.amount}</td>
-                  <td>{row.method}</td>
-                  <td>{row.datetime}</td>
-                  <td className={row.status === "Completed" ? "text-green-400" : "text-yellow-400"}>
-                    {row.status}
+                  <td className="py-3">{i + 1}</td>
+                  <td>Rp {row.amount.toLocaleString()}</td>
+                  <td>{row.type}</td>
+                  <td>{new Date(row.created_at).toLocaleString()}</td>
+                  <td className={row.direction === "CREDIT" ? "text-green-400" : "text-red-400"}>
+                    {row.direction}
                   </td>
-                  <td className="text-purple-400">{row.id}</td>
+                  <td className="text-purple-400">{row.tx_id}</td>
                 </tr>
               ))}
             </tbody>
