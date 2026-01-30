@@ -6,6 +6,34 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useEffect } from "react"
 
+/* ================= DATA ================= */
+
+const PRESETS = [
+  { label: "Rp 10K", value: 10000 },
+  { label: "Rp 25K", value: 25000 },
+  { label: "Rp 50K", value: 50000 },
+  { label: "Rp 100K", value: 100000 },
+  { label: "Rp 150K", value: 150000 },
+  { label: "Rp 300K", value: 300000 },
+]
+
+const PAYMENT_METHODS = [
+  {
+    id: "midtrans",
+    name: "QRIS Midtrans",
+    desc: "Scan QR Code Untuk Pembayaran Instant",
+    fee: 35,
+    prefix: "MID",
+  },
+  {
+    id: "duitku",
+    name: "QRIS Duitku",
+    desc: "Scan QR Code Untuk Pembayaran Instant",
+    fee: 50,
+    prefix: "DKU",
+  },
+]
+
 
 /* ================= PAGE ================= */
 
@@ -73,17 +101,14 @@ export default function TopUpPage() {
   useEffect(() => {
     fetchWalletSummary()
   }, [])
-
-
-
-
+  
   const fee = paymentMethod.fee
   const total = amount + fee
 
-  const saldoAwal = 500000
-  const saldoBaru = saldoAwal + amount
+  // const saldoAwal = 500000
+  // const saldoBaru = saldoAwal + amount
 
-  const invoiceId = `${paymentMethod.prefix}-20241220-001`
+  // const invoiceId = `${paymentMethod.prefix}-20241220-001`
 
   return (
     <section className="max-w-7xl mx-auto px-8 py-10 text-white">
