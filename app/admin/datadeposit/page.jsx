@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Cookies from "js-cookie"
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -8,6 +9,7 @@ export default function DataDepositPage() {
   // const data = type === 'user' ? dataUserDeposit : dataAdminTopup
   const [type, setType] = useState('user') // user | admin
   const [data, setData] = useState([])
+  const token = Cookies.get("token")
 
   useEffect(() => {
     fetchDeposits()
@@ -15,16 +17,25 @@ export default function DataDepositPage() {
 
   const fetchDeposits = async () => {
     try {
-      const res = await fetch(`${API}/api/v1/admin/topups`)
+      const res = await fetch(`${API}/api/v1/admin/topups`, {
+        headers: {
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      })
+
       const result = await res.json()
 
       if (result.success) {
         setData(result.data)
+      } else {
+        console.error("Gagal:", result)
       }
     } catch (err) {
       console.error("Gagal ambil data deposit", err)
     }
   }
+
 
   const dataUserDeposit = [
     {
