@@ -23,7 +23,7 @@ export default function AdminNavbar({ onMenuClick }) {
   }, [])
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 h-14 bg-[#1a0a2e] border-b flex items-center justify-between px-4 lg:px-6">
+    <nav className="fixed top-0 left-0 right-0 z-50 h-14 bg-white dark:bg-[#1a0a2e] border-b border-zinc-200 dark:border-white/10 flex items-center justify-between px-4 lg:px-6">
       {/* LEFT */}
       <Button
         variant="ghost"
