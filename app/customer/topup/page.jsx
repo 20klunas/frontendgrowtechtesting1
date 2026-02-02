@@ -80,6 +80,11 @@ export default function TopUpPage() {
       return
     }
 
+    if (!window.snap) {
+      alert("Midtrans belum siap, refresh halaman")
+      return
+    }
+
     try {
       const res = await fetch(`${API}/api/v1/wallet/topups/init`, {
         method: "POST",
@@ -90,25 +95,29 @@ export default function TopUpPage() {
       const data = await res.json()
       if (!data.success) throw new Error("Topup init gagal")
 
-      const simRes = await fetch(`${API}${data.data.simulate_pay_endpoint}`, {
-        method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`
+      window.snap.pay(data.data.snap_token, {
+        onSuccess: async function() {
+          await fetchWalletSummary()
+          setShowSuccess(true)
+        },
+        onPending: function() {
+          alert("Menunggu pembayaran")
+        },
+        onError: function() {
+          alert("Pembayaran gagal")
+        },
+        onClose: function() {
+          console.log("User menutup popup")
         }
       })
-
-      const simData = await simRes.json()
-      if (!simData.success) throw new Error("Simulate pay gagal")
-
-      await fetchWalletSummary()
-      setShowSuccess(true)
 
     } catch (err) {
       console.error("TOPUP ERROR:", err)
       alert("Topup gagal")
     }
   }
+
+
 
   const fetchWalletSummary = async () => {
     if (!token) return
@@ -348,8 +357,14 @@ export default function TopUpPage() {
           </div>
         </Modal>
       )}
+      <script
+        type="text/javascript"
+        src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key="Mid-client-EtoHrG4tV5Bwnz3s">
+      </script>
     </section>
   )
+  
 }
 
 /* ================= COMPONENTS ================= */
@@ -392,3 +407,4 @@ function Row({ label, value }) {
     </div>
   )
 }
+
