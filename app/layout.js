@@ -1,5 +1,6 @@
 import "./globals.css"
 import { AuthProvider } from "../app/provider/AuthProvider"
+import Script from "next/script"
 
 export const metadata = {
   title: "Growtech Central",
