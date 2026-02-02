@@ -357,11 +357,6 @@ export default function TopUpPage() {
           </div>
         </Modal>
       )}
-      <script
-        type="text/javascript"
-        src="https://app.sandbox.midtrans.com/snap/snap.js"
-        data-client-key="Mid-client-EtoHrG4tV5Bwnz3s">
-      </script>
     </section>
   )
   
