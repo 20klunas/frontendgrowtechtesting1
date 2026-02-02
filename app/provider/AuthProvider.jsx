@@ -13,14 +13,14 @@ export function AuthProvider({ children }) {
   const API = process.env.NEXT_PUBLIC_API_URL
 
   useEffect(() => {
-  const token = Cookies.get("token")
+    const token = Cookies.get("token")
     if (!token) {
       setLoading(false)
       return
     }
 
-    // 🔥 JANGAN FETCH LAGI kalau user sudah ada
-    if (user) {
+    // 💡 kalau user sudah ada (hasil login), jangan fetch lagi
+    if (user !== null) {
       setLoading(false)
       return
     }
@@ -35,7 +35,6 @@ export function AuthProvider({ children }) {
 
         const json = await res.json()
         setUser(json.data)
-
       } catch (err) {
         Cookies.remove("token")
         setUser(null)
@@ -46,7 +45,7 @@ export function AuthProvider({ children }) {
     }
 
     fetchMe()
-  }, [API, router, user])
+  }, [API, router])
 
   const logout = async () => {
     const token = Cookies.get("token")
