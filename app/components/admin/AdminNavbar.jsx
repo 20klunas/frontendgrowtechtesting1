@@ -4,6 +4,7 @@ import { Menu, Search, ShoppingCart, Settings, User, LogOut } from "lucide-react
 import { Button } from "../../components/ui/button"
 import { useAuth } from "../../../app/hooks/useAuth"
 import { useState, useRef, useEffect } from "react"
+import ThemeToggle from "./ThemeToggle"
 
 export default function AdminNavbar({ onMenuClick }) {
   const { user, logout } = useAuth()
@@ -43,9 +44,7 @@ export default function AdminNavbar({ onMenuClick }) {
           <ShoppingCart className="h-5 w-5" />
         </Button>
 
-        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
-          <Settings className="h-5 w-5" />
-        </Button>
+        <ThemeToggle />
 
         {/* USER + DROPDOWN */}
         <div className="relative" ref={dropdownRef}>

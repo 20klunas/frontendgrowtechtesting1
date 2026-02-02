@@ -10,7 +10,7 @@ export default function DashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-white dark:bg-zinc-950 min-h-screen">
 
       {/* NAVBAR */}
       <AdminNavbar
@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }) {
             : "lg:pl-0"}
         `}
       >
-        <div className="p-4 lg:p-6 min-h-[calc(100vh-56px)]">
+        <div className="p-4 lg:p-6 min-h-[calc(100vh-56px)] text-zinc-900 dark:text-zinc-100">
           {children}
         </div>
 
