@@ -51,12 +51,6 @@ html {
   }
 }
 
-/* body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-} */
-
 /* RESET */
 * {
   box-sizing: border-box;
@@ -65,9 +59,9 @@ html {
 body {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
-  background: #000;
-  color: #fff;
+  @apply bg-white text-zinc-900 dark:bg-black dark:text-white;
 }
+
 
 /* ================= NAVBAR ================= */
 
