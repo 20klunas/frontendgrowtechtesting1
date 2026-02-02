@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from "react"
+import { Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Cookies from "js-cookie"
 
-export default function OAuthSuccess() {
+function OAuthHandler() {
   const router = useRouter()
   const params = useSearchParams()
 
@@ -13,11 +13,19 @@ export default function OAuthSuccess() {
 
     if (token) {
       Cookies.set("token", token, { path: "/", sameSite: "lax" })
-      router.replace("/customer") // arahkan ke dashboard
+      router.replace("/customer")
     } else {
       router.replace("/login")
     }
   }, [params, router])
 
   return <p className="text-white text-center mt-10">Logging you in...</p>
+}
+
+export default function OAuthSuccessPage() {
+  return (
+    <Suspense fallback={<p className="text-white text-center mt-10">Loading...</p>}>
+      <OAuthHandler />
+    </Suspense>
+  )
 }
