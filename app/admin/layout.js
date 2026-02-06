@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from "react"
-import AdminNavbar from "../../components/admin/AdminNavbar"
-import AdminSidebar from "../../components/admin/AdminSidebar"
-import AdminFooter from "../../components/admin/AdminFooter"
+import AdminNavbar from "../components/admin/AdminNavbar"
+import AdminSidebar from "../components/admin/AdminSidebar"
+import AdminFooter from "../components/admin/AdminFooter"
 
 export default function AdminLayout({ children }) {
   const [theme, setTheme] = useState("dark") // default admin = dark
