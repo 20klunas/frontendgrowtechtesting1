@@ -7,62 +7,85 @@ const statusConfig = {
   berhasil: {
     label: "Berhasil",
     icon: CheckCircle,
-    bg: "bg-[#1a3d2e]",
-    border: "border-[#2d5e4b]",
-    iconColor: "text-green-400",
+    gradient: "from-emerald-600/20 to-emerald-900/40",
+    border: "border-emerald-500/30",
+    iconBg: "bg-emerald-500/20",
+    iconColor: "text-emerald-400",
+    glow: "hover:shadow-emerald-500/20",
   },
   pending: {
     label: "Pending",
     icon: Clock,
-    bg: "bg-[#2d1b4e]",
-    border: "border-[#3d2b5e]",
+    gradient: "from-purple-600/20 to-purple-900/40",
+    border: "border-purple-500/30",
+    iconBg: "bg-purple-500/20",
     iconColor: "text-purple-400",
+    glow: "hover:shadow-purple-500/20",
   },
   proses: {
     label: "Proses",
     icon: Eye,
-    bg: "bg-[#2d1b4e]",
-    border: "border-[#3d2b5e]",
-    iconColor: "text-purple-400",
+    gradient: "from-indigo-600/20 to-indigo-900/40",
+    border: "border-indigo-500/30",
+    iconBg: "bg-indigo-500/20",
+    iconColor: "text-indigo-400",
+    glow: "hover:shadow-indigo-500/20",
   },
   gagal: {
     label: "Gagal",
     icon: X,
-    bg: "bg-[#3d1a1a]",
-    border: "border-[#5e2d2d]",
+    gradient: "from-red-600/20 to-red-900/40",
+    border: "border-red-500/30",
+    iconBg: "bg-red-500/20",
     iconColor: "text-red-400",
+    glow: "hover:shadow-red-500/20",
   },
 }
 
-export default function TransactionCard({
-  count,
-  amount,
-  status,
-}) {
+export default function TransactionCard({ count, amount, status }) {
   const config = statusConfig[status] || statusConfig.pending
   const Icon = config.icon
 
   return (
     <div
       className={cn(
-        "flex items-center justify-between rounded-xl border p-4",
-        config.bg,
-        config.border
+        "relative overflow-hidden rounded-2xl border p-5",
+        "bg-gradient-to-br",
+        config.gradient,
+        config.border,
+        "transition-all duration-300",
+        "hover:-translate-y-1 hover:shadow-xl",
+        config.glow
       )}
     >
-      <div className="space-y-1">
-        <p className="text-lg font-bold text-white">{count}</p>
-        <p className="text-base font-semibold text-white">{amount}</p>
-        <p className="text-xs text-gray-400">{config.label}</p>
-      </div>
+      {/* Glow layer */}
+      <div className="pointer-events-none absolute inset-0 bg-white/5 opacity-0 hover:opacity-100 transition" />
 
-      <div
-        className={cn(
-          "flex h-10 w-10 items-center justify-center",
-          config.iconColor
-        )}
-      >
-        <Icon className="h-6 w-6" />
+      <div className="relative flex items-center justify-between">
+        {/* LEFT */}
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-wide text-gray-400">
+            {config.label}
+          </p>
+
+          <p className="text-2xl font-bold text-white">
+            {count}
+          </p>
+
+          <p className="text-sm text-gray-300">
+            {amount}
+          </p>
+        </div>
+
+        {/* ICON */}
+        <div
+          className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-full",
+            config.iconBg
+          )}
+        >
+          <Icon className={cn("h-6 w-6", config.iconColor)} />
+        </div>
       </div>
     </div>
   )

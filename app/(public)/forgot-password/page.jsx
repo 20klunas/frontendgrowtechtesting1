@@ -12,17 +12,31 @@ export default function ForgotPasswordPage() {
     setLoading(true)
 
     try {
-      // 🔗 SIAP DIHUBUNGKAN KE API
-      // await fetch(`${API}/api/v1/auth/forgot-password`, { ... })
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/password/forgot`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        }
+      )
 
-      await new Promise(res => setTimeout(res, 1000)) // dummy delay
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.message || "Gagal")
+      }
+
       setSuccess(true)
     } catch (err) {
-      alert("Gagal mengirim email reset password")
+      alert(err.message || "Gagal mengirim email reset password")
     } finally {
       setLoading(false)
     }
   }
+
 
   return (
     <main

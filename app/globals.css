@@ -6,7 +6,23 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  --card: #f9fafb;
+  --card-border: #e5e7eb;
+
+  --muted: #6b7280;
 }
+
+.dark {
+  --background: #020617;
+  --foreground: #e5e7eb;
+
+  --card: #0f172a;
+  --card-border: #312e81;
+
+  --muted: #9ca3af;
+}
+
 
 html {
   transition: background-color 0.3s, color 0.3s;
@@ -32,11 +48,6 @@ html {
   @apply px-3 py-1 rounded-full text-sm font-semibold;
 }
 
-/* .dark {
-  --bg: #000000;
-  --text: #ffffff;
-} */
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -59,8 +70,11 @@ html {
 body {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
-  @apply bg-white text-zinc-900 dark:bg-black dark:text-white;
+  background: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.3s, color 0.3s;
 }
+
 
 
 /* ================= NAVBAR ================= */

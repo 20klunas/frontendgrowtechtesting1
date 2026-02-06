@@ -25,8 +25,10 @@ export default function AdminLayout({ children }) {
   }, [theme])
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 transition-colors">
-
+    <div
+      className="min-h-screen transition-colors"
+      style={{ background: "var(--background)", color: "var(--foreground)" }}
+    >
       <AdminNavbar
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         theme={theme}

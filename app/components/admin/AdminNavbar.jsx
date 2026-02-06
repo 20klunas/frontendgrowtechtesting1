@@ -23,7 +23,13 @@ export default function AdminNavbar({ onMenuClick, theme, setTheme }) {
   }, [])
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 h-14 bg-white dark:bg-[#1a0a2e] border-b border-zinc-200 dark:border-white/10 flex items-center justify-between px-4 lg:px-6">
+    <nav
+      className="fixed top-0 left-0 right-0 z-50 h-14 border-b flex items-center justify-between px-4 lg:px-6"
+      style={{
+        background: "var(--card)",
+        borderColor: "var(--card-border)",
+      }}
+    >
       {/* LEFT */}
       <Button
         variant="ghost"
@@ -36,13 +42,13 @@ export default function AdminNavbar({ onMenuClick, theme, setTheme }) {
 
       {/* RIGHT */}
       <div className="flex items-center gap-2 lg:gap-4 relative">
-        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+        {/* <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
           <Search className="h-5 w-5" />
         </Button>
 
         <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
           <ShoppingCart className="h-5 w-5" />
-        </Button>
+        </Button> */}
 
         <ThemeToggle theme={theme} setTheme={setTheme} />
 

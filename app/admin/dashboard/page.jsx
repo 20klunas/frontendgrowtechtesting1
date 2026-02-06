@@ -2,14 +2,8 @@
 
 import { useState } from "react"
 import { useAuth } from "../../../app/hooks/useAuth"
-
-import {
-  DollarSign,
-  Users,
-  Package,
-  Boxes,
-  Filter,
-} from "lucide-react"
+import { Filter, DollarSign, Users, Package, Boxes } from "lucide-react"
+import { motion } from "framer-motion"
 
 import TransactionChart from "../../components/admin/cards/TransactionChart"
 import TransactionCard from "../../components/admin/cards/TransactionCard"
@@ -32,79 +26,114 @@ const TRANSACTION_FILTERS = [
   { label: "30 Hari", value: "30_hari" },
 ]
 
+/* ================= ANIMATION ================= */
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 },
+  },
+}
+
+const item = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+}
+
 /* ================= PAGE ================= */
 
 export default function DashboardPage() {
-  const [transactionFilter, setTransactionFilter] = useState("hari_ini")
   const { user } = useAuth()
+
+  const [filterDraft, setFilterDraft] = useState("7_hari")
+  const [appliedFilter, setAppliedFilter] = useState("7_hari")
+  const [chartOffset, setChartOffset] = useState(0)
 
   const userName = user?.full_name || user?.name || "Admin"
 
   return (
-    <div className="min-h-screen bg-background p-4 lg:p-6">
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="min-h-screen bg-background p-4 lg:p-6"
+    >
 
       {/* ================= HEADER ================= */}
-      <header className="mb-6">
+      <motion.header variants={item} className="mb-6">
         <h1 className="text-2xl font-bold text-white lg:text-3xl">
           Dashboard Admin
         </h1>
         <p className="text-gray-400">
-          Halo, Selamat datang <span className="font-semibold text-white">{userName}</span>
+          Halo, Selamat datang{" "}
+          <span className="font-semibold text-white">
+            {userName}
+          </span>
         </p>
-      </header>
+      </motion.header>
 
       {/* ================= STATISTIK TRANSAKSI ================= */}
-      <section className="mb-8 space-y-4">
+      <motion.section variants={item} className="mb-8 space-y-4">
         <h2 className="text-xl font-bold text-white">
           Statistik Transaksi
         </h2>
-        <TransactionChart />
-      </section>
+
+        <TransactionChart
+          filter={appliedFilter}
+          offset={chartOffset}
+          setOffset={setChartOffset}
+        />
+      </motion.section>
 
       {/* ================= DATA TRANSAKSI ================= */}
-      <section className="mb-8 space-y-4">
+      <motion.section variants={item} className="mb-8 space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-xl font-bold text-white">
             Data Transaksi
           </h2>
 
           <div className="flex items-center gap-2">
-            <Select
-              value={transactionFilter}
-              onValueChange={setTransactionFilter}
-            >
+            <Select value={filterDraft} onValueChange={setFilterDraft}>
               <SelectTrigger className="w-[120px] border-[#3d2b5e] bg-[#2d1b4e] text-white">
-                <SelectValue placeholder="Filter" />
+                <SelectValue />
               </SelectTrigger>
+
               <SelectContent className="border-[#3d2b5e] bg-[#1a1a2e] text-white">
-                {TRANSACTION_FILTERS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
+                {TRANSACTION_FILTERS.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             <Button
-              variant="outline"
-              className="border-[#3d2b5e] bg-[#2d1b4e] text-white hover:bg-[#3d2b5e]"
+              onClick={() => {
+                setAppliedFilter(filterDraft)
+                setChartOffset(0)
+              }}
+              className="bg-purple-700 hover:bg-purple-600"
             >
-              <Filter className="mr-2 h-4 w-4" />
+              <Filter className="h-4 w-4 mr-2" />
               Terapkan
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <TransactionCard count="x90" amount="Rp 300.000" status="berhasil" />
-          <TransactionCard count="x25" amount="Rp 300.000" status="pending" />
-          <TransactionCard count="x15" amount="Rp 300.000" status="proses" />
-          <TransactionCard count="x5" amount="Rp 300.000" status="gagal" />
-        </div>
-      </section>
+        <motion.div
+          variants={item}
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <TransactionCard status="berhasil" />
+          <TransactionCard status="pending" />
+          <TransactionCard status="proses" />
+          <TransactionCard status="gagal" />
+        </motion.div>
+      </motion.section>
 
       {/* ================= PROFIT ================= */}
-      <section className="mb-8 space-y-4">
+      <motion.section variants={item} className="mb-8 space-y-4">
         <h2 className="text-xl font-bold text-white">
           Profit
         </h2>
@@ -126,10 +155,10 @@ export default function DashboardPage() {
             icon={DollarSign}
           />
         </div>
-      </section>
+      </motion.section>
 
       {/* ================= DATA USER ================= */}
-      <section className="mb-8 space-y-4">
+      <motion.section variants={item} className="mb-8 space-y-4">
         <h2 className="text-xl font-bold text-white">
           Data User
         </h2>
@@ -151,10 +180,10 @@ export default function DashboardPage() {
             icon={DollarSign}
           />
         </div>
-      </section>
+      </motion.section>
 
       {/* ================= DATA PRODUK ================= */}
-      <section className="mb-8 space-y-4">
+      <motion.section variants={item} className="mb-8 space-y-4">
         <h2 className="text-xl font-bold text-white">
           Data Produk
         </h2>
@@ -171,8 +200,8 @@ export default function DashboardPage() {
             icon={Package}
           />
         </div>
-      </section>
+      </motion.section>
 
-    </div>
+    </motion.div>
   )
 }
