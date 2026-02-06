@@ -20,7 +20,7 @@ export default function NavbarCustomer() {
   const [brand, setBrand] = useState({})
   const avatarSrc = user?.avatar_url || user?.avatar || null
 
-  // ✅ HOOK HARUS SELALU DIPANGGIL
+  // HOOK HARUS SELALU DIPANGGIL
   useEffect(() => {
     fetch(`${API}/api/v1/content/settings?group=website`)
       .then(res => res.json())
@@ -31,7 +31,7 @@ export default function NavbarCustomer() {
       .catch(console.error)
   }, [API])
 
-  // ✅ EARLY RETURN SETELAH SEMUA HOOK
+  // EARLY RETURN SETELAH SEMUA HOOK
   if (loading) return null
 
   return (
