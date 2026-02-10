@@ -20,7 +20,7 @@ export default function KategoriPage() {
     is_active: true,
     sort_order: 1
   })
-  
+
   const authHeaders = () => {
     const token = Cookies.get('token')
     return {
@@ -176,7 +176,21 @@ export default function KategoriPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-white">Manajemen Produk</h1>
 
-      <div className="rounded-2xl border border-purple-600/60 bg-black p-6">
+      <motion.div
+        className="
+          rounded-2xl
+          border border-purple-600/60
+          bg-black
+          p-6
+          transition-all duration-300
+          shadow-[0_0_25px_rgba(168,85,247,0.15)]
+          hover:shadow-[0_0_45px_rgba(168,85,247,0.35)]
+          hover:border-purple-500
+        "
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+      >
         <h2 className="text-lg font-semibold text-white mb-4">
           Data Kategori
         </h2>
@@ -244,7 +258,7 @@ export default function KategoriPage() {
             </table>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* ================= MODAL ================= */}
       {showModal && (

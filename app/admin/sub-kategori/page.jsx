@@ -192,7 +192,21 @@ export default function SubKategoriPage() {
         Manajemen Produk
       </h1>
 
-      <div className="rounded-2xl border border-purple-600/60 bg-black p-6">
+      <motion.div
+        className="
+          rounded-2xl
+          border border-purple-600/60
+          bg-black
+          p-6
+          transition-all duration-300
+          shadow-[0_0_25px_rgba(168,85,247,0.15)]
+          hover:shadow-[0_0_45px_rgba(168,85,247,0.35)]
+          hover:border-purple-500
+        "
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+      >
         <h2 className="text-lg font-semibold text-white mb-4">
           Data Sub Kategori
         </h2>
@@ -279,7 +293,7 @@ export default function SubKategoriPage() {
             </table>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* ================= MODAL ================= */}
       {showModal && (
