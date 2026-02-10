@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Cookies from 'js-cookie'
+import { motion } from "framer-motion";
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
