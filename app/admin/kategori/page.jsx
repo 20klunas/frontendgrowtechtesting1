@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Cookies from 'js-cookie'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -23,8 +24,12 @@ export default function KategoriPage() {
   // ================= FETCH =================
   const fetchCategories = async () => {
     setLoading(true)
+    const token = Cookies.get('token')
     const res = await fetch(`${API}/api/v1/admin/categories`, {
-      credentials: 'include'
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json'
+      }
     })
     const text = await res.text()
 
@@ -59,10 +64,10 @@ export default function KategoriPage() {
 
     const res = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      headers: authHeaders(),
       body: JSON.stringify(form)
     })
+
 
     const text = await res.text()
 
@@ -94,9 +99,10 @@ export default function KategoriPage() {
       `${API}/api/v1/admin/categories/${selected.id}`,
       {
         method: 'DELETE',
-        credentials: 'include'
+        headers: authHeaders()
       }
     )
+
 
     const text = await res.text()
 
