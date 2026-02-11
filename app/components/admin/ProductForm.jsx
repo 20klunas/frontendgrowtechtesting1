@@ -64,10 +64,9 @@ export default function ProductForm({ mode, id }) {
         headers: authHeaders(),
       });
       const json = await res.json();
-      fetchSubcategories(data.category_id);
-
       const data = json.data;
-
+      fetchSubcategories(data.category_id);
+      
       setForm({
         category_id: data.category_id,
         subcategory_id: data.subcategory_id,
