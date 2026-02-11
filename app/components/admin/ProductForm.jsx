@@ -43,14 +43,17 @@ export default function ProductForm({ mode, id }) {
       });
 
       const json = await res.json();
+      if (!res.ok) throw new Error(json?.error?.message);
+
       setSubcategories(json.data || []);
     } catch (err) {
-      console.error("Fetch subcategories error:", err);
+      console.error(err);
+      alert("Gagal mengambil subkategori");
       setSubcategories([]);
     }
   };
 
-  // ================= FETCH PRODUCT (EDIT MODE) =================
+  // ================= FETCH PRODUCT =================
   const fetchProduct = async () => {
     if (mode !== "edit" || !id) return;
 
@@ -60,6 +63,8 @@ export default function ProductForm({ mode, id }) {
       });
 
       const json = await res.json();
+      if (!res.ok) throw new Error(json?.error?.message);
+
       const data = json.data;
 
       if (!data) throw new Error("Produk tidak ditemukan");
@@ -67,19 +72,21 @@ export default function ProductForm({ mode, id }) {
       setForm({
         category_id: data.category_id,
         subcategory_id: data.subcategory_id,
-        name: data.name,
-        type: data.type,
-        duration_days: data.duration_days,
-        description: data.description,
+        name: data.name || "",
+        type: data.type || "ACCOUNT_CREDENTIAL",
+        duration_days: data.duration_days ?? 7,
+        description: data.description || "",
         member_price: data.tier_pricing?.member ?? "",
         reseller_price: data.tier_pricing?.reseller ?? "",
         vip_price: data.tier_pricing?.vip ?? "",
-        is_active: data.is_active,
-        is_published: data.is_published,
+        is_active: !!data.is_active,
+        is_published: !!data.is_published,
       });
+
     } catch (err) {
       console.error(err);
       alert(err.message || "Gagal load produk");
+      router.push("/admin/produk");
     }
   };
 
@@ -100,7 +107,6 @@ export default function ProductForm({ mode, id }) {
     const { name, value, type, checked } = e.target;
     const newValue = type === "checkbox" ? checked : value;
 
-    // kalau subcategory berubah → update category otomatis
     if (name === "subcategory_id") {
       const selectedSub = subcategories.find(
         (sub) => sub.id === Number(value)
@@ -162,6 +168,7 @@ export default function ProductForm({ mode, id }) {
       }
 
       router.push("/admin/produk");
+
     } catch (err) {
       console.error(err);
       alert(err.message);
@@ -181,7 +188,7 @@ export default function ProductForm({ mode, id }) {
 
       <form onSubmit={handleSubmit} className="space-y-4">
 
-        {/* SUBCATEGORY ONLY */}
+        {/* SUBCATEGORY */}
         <select
           name="subcategory_id"
           value={form.subcategory_id}
