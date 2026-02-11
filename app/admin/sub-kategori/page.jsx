@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Cookies from 'js-cookie'
 import { motion } from "framer-motion";
+import { authFetch } from "../../lib/authFetch";
+
 // import { supabase } from '../../lib/supabaseClient'
 
 const API = process.env.NEXT_PUBLIC_API_URL
@@ -90,20 +92,26 @@ export default function SubKategoriPage() {
 
   // ================= FETCH =================
   const fetchAll = async () => {
-    setLoading(true)
+    setLoading(true);
 
-    const [subRes, catRes] = await Promise.all([
-      fetch(`${API}/api/v1/admin/subcategories`, { headers: authHeaders() }),
-      fetch(`${API}/api/v1/admin/categories`, { headers: authHeaders() })
-    ])
+    try {
+      const [subRes, catRes] = await Promise.all([
+        authFetch("/api/v1/admin/subcategories"),
+        authFetch("/api/v1/admin/categories"),
+      ]);
 
-    const subJson = await subRes.json()
-    const catJson = await catRes.json()
+      const subJson = await subRes.json();
+      const catJson = await catRes.json();
 
-    setItems(subJson.data || [])
-    setCategories(catJson.data || [])
-    setLoading(false)
-  }
+      setItems(subJson.data || []);
+      setCategories(catJson.data || []);
+    } catch (err) {
+      alert("Gagal mengambil data");
+    }
+
+    setLoading(false);
+  };
+
 
   useEffect(() => {
     fetchAll()
@@ -137,19 +145,13 @@ export default function SubKategoriPage() {
 
     const compressedFile = await compressImage(file)
 
-    const signRes = await fetch(
-      `${API}/api/v1/admin/subcategories/logo/sign`,
+    const signRes = await authFetch(
+      "/api/v1/admin/subcategories/logo/sign",
       {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          filename: fileName
-        })
+        method: "POST",
+        body: JSON.stringify({ filename: fileName }),
       }
-    )
+    );
 
     const signJson = await signRes.json()
 
@@ -193,60 +195,64 @@ export default function SubKategoriPage() {
     setUploading(false)
   }
 
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (!token) {
+      window.location.href = "/login";
+    }
+  }, []);
+
 
   // ================= CREATE / UPDATE =================
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
+    e.preventDefault();
+    setSubmitting(true);
 
-    const url =
-      mode === 'edit'
-        ? `${API}/api/v1/admin/subcategories/${selected.id}`
-        : `${API}/api/v1/admin/subcategories`
+    const endpoint =
+      mode === "edit"
+        ? `/api/v1/admin/subcategories/${selected.id}`
+        : `/api/v1/admin/subcategories`;
 
-    const method = mode === 'edit' ? 'PATCH' : 'POST'
+    const method = mode === "edit" ? "PATCH" : "POST";
 
-    const payload = {
-      category_id: Number(form.category_id),
-      name: form.name,
-      slug: form.slug,
-      provider: form.provider,
-      image_url: form.image_url,
-      image_path: form.image_path,
-      is_active: form.is_active,
-      sort_order: Number(form.sort_order)
-    }
-
-    const res = await fetch(url, {
+    const res = await authFetch(endpoint, {
       method,
-      headers: authHeaders(),
-      body: JSON.stringify(payload)
-    })
+      body: JSON.stringify({
+        category_id: Number(form.category_id),
+        name: form.name,
+        slug: form.slug,
+        provider: form.provider,
+        image_url: form.image_url,
+        image_path: form.image_path,
+        is_active: form.is_active,
+        sort_order: Number(form.sort_order),
+      }),
+    });
 
-    const json = await res.json()
+    const json = await res.json();
 
     if (json.success) {
-      fetchAll()
-      closeModal()
+      fetchAll();
+      closeModal();
     } else {
-      alert('Gagal menyimpan')
+      alert("Gagal menyimpan");
     }
 
-    setSubmitting(false)
-  }
+    setSubmitting(false);
+  };
 
   const handleDelete = async () => {
-    setSubmitting(true)
+    setSubmitting(true);
 
-    await fetch(`${API}/api/v1/admin/subcategories/${selected.id}`, {
-      method: 'DELETE',
-      headers: authHeaders()
-    })
+    await authFetch(`/api/v1/admin/subcategories/${selected.id}`, {
+      method: "DELETE",
+    });
 
-    fetchAll()
-    closeModal()
-    setSubmitting(false)
-  }
+    fetchAll();
+    closeModal();
+    setSubmitting(false);
+  };
+
 
   const openCreate = () => {
     setMode('create')
