@@ -96,7 +96,7 @@ export default function ProdukPage() {
       </div>
 
       {/* SEARCH */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 mt-2">
         <input
           type="text"
           placeholder="Cari produk..."
@@ -110,7 +110,7 @@ export default function ProdukPage() {
       </div>
 
       {/* TABLE */}
-      <div className="rounded-2xl border border-purple-600/60 bg-black p-6">
+      <div className="rounded-2xl border border-purple-600/60 bg-black p-6 mt-2">
 
         <table className="w-full text-sm text-gray-300">
           <thead>
