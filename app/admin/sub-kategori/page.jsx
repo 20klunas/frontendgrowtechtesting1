@@ -19,6 +19,8 @@ export default function SubKategoriPage() {
   const [mode, setMode] = useState('create')
   const [selected, setSelected] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
 
   const [preview, setPreview] = useState(null)
 
@@ -51,6 +53,41 @@ export default function SubKategoriPage() {
     }
   }
 
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+
+      reader.readAsDataURL(file)
+
+      reader.onload = (event) => {
+        const img = new Image()
+        img.src = event.target.result
+
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+
+          const maxWidth = 800
+          const scale = maxWidth / img.width
+
+          canvas.width = maxWidth
+          canvas.height = img.height * scale
+
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+          canvas.toBlob(
+            (blob) => {
+              resolve(new File([blob], file.name, { type: 'image/jpeg' }))
+            },
+            'image/jpeg',
+            0.8
+          )
+        }
+      }
+    })
+  }
+
+
   // ================= FETCH =================
   const fetchAll = async () => {
     setLoading(true)
@@ -75,15 +112,35 @@ export default function SubKategoriPage() {
   // ================= HANDLE IMAGE UPLOAD =================
   const handleImageUpload = async (file) => {
 
-    if (!file) return;
+    if (!file) return
 
-    const token = Cookies.get('token');
+    // ================= VALIDATION =================
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    const maxSize = 2 * 1024 * 1024 // 2MB
 
-    const slug = generateSlug(form.name || 'logo');
-    const ext = file.name.split('.').pop();
-    const fileName = `${slug}-${Date.now()}.${ext}`;
+    if (!allowedTypes.includes(file.type)) {
+      alert('Format harus JPG, PNG, atau WEBP')
+      return
+    }
 
-    // 1️⃣ Minta signed URL ke backend
+    if (file.size > maxSize) {
+      alert('Ukuran maksimal 2MB')
+      return
+    }
+
+    setUploading(true)
+    setProgress(0)
+
+    const token = Cookies.get('token')
+
+    const slug = generateSlug(form.name || 'logo')
+    const fileExt = 'jpg'
+    const fileName = `${slug}-${Date.now()}.${fileExt}`
+
+    // ================= COMPRESS =================
+    const compressedFile = await compressImage(file)
+
+    // ================= SIGN REQUEST =================
     const signRes = await fetch(
       `${API}/api/v1/admin/subcategories/logo/sign`,
       {
@@ -96,41 +153,69 @@ export default function SubKategoriPage() {
           filename: fileName
         })
       }
-    );
+    )
 
-    const signJson = await signRes.json();
+    const signJson = await signRes.json()
 
     if (!signJson.success) {
-      alert('Gagal generate signed URL');
-      return;
+      alert('Gagal generate signed URL')
+      setUploading(false)
+      return
     }
 
-    const { signedUrl, path, publicUrl } = signJson.data;
+    const { signedUrl, path, publicUrl } = signJson.data
 
-    // 2️⃣ Upload ke Supabase pakai signed URL
-    const uploadRes = await fetch(signedUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type
+    // ================= UPLOAD WITH PROGRESS =================
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('PUT', signedUrl)
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100)
+          setProgress(percent)
+        }
       }
-    });
 
-    if (!uploadRes.ok) {
-      alert('Upload gagal');
-      return;
+      xhr.onload = () => {
+        if (xhr.status === 200) resolve()
+        else reject()
+      }
+
+      xhr.onerror = reject
+
+      xhr.setRequestHeader('Content-Type', 'image/jpeg')
+      xhr.send(compressedFile)
+    })
+
+    // ================= AUTO DELETE OLD IMAGE =================
+    if (mode === 'edit' && form.image_path) {
+      await fetch(
+        `${API}/api/v1/admin/subcategories/logo/delete`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            path: form.image_path
+          })
+        }
+      )
     }
 
-    // 3️⃣ Set ke form
+    // ================= UPDATE FORM =================
     setForm(prev => ({
       ...prev,
       image_url: publicUrl,
       image_path: path
-    }));
+    }))
 
-    setPreview(publicUrl);
-  };
+    setPreview(publicUrl)
 
+    setUploading(false)
+  }
 
   // ================= CREATE / UPDATE =================
   const handleSubmit = async (e) => {
@@ -336,6 +421,19 @@ export default function SubKategoriPage() {
                 accept="image/*"
                 onChange={e => handleImageUpload(e.target.files[0])}
               />
+              {uploading && (
+                <div className="mb-3">
+                  <div className="w-full bg-purple-900/40 rounded h-2">
+                    <div
+                      className="bg-purple-500 h-2 rounded transition-all"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-purple-300 mt-1">
+                    Uploading... {progress}%
+                  </p>
+                </div>
+              )}
 
               {preview && (
                 <div className="mb-3">
