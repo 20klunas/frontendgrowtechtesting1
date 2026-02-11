@@ -5,18 +5,18 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Cookies from "js-cookie";   
 import { useAuth } from "../../../app/hooks/useAuth";
-
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
 
-  // ✅ FIX: nama env yang benar
   const API = process.env.NEXT_PUBLIC_API_URL;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { setUser } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -37,13 +37,11 @@ export default function LoginPage() {
       const json = await res.json()
       const token = json.data.token
 
-      // ✅ Simpan token
       Cookies.set("token", token, {
         path: "/",
         sameSite: "lax",
       })
 
-      // ✅ Ambil profile lengkap (ADA AVATAR)
       const profileRes = await fetch(`${API}/api/v1/auth/me/profile`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -55,10 +53,8 @@ export default function LoginPage() {
 
       const profileJson = await profileRes.json()
 
-      // 🔥 LANGSUNG SET USER BIAR NAVBAR PUNYA DATA
       setUser(profileJson.data)
 
-      // baru redirect
       if (profileJson.data.role === "admin") {
         router.replace("/admin/dashboard")
       } else {
@@ -105,7 +101,6 @@ export default function LoginPage() {
           Login
         </h1>
 
-        {/* FORM */}
         <form className="space-y-4" onSubmit={handleLogin}>
           <div>
             <label className="text-sm text-purple-300">Email</label>
@@ -127,24 +122,29 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* PASSWORD */}
           <div>
             <label className="text-sm text-purple-300">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="********"
-              required
-              className="
-                mt-1 w-full rounded-lg
-                border border-purple-400/50
-                bg-black
-                px-4 py-2
-                text-white
-                outline-none
-                focus:border-purple-500
-              "
-            />
+
+            <div className="relative mt-1">
+              <input
+                type={showPassword ? "text" : "password"}   // ✅ TOGGLE
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="********"
+                required
+                className="w-full rounded-lg border border-purple-400/50 bg-black px-4 py-2 pr-10 text-white outline-none focus:border-purple-500"
+              />
+
+              {/* ICON BUTTON */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 hover:text-purple-200"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           <div className="text-right">
             <a
@@ -175,7 +175,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* REGISTER */}
         <p className="mt-6 text-center text-sm text-gray-400">
           Belum punya akun?{" "}
           <a href="/register" className="text-purple-400 hover:underline">
@@ -183,7 +182,6 @@ export default function LoginPage() {
           </a>
         </p>
 
-        {/* SOCIAL LOGIN (UI ONLY, BELUM AKTIF) */}
         <div className="mt-6 border-t border-purple-400/30 pt-4 text-center">
           <p className="mb-3 text-sm text-gray-400">Masuk dengan</p>
 
