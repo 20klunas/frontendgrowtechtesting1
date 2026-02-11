@@ -26,6 +26,22 @@ export default function ProductForm({ mode, id }) {
     is_published: false,
   });
 
+  const fetchSubcategories = async (categoryId) => {
+    if (!categoryId) {
+      setSubcategories([]);
+      return;
+    }
+
+    const res = await fetch(
+      `${API}/api/v1/admin/subcategories?category_id=${categoryId}`,
+      { headers: authHeaders() }
+    );
+
+    const json = await res.json();
+    setSubcategories(json.data || []);
+  };
+
+
   const authHeaders = () => {
     const token = Cookies.get("token");
     return {
@@ -48,6 +64,7 @@ export default function ProductForm({ mode, id }) {
         headers: authHeaders(),
       });
       const json = await res.json();
+      fetchSubcategories(data.category_id);
 
       const data = json.data;
 
@@ -73,7 +90,18 @@ export default function ProductForm({ mode, id }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
+
+    const newValue = type === "checkbox" ? checked : value;
+
+    setForm(prev => ({
+      ...prev,
+      [name]: newValue,
+      ...(name === "category_id" && { subcategory_id: "" }) // reset subcategory
+    }));
+
+    if (name === "category_id") {
+      fetchSubcategories(value);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -118,6 +146,36 @@ export default function ProductForm({ mode, id }) {
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+
+        <select
+          name="category_id"
+          value={form.category_id}
+          onChange={handleChange}
+          className="input"
+          required
+        >
+          <option value="">Pilih Kategori</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          name="subcategory_id"
+          value={form.subcategory_id}
+          onChange={handleChange}
+          className="input"
+          required
+        >
+          <option value="">Pilih Subkategori</option>
+          {subcategories.map(sub => (
+            <option key={sub.id} value={sub.id}>
+              {sub.name}
+            </option>
+          ))}
+        </select>
 
         <input
           name="name"
