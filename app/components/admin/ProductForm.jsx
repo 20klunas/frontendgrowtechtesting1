@@ -7,10 +7,11 @@ import Cookies from "js-cookie";
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ProductForm({ mode, id }) {
-
   const router = useRouter();
+
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({
     category_id: "",
@@ -26,60 +27,82 @@ export default function ProductForm({ mode, id }) {
     is_published: false,
   });
 
+  const authHeaders = () => {
+    const token = Cookies.get("token");
+    return {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+  };
+
+  // ================= FETCH SUBCATEGORY =================
   const fetchSubcategories = async (categoryId) => {
     if (!categoryId) {
       setSubcategories([]);
       return;
     }
 
-    const res = await fetch(
-      `${API}/api/v1/admin/subcategories?category_id=${categoryId}`,
-      { headers: authHeaders() }
-    );
+    try {
+      const res = await fetch(
+        `${API}/api/v1/admin/subcategories?category_id=${categoryId}`,
+        { headers: authHeaders() }
+      );
 
-    const json = await res.json();
-    setSubcategories(json.data || []);
+      const json = await res.json();
+      setSubcategories(json.data || []);
+    } catch (err) {
+      console.error("Fetch subcategories error:", err);
+      setSubcategories([]);
+    }
   };
 
-
-  const authHeaders = () => {
-    const token = Cookies.get("token");
-    return {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    };
-  };
-
-  // ================= FETCH DATA =================
+  // ================= FETCH INITIAL =================
   const fetchInitial = async () => {
+    setLoading(true);
 
-    const catRes = await fetch(`${API}/api/v1/admin/categories`, {
-      headers: authHeaders(),
-    });
-    const catJson = await catRes.json();
-    setCategories(catJson.data || []);
-
-    if (mode === "edit") {
-      const res = await fetch(`${API}/api/v1/admin/products/${id}`, {
+    try {
+      // categories
+      const catRes = await fetch(`${API}/api/v1/admin/categories`, {
         headers: authHeaders(),
       });
-      const json = await res.json();
-      const data = json.data;
-      fetchSubcategories(data.category_id);
-      
-      setForm({
-        category_id: data.category_id,
-        subcategory_id: data.subcategory_id,
-        name: data.name,
-        type: data.type,
-        duration_days: data.duration_days,
-        description: data.description,
-        member_price: data.tier_pricing.member,
-        reseller_price: data.tier_pricing.reseller,
-        vip_price: data.tier_pricing.vip,
-        is_active: data.is_active,
-        is_published: data.is_published,
-      });
+      const catJson = await catRes.json();
+      const catData = catJson.data || [];
+      setCategories(catData);
+
+      // edit mode
+      if (mode === "edit" && id) {
+        const res = await fetch(`${API}/api/v1/admin/products/${id}`, {
+          headers: authHeaders(),
+        });
+
+        const json = await res.json();
+        const data = json.data;
+
+        if (!data) throw new Error("Produk tidak ditemukan");
+
+        // load subcategory sesuai category produk
+        await fetchSubcategories(data.category_id);
+
+        setForm({
+          category_id: data.category_id,
+          subcategory_id: data.subcategory_id,
+          name: data.name,
+          type: data.type,
+          duration_days: data.duration_days,
+          description: data.description,
+          member_price: data.tier_pricing?.member ?? "",
+          reseller_price: data.tier_pricing?.reseller ?? "",
+          vip_price: data.tier_pricing?.vip ?? "",
+          is_active: data.is_active,
+          is_published: data.is_published,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Gagal load data");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -87,15 +110,15 @@ export default function ProductForm({ mode, id }) {
     fetchInitial();
   }, []);
 
+  // ================= HANDLE CHANGE =================
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-
     const newValue = type === "checkbox" ? checked : value;
 
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       [name]: newValue,
-      ...(name === "category_id" && { subcategory_id: "" }) // reset subcategory
+      ...(name === "category_id" && { subcategory_id: "" }),
     }));
 
     if (name === "category_id") {
@@ -103,40 +126,57 @@ export default function ProductForm({ mode, id }) {
     }
   };
 
+  // ================= SUBMIT =================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const payload = {
-      category_id: Number(form.category_id),
-      subcategory_id: Number(form.subcategory_id),
-      name: form.name,
-      type: form.type,
-      duration_days: Number(form.duration_days),
-      description: form.description,
-      tier_pricing: {
-        member: Number(form.member_price),
-        reseller: Number(form.reseller_price),
-        vip: Number(form.vip_price),
-      },
-      is_active: form.is_active,
-      is_published: form.is_published,
-    };
+    try {
+      const payload = {
+        category_id: Number(form.category_id),
+        subcategory_id: Number(form.subcategory_id),
+        name: form.name,
+        type: form.type,
+        duration_days: Number(form.duration_days),
+        description: form.description,
+        tier_pricing: {
+          member: Number(form.member_price),
+          reseller: Number(form.reseller_price),
+          vip: Number(form.vip_price),
+        },
+        is_active: form.is_active,
+        is_published: form.is_published,
+      };
 
-    const url =
-      mode === "edit"
-        ? `${API}/api/v1/admin/products/${id}`
-        : `${API}/api/v1/admin/products`;
+      const url =
+        mode === "edit"
+          ? `${API}/api/v1/admin/products/${id}`
+          : `${API}/api/v1/admin/products`;
 
-    const method = mode === "edit" ? "PATCH" : "POST";
+      const method = mode === "edit" ? "PATCH" : "POST";
 
-    await fetch(url, {
-      method,
-      headers: authHeaders(),
-      body: JSON.stringify(payload),
-    });
+      const res = await fetch(url, {
+        method,
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+      });
 
-    router.push("/admin/produk");
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json?.error?.message || "Gagal menyimpan produk");
+      }
+
+      router.push("/admin/produk");
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
   };
+
+  // ================= UI =================
+  if (loading) {
+    return <p className="text-white">Loading...</p>;
+  }
 
   return (
     <div className="max-w-2xl mx-auto bg-black p-6 rounded-2xl border border-purple-600/60">
@@ -146,6 +186,7 @@ export default function ProductForm({ mode, id }) {
 
       <form onSubmit={handleSubmit} className="space-y-4">
 
+        {/* CATEGORY */}
         <select
           name="category_id"
           value={form.category_id}
@@ -154,28 +195,31 @@ export default function ProductForm({ mode, id }) {
           required
         >
           <option value="">Pilih Kategori</option>
-          {categories.map(cat => (
+          {categories.map((cat) => (
             <option key={cat.id} value={cat.id}>
               {cat.name}
             </option>
           ))}
         </select>
 
+        {/* SUBCATEGORY */}
         <select
           name="subcategory_id"
           value={form.subcategory_id}
           onChange={handleChange}
           className="input"
           required
+          disabled={!form.category_id}
         >
           <option value="">Pilih Subkategori</option>
-          {subcategories.map(sub => (
+          {subcategories.map((sub) => (
             <option key={sub.id} value={sub.id}>
               {sub.name}
             </option>
           ))}
         </select>
 
+        {/* NAME */}
         <input
           name="name"
           placeholder="Nama Produk"
@@ -185,6 +229,7 @@ export default function ProductForm({ mode, id }) {
           required
         />
 
+        {/* DESCRIPTION */}
         <textarea
           name="description"
           placeholder="Deskripsi"
@@ -193,6 +238,7 @@ export default function ProductForm({ mode, id }) {
           className="input"
         />
 
+        {/* DURATION */}
         <input
           type="number"
           name="duration_days"
@@ -202,6 +248,7 @@ export default function ProductForm({ mode, id }) {
           className="input"
         />
 
+        {/* PRICING */}
         <div className="grid grid-cols-2 gap-3">
           <input
             type="number"
@@ -220,6 +267,7 @@ export default function ProductForm({ mode, id }) {
             onChange={handleChange}
             className="input"
           />
+
           <input
             type="number"
             name="vip_price"
