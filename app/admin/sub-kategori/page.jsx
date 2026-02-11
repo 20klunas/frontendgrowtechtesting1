@@ -112,6 +112,23 @@ export default function SubKategoriPage() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (!showModal) return;
+
+    const handleEsc = (e) => {
+      if (e.key === "Escape") closeModal();
+    };
+
+    document.addEventListener("keydown", handleEsc);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "auto";
+    };
+  }, [showModal]);
+
+
 
   useEffect(() => {
     fetchAll()
@@ -367,9 +384,20 @@ export default function SubKategoriPage() {
 
       {/* MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
-          <div className="relative w-full max-w-md bg-black p-6 rounded-2xl border border-purple-600/60">
-
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={closeModal}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md bg-black p-6 rounded-2xl border border-purple-600/60 shadow-[0_0_40px_rgba(168,85,247,0.25)]"
+          >
             <button
               type="button"
               onClick={closeModal}
