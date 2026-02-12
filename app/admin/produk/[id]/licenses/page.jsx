@@ -303,6 +303,22 @@ export default function LicensesPage() {
         <button onClick={handleTakeStock} className="btn-success">
           Take Stock
         </button>
+        <button onClick={() => {
+            const blob = new Blob(["TEST"], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "test.txt";
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            URL.revokeObjectURL(url);
+            }}>
+            Test Download
+        </button>
       </div>
 
       {/* TABLE */}
