@@ -3,19 +3,15 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { motion, AnimatePresence, useMotionValue } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function BannerCarousel() {
   const API = process.env.NEXT_PUBLIC_API_URL
   const [banners, setBanners] = useState([])
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
-  const [progress, setProgress] = useState(0)
-
-  const dragX = useMotionValue(0)
 
   const USE_UNOPTIMIZED = true
-  const SLIDE_DURATION = 4000
 
   // ================= FETCH =================
   useEffect(() => {
@@ -30,40 +26,28 @@ export default function BannerCarousel() {
       .catch(console.error)
   }, [API])
 
+  // ================= AUTO SLIDE =================
+  useEffect(() => {
+    if (paused || banners.length <= 1) return
+
+    const timer = setInterval(() => {
+      setIndex(prev => (prev + 1) % banners.length)
+    }, 4000)
+
+    return () => clearInterval(timer)
+  }, [banners, paused])
+
   useEffect(() => {
     setIndex(0)
   }, [banners])
 
-  // ================= AUTO SLIDE + PROGRESS =================
-  useEffect(() => {
-    if (paused || banners.length <= 1) return
-
-    setProgress(0)
-
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          setIndex(i => (i + 1) % banners.length)
-          return 0
-        }
-        return prev + 100 / (SLIDE_DURATION / 100)
-      })
-    }, 100)
-
-    return () => clearInterval(interval)
-  }, [paused, banners, index])
-
   if (!banners.length) return null
 
-  const nextSlide = () => {
+  const nextSlide = () =>
     setIndex(prev => (prev + 1) % banners.length)
-    setProgress(0)
-  }
 
-  const prevSlide = () => {
+  const prevSlide = () =>
     setIndex(prev => (prev - 1 + banners.length) % banners.length)
-    setProgress(0)
-  }
 
   return (
     <section className="mx-auto max-w-7xl px-8 mt-20">
@@ -77,49 +61,33 @@ export default function BannerCarousel() {
           <AnimatePresence mode="wait">
             <motion.div
               key={index}
-              initial={{ opacity: 0, scale: 1.03 }}
+              initial={{ opacity: 0, scale: 1.05 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.6 }}
               className="absolute inset-0"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              style={{ x: dragX }}
-              onDrag={(e, info) => {
-                dragX.set(info.offset.x)
-              }}
               onDragEnd={(e, info) => {
                 if (info.offset.x < -80) nextSlide()
                 if (info.offset.x > 80) prevSlide()
-                dragX.set(0)
               }}
             >
-              {/* PARALLAX IMAGE */}
-              <motion.div
-                style={{
-                  x: dragX.get() * 0.2
-                }}
-                className="absolute inset-0"
-              >
-                <Link href={banners[index].link_url || '#'}>
-                  <Image
-                    src={banners[index].image_url}
-                    alt={banners[index].title || 'Banner'}
-                    fill
-                    priority
-                    unoptimized={USE_UNOPTIMIZED}
-                    className="object-cover"
-                  />
-                </Link>
-              </motion.div>
-
-              {/* GLASS GRADIENT OVERLAY */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/30 backdrop-blur-[1px]" />
+              <Link href={banners[index].link_url || '#'}>
+                <Image
+                  src={banners[index].image_url}
+                  alt={banners[index].title || 'Banner'}
+                  fill
+                  priority
+                  unoptimized={USE_UNOPTIMIZED}
+                  className="object-cover"
+                />
+              </Link>
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* NAVIGATION */}
+        {/* NAVIGATION ARROWS */}
         <motion.button
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
@@ -138,24 +106,12 @@ export default function BannerCarousel() {
           ›
         </motion.button>
 
-        {/* PROGRESS BAR */}
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
-          <motion.div
-            className="h-full bg-purple-400"
-            animate={{ width: `${progress}%` }}
-            transition={{ ease: "linear", duration: 0.1 }}
-          />
-        </div>
-
         {/* INDICATORS */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
           {banners.map((_, i) => (
             <motion.button
               key={i}
-              onClick={() => {
-                setIndex(i)
-                setProgress(0)
-              }}
+              onClick={() => setIndex(i)}
               whileHover={{ scale: 1.3 }}
               className={`h-2.5 rounded-full transition-all ${
                 i === index
