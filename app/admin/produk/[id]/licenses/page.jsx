@@ -37,12 +37,7 @@ export default function LicensesPage() {
         console.log("LICENSES JSON:", res);
         console.log("SUMMARY JSON:", sum);
 
-        setLicenses(
-        Array.isArray(res.data)
-            ? res.data
-            : res.data?.data || []
-        );
-
+        setLicenses(res.data?.data || []);
         setSummary(sum.data?.counts || null);
 
     } catch (err) {
@@ -129,26 +124,34 @@ export default function LicensesPage() {
   // ================= TAKE STOCK =================
   const handleTakeStock = async () => {
     try {
-      const res = await licenseService.takeStock(id, qty);
+        const res = await licenseService.takeStock(id, qty);
 
-      const blob = new Blob(
-        [res.data.licenses.join("\n")],
+        const licenses = res.data?.licenses || [];
+
+        if (!licenses.length) {
+        showToast("error", "Tidak ada stock tersedia");
+        return;
+        }
+
+        const blob = new Blob(
+        [licenses.join("\n")],
         { type: "text/plain" }
-      );
+        );
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `licenses-product-${id}.txt`;
-      a.click();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `licenses-product-${id}.txt`;
+        a.click();
 
-      showToast("success", `Ambil ${qty} license`);
-      loadData();
+        showToast("success", `Ambil ${qty} license`);
+        loadData();
 
-    } catch {
-      showToast("error", "Gagal take stock");
+    } catch (err) {
+        showToast("error", err.message);
     }
   };
+
 
   const SkeletonRow = () => (
     <tr className="border-b border-white/5">
@@ -242,17 +245,25 @@ export default function LicensesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <>
+                <>
                 <SkeletonRow />
                 <SkeletonRow />
-              </>
-            ) : licenses.map(l => (
-              <tr key={l.id}>
-                <td className="text-white">{l.license_key}</td>
-                <td>{l.status}</td>
-                <td>{l.note || "-"}</td>
-              </tr>
-            ))}
+                </>
+            ) : licenses.length === 0 ? (
+                <tr>
+                <td colSpan="3" className="text-center py-4 text-gray-500">
+                    Tidak ada license
+                </td>
+                </tr>
+            ) : (
+                licenses.map(l => (
+                <tr key={l.id}>
+                    <td className="text-white">{l.license_key}</td>
+                    <td>{l.status}</td>
+                    <td>{l.note || "-"}</td>
+                </tr>
+                ))
+            )}
           </tbody>
         </table>
       </div>
