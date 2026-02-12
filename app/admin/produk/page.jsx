@@ -19,6 +19,7 @@ export default function ProdukPage() {
   const [processingId, setProcessingId] = useState(null);
 
   const [toast, setToast] = useState(null);
+  const [licenseSummary, setLicenseSummary] = useState({});
 
   // ================= TOAST =================
   const showToast = (type, message) => {
@@ -47,6 +48,9 @@ export default function ProdukPage() {
 
       setProducts(res.data || []);
       setMeta(res.meta || null);
+
+      loadLicenseSummary(res.data || []);
+
 
     } catch (err) {
       showToast("error", "Gagal mengambil data");
@@ -135,6 +139,34 @@ export default function ProdukPage() {
     </tr>
   );
 
+  const loadLicenseSummary = async (products) => {
+    try {
+      const summaries = {};
+
+      await Promise.all(
+        products.map(async (p) => {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/products/${p.id}/licenses/summary`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`
+              }
+            }
+          );
+
+          const json = await res.json();
+          summaries[p.id] = json.data?.counts || null;
+        })
+      );
+
+      setLicenseSummary(summaries);
+
+    } catch (err) {
+      console.error("Summary error", err);
+    }
+  };
+
+
   return (
     <motion.div
       className="rounded-2xl border border-purple-600/60 bg-black p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
@@ -194,6 +226,7 @@ export default function ProdukPage() {
             <tr className="border-b border-white/10">
               <th className="py-3 text-center">Nama</th>
               <th className="py-3 text-center">Durasi</th>
+              <th className="py-3 text-center">Stock</th>
               <th className="py-3 text-center">Harga Member</th>
               <th className="py-3 text-center">Harga Reseller</th>
               <th className="py-3 text-center">Harga VIP</th>
@@ -233,6 +266,18 @@ export default function ProdukPage() {
                   >
                     <td className="py-3 text-white">{p.name}</td>
                     <td className="py-3">{p.duration_days} hari</td>
+                    <td className="py-3 text-center">
+                      {licenseSummary[p.id] ? (
+                        <div className="text-xs">
+                          <p>Total: {licenseSummary[p.id].total}</p>
+                          <p className="text-green-400">
+                            Available: {licenseSummary[p.id].available}
+                          </p>
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
                     <td className="py-3">
                       Rp {p.tier_pricing?.member?.toLocaleString() || "-"}
                     </td>
@@ -286,6 +331,12 @@ export default function ProdukPage() {
                         className="btn-delete-sm"
                       >
                         Hapus
+                      </button>
+                      <button
+                        onClick={() => router.push(`/admin/produk/${p.id}/licenses`)}
+                        className="btn-secondary-sm"
+                      >
+                        Licenses
                       </button>
                     </td>
                   </motion.tr>
