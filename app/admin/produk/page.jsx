@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { productService } from "../../services/productService";
 
 export default function ProdukPage() {
-
   const router = useRouter();
 
   const [products, setProducts] = useState([]);
@@ -19,20 +18,13 @@ export default function ProdukPage() {
   // ================= LOAD DATA =================
   const loadProducts = async (customPage = page) => {
     setLoading(true);
-
     try {
-      const res = await productService.getAll({
-        search,
-        page: customPage
-      });
-
+      const res = await productService.getAll({ search, page: customPage });
       setProducts(res.data || []);
       setMeta(res.meta || null);
-
     } catch (err) {
       alert("Gagal mengambil data");
     }
-
     setLoading(false);
   };
 
@@ -40,11 +32,16 @@ export default function ProdukPage() {
     loadProducts(page);
   }, [search, page]);
 
-
   // ================= DELETE =================
   const handleDelete = async (id) => {
     if (!confirm("Hapus produk ini?")) return;
     await productService.remove(id);
+    loadProducts();
+  };
+
+  // ================= TOGGLE ACTIVE =================
+  const toggleActive = async (id) => {
+    await productService.toggleActive(id);
     loadProducts();
   };
 
@@ -57,7 +54,7 @@ export default function ProdukPage() {
   // ================= SKELETON =================
   const SkeletonRow = () => (
     <tr className="animate-pulse border-b border-white/5">
-      {[...Array(6)].map((_, i) => (
+      {[...Array(8)].map((_, i) => (
         <td key={i} className="py-4">
           <div className="h-4 bg-purple-900/40 rounded w-3/4"></div>
         </td>
@@ -67,17 +64,11 @@ export default function ProdukPage() {
 
   return (
     <motion.div
-      className="
-        rounded-2xl
-        border border-purple-600/60
-         bg-black
-        p-6
-        shadow-[0_0_25px_rgba(168,85,247,0.15)]
-      "
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      className="rounded-2xl border border-purple-600/60 bg-black p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
     >
-
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white">
@@ -93,7 +84,7 @@ export default function ProdukPage() {
       </div>
 
       {/* SEARCH */}
-      <div className="flex gap-3 mt-2">
+      <div className="flex gap-3 mt-4">
         <input
           type="text"
           placeholder="Cari produk..."
@@ -107,8 +98,7 @@ export default function ProdukPage() {
       </div>
 
       {/* TABLE */}
-      <div className="rounded-2xl border border-purple-600/60 bg-black p-6 mt-2">
-
+      <div className="rounded-2xl border border-purple-600/60 bg-black p-6 mt-4">
         <table className="w-full text-sm text-gray-300">
           <thead>
             <tr className="border-b border-white/10">
@@ -118,12 +108,12 @@ export default function ProdukPage() {
               <th className="py-3 text-center">Harga Reseller</th>
               <th className="py-3 text-center">Harga VIP</th>
               <th className="py-3 text-center">Status</th>
+              <th className="py-3 text-center">Terlisensi</th>
               <th className="py-3 text-center">Aksi</th>
             </tr>
           </thead>
 
           <tbody>
-
             {loading ? (
               <>
                 <SkeletonRow />
@@ -132,21 +122,22 @@ export default function ProdukPage() {
               </>
             ) : products.length === 0 ? (
               <tr>
-                <td colSpan="6" className="text-center py-6 text-purple-300">
+                <td colSpan="8" className="text-center py-6 text-purple-300">
                   Data kosong
                 </td>
               </tr>
             ) : (
-              products.map((p) => (
-                <tr key={p.id} className="border-b border-white/5">
+              products.map((p, i) => (
+                <motion.tr
+                  key={p.id}
+                  className="border-b border-white/5"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <td className="py-3 text-white">{p.name}</td>
 
-                  <td className="py-3 text-white">
-                    {p.name} 
-                  </td>
-
-                  <td className="py-3">
-                    {p.duration_days} hari 
-                  </td>
+                  <td className="py-3">{p.duration_days} hari</td>
 
                   <td className="py-3">
                     Rp {p.tier_pricing?.member?.toLocaleString() || "-"}
@@ -156,23 +147,35 @@ export default function ProdukPage() {
                     Rp {p.tier_pricing?.reseller?.toLocaleString() || "-"}
                   </td>
 
-                  <td>
+                  <td className="py-3">
                     Rp {p.tier_pricing?.vip?.toLocaleString() || "-"}
                   </td>
 
+                  {/* STATUS (ACTIVE) */}
+                  <td className="py-3 text-center">
+                    <button
+                      onClick={() => toggleActive(p.id)}
+                      className={
+                        p.is_active ? "badge-ready" : "badge-danger"
+                      }
+                    >
+                      {p.is_active ? "Aktif" : "Nonaktif"}
+                    </button>
+                  </td>
+
+                  {/* PUBLISHED */}
                   <td className="py-3 text-center">
                     <button
                       onClick={() => togglePublish(p.id)}
                       className={
-                        p.is_published
-                          ? "badge-ready"
-                          : "badge-danger"
+                        p.is_published ? "badge-info" : "badge-warning"
                       }
                     >
-                      {p.is_published ? "Published" : "Draft"}
+                      {p.is_published ? "Licensed" : "Draft"}
                     </button>
                   </td>
 
+                  {/* AKSI */}
                   <td className="py-3 text-center space-x-2">
                     <button
                       onClick={() => router.push(`/admin/produk/${p.id}/edit`)}
@@ -188,11 +191,9 @@ export default function ProdukPage() {
                       Hapus
                     </button>
                   </td>
-
-                </tr>
+                </motion.tr>
               ))
             )}
-
           </tbody>
         </table>
 
@@ -214,7 +215,6 @@ export default function ProdukPage() {
             ))}
           </div>
         )}
-
       </div>
     </motion.div>
   );
