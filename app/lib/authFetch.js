@@ -24,20 +24,22 @@ export async function authFetch(url, options = {}) {
     },
   });
 
-  // Handle unauthorized
   if (res.status === 401) {
     Cookies.remove("token");
     window.location.href = "/login";
     throw new Error("Session expired");
   }
 
-  // Parse JSON
-  const data = await res.json();
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error("Invalid JSON response");
+  }
 
-  // Handle backend error response
   if (!res.ok) {
     throw new Error(data?.error || `HTTP ${res.status}`);
   }
 
-  return data; // ⬅ return JSON, bukan Response
+  return data;
 }

@@ -31,19 +31,26 @@ export default function LicensesPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await licenseService.getByProduct(id);
-      const sum = await licenseService.getSummary(id);
-      console.log("LICENSES:", res);
-      console.log("UPLOAD:", res);
+        const res = await licenseService.getByProduct(id);
+        const sum = await licenseService.getSummary(id);
 
-      setLicenses(res.data || []);
-      setSummary(sum.data?.counts || null);
+        console.log("LICENSES JSON:", res);
+        console.log("SUMMARY JSON:", sum);
 
-    } catch {
-      showToast("error", "Gagal load licenses");
+        setLicenses(
+        Array.isArray(res.data)
+            ? res.data
+            : res.data?.data || []
+        );
+
+        setSummary(sum.data?.counts || null);
+
+    } catch (err) {
+        showToast("error", err.message);
     }
     setLoading(false);
   };
+
 
   useEffect(() => {
     if (id) loadData();
@@ -95,7 +102,7 @@ export default function LicensesPage() {
       loadData();
 
     } catch {
-      showToast("error", "Bulk upload gagal");
+      showToast("error", err.message);
     }
   };
 
