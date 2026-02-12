@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion'
 
 export default function BannerCarousel() {
   const API = process.env.NEXT_PUBLIC_API_URL
@@ -12,6 +12,13 @@ export default function BannerCarousel() {
   const [paused, setPaused] = useState(false)
 
   const USE_UNOPTIMIZED = true
+
+  // Motion values for 3D tilt
+  const mouseX = useMotionValue(0)
+  const mouseY = useMotionValue(0)
+
+  const rotateX = useTransform(mouseY, [-100, 100], [6, -6])
+  const rotateY = useTransform(mouseX, [-100, 100], [-6, 6])
 
   // ================= FETCH =================
   useEffect(() => {
@@ -49,79 +56,152 @@ export default function BannerCarousel() {
   const prevSlide = () =>
     setIndex(prev => (prev - 1 + banners.length) % banners.length)
 
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left - rect.width / 2
+    const y = e.clientY - rect.top - rect.height / 2
+
+    mouseX.set(x / 5)
+    mouseY.set(y / 5)
+  }
+
+  const resetTilt = () => {
+    mouseX.set(0)
+    mouseY.set(0)
+  }
+
   return (
     <section className="mx-auto max-w-7xl px-8 mt-20">
-      <div
-        className="relative overflow-hidden rounded-2xl group"
+      <motion.div
+        className="relative rounded-2xl group perspective"
         onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
+        onMouseLeave={() => {
+          setPaused(false)
+          resetTilt()
+        }}
+        onMouseMove={handleMouseMove}
+        style={{ perspective: 1200 }}
       >
-        <div className="relative w-full h-[260px] md:h-[340px]">
+        {/* GLOW BORDER */}
+        <div className="absolute -inset-[1px] rounded-2xl glow-border opacity-70 group-hover:opacity-100 transition" />
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.6 }}
-              className="absolute inset-0"
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              onDragEnd={(e, info) => {
-                if (info.offset.x < -80) nextSlide()
-                if (info.offset.x > 80) prevSlide()
-              }}
-            >
-              <Link href={banners[index].link_url || '#'}>
-                <Image
-                  src={banners[index].image_url}
-                  alt={banners[index].title || 'Banner'}
-                  fill
-                  priority
-                  unoptimized={USE_UNOPTIMIZED}
-                  className="object-cover"
-                />
-              </Link>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* NAVIGATION ARROWS */}
-        <motion.button
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition bg-black/40 backdrop-blur px-3 py-2 rounded-lg text-white"
+        <motion.div
+          style={{ rotateX, rotateY }}
+          className="relative overflow-hidden rounded-2xl bg-black"
         >
-          ‹
-        </motion.button>
+          <div className="relative w-full h-[260px] md:h-[340px]">
 
-        <motion.button
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition bg-black/40 backdrop-blur px-3 py-2 rounded-lg text-white"
-        >
-          ›
-        </motion.button>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 1.08, rotate: -1 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                exit={{ opacity: 0, scale: 0.92, rotate: 1 }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+                className="absolute inset-0"
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                onDragEnd={(e, info) => {
+                  if (info.offset.x < -80) nextSlide()
+                  if (info.offset.x > 80) prevSlide()
+                }}
+              >
+                <Link href={banners[index].link_url || '#'}>
+                  <Image
+                    src={banners[index].image_url}
+                    alt={banners[index].title || 'Banner'}
+                    fill
+                    priority
+                    unoptimized={USE_UNOPTIMIZED}
+                    className="object-cover"
+                  />
+                </Link>
 
-        {/* INDICATORS */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
-          {banners.map((_, i) => (
-            <motion.button
-              key={i}
-              onClick={() => setIndex(i)}
-              whileHover={{ scale: 1.3 }}
-              className={`h-2.5 rounded-full transition-all ${
-                i === index
-                  ? 'w-6 bg-purple-400'
-                  : 'w-2.5 bg-white/40'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
+                {/* GLASS GLOW OVERLAY */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 via-transparent to-cyan-400/10" />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* NAVIGATION */}
+          <motion.button
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={prevSlide}
+            className="nav-btn left-4"
+          >
+            ‹
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={nextSlide}
+            className="nav-btn right-4"
+          >
+            ›
+          </motion.button>
+
+          {/* INDICATORS */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
+            {banners.map((_, i) => (
+              <motion.button
+                key={i}
+                onClick={() => setIndex(i)}
+                whileHover={{ scale: 1.4 }}
+                className={`indicator ${
+                  i === index ? 'active' : ''
+                }`}
+              />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* STYLES */}
+        <style jsx>{`
+          .glow-border {
+            background: linear-gradient(
+              120deg,
+              rgba(168, 85, 247, 0.7),
+              rgba(34, 211, 238, 0.7),
+              rgba(168, 85, 247, 0.7)
+            );
+            filter: blur(8px);
+            z-index: -1;
+          }
+
+          .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.35);
+            backdrop-filter: blur(6px);
+            padding: 8px 14px;
+            border-radius: 10px;
+            color: white;
+            opacity: 0;
+            transition: 0.3s;
+          }
+
+          .group:hover .nav-btn {
+            opacity: 1;
+          }
+
+          .indicator {
+            height: 10px;
+            width: 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.35);
+            transition: 0.3s;
+          }
+
+          .indicator.active {
+            width: 26px;
+            background: rgb(168, 85, 247);
+            box-shadow: 0 0 12px rgba(168,85,247,0.8);
+          }
+        `}</style>
+      </motion.div>
     </section>
   )
 }
