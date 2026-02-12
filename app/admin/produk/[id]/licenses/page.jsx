@@ -144,28 +144,46 @@ export default function LicensesPage() {
         const licenses = res.data?.licenses || [];
 
         if (!licenses.length) {
-        showToast("error", "Backend tidak mengembalikan license");
+        showToast("error", "Tidak ada license dikembalikan backend");
         return;
         }
 
-        const blob = new Blob(
-        [licenses.join("\n")],
-        { type: "text/plain" }
-        );
+        const worksheetData = licenses.map((key, index) => ({
+        No: index + 1,
+        License_Key: key,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Licenses");
+
+        const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+        });
+
+        const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
 
         const url = URL.createObjectURL(blob);
+
         const a = document.createElement("a");
         a.href = url;
-        a.download = `licenses-product-${id}.txt`;
+        a.download = `licenses-product-${id}.xlsx`;
         a.click();
 
-        showToast("success", `Ambil ${licenses.length} license`);
+        URL.revokeObjectURL(url);
+
+        showToast("success", `${licenses.length} license diunduh`);
         loadData();
 
     } catch (err) {
         showToast("error", err.message);
     }
   };
+
 
 
 
