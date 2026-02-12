@@ -14,6 +14,7 @@ const authHeader = (json = true) => {
 };
 
 export const productService = {
+
   async getAll(params = {}) {
     const query = new URLSearchParams(params).toString();
 
@@ -85,5 +86,11 @@ export const productService = {
     }
 
     return res.json();
+  },
+
+  async toggleActive(id, currentState) {
+    return this.update(id, {
+      is_active: !currentState,
+    });
   },
 };
