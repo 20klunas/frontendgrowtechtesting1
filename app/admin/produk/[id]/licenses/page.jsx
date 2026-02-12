@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { licenseService } from "../../../../services/licenseService";
+import * as XLSX from "xlsx";
 
 export default function LicensesPage() {
   const { id } = useParams();
@@ -144,13 +145,14 @@ export default function LicensesPage() {
         const licenses = res.data?.licenses || [];
 
         if (!licenses.length) {
-        showToast("error", "Tidak ada license dikembalikan backend");
+        showToast("error", res.data?.message || "Tidak ada license dikembalikan");
         return;
         }
 
         const worksheetData = licenses.map((key, index) => ({
         No: index + 1,
         License_Key: key,
+        Taken_At: new Date().toLocaleString(),
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(worksheetData);
@@ -180,12 +182,10 @@ export default function LicensesPage() {
         loadData();
 
     } catch (err) {
+        console.error(err);
         showToast("error", err.message);
     }
   };
-
-
-
 
   const SkeletonRow = () => (
     <tr className="border-b border-white/5">
