@@ -1,3 +1,5 @@
+'use client'
+
 import ReferralTabs from './components/ReferralTabs'
 import { motion } from 'framer-motion'
 
