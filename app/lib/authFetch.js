@@ -7,7 +7,7 @@ export async function authFetch(url, options = {}) {
 
   if (!token) {
     window.location.href = "/login";
-    return;
+    throw new Error("Unauthorized");
   }
 
   const defaultHeaders = {
@@ -24,11 +24,20 @@ export async function authFetch(url, options = {}) {
     },
   });
 
+  // Handle unauthorized
   if (res.status === 401) {
     Cookies.remove("token");
     window.location.href = "/login";
-    return;
+    throw new Error("Session expired");
   }
 
-  return res;
+  // Parse JSON
+  const data = await res.json();
+
+  // Handle backend error response
+  if (!res.ok) {
+    throw new Error(data?.error || `HTTP ${res.status}`);
+  }
+
+  return data; // ⬅ return JSON, bukan Response
 }
