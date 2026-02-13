@@ -30,6 +30,13 @@ export default function LicensesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 10; 
 
+  const totalPages = Math.ceil(licenses.length / perPage);
+
+  const paginatedLicenses = licenses.slice(
+    (currentPage - 1) * perPage,
+    currentPage * perPage
+  );
+
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 2500);
@@ -39,7 +46,7 @@ export default function LicensesPage() {
     setLoading(true);
     try {
       const [res, sum, proofRes] = await Promise.all([
-        licenseService.getByProduct(id),
+        licenseService.getByProduct(id + '?page=2'),
         licenseService.getSummary(id),
         licenseService.proofList()
       ]);
@@ -244,14 +251,6 @@ export default function LicensesPage() {
     </tr>
   );
 
-  const totalPages = Math.ceil(licenses.length / perPage);
-
-  const paginatedLicenses = licenses.slice(
-    (currentPage - 1) * perPage,
-    currentPage * perPage
-  );
-
-
   return (
     <motion.div
       className="
@@ -437,35 +436,77 @@ export default function LicensesPage() {
         </table>
       </div>
 
-      <div className="flex justify-center items-center gap-2 py-4">
+      <div className="flex justify-center items-center gap-2 py-6">
+        {/* PREV */}
         <button
           onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
           disabled={currentPage === 1}
-          className="px-3 py-1 rounded bg-purple-900/40 text-white disabled:opacity-30"
+          className="
+            px-4 py-1.5 rounded-lg
+            bg-purple-900/40
+            text-purple-300
+            border border-purple-500/30
+            shadow-[0_0_10px_rgba(168,85,247,0.25)]
+            hover:shadow-[0_0_18px_rgba(168,85,247,0.45)]
+            hover:text-white
+            transition
+            disabled:opacity-30
+            disabled:shadow-none
+          "
         >
-          Prev
+          ◀ Prev
         </button>
 
+        {/* PAGE NUMBERS */}
         {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
           <button
             key={page}
             onClick={() => setCurrentPage(page)}
-            className={`px-3 py-1 rounded text-sm ${
-              page === currentPage
-                ? "bg-purple-600 text-white"
-                : "bg-purple-900/30 text-gray-300"
-            }`}
+            className={`
+              px-3.5 py-1.5 rounded-lg text-sm font-medium
+              border transition-all duration-200
+              ${
+                page === currentPage
+                  ? `
+                    bg-purple-600
+                    text-white
+                    border-purple-400
+                    shadow-[0_0_12px_rgba(168,85,247,0.9)]
+                    scale-105
+                  `
+                  : `
+                    bg-purple-900/30
+                    text-purple-300
+                    border-purple-500/20
+                    hover:bg-purple-700/40
+                    hover:text-white
+                    hover:shadow-[0_0_12px_rgba(168,85,247,0.45)]
+                  `
+              }
+            `}
           >
             {page}
           </button>
         ))}
 
+        {/* NEXT */}
         <button
           onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
           disabled={currentPage === totalPages}
-          className="px-3 py-1 rounded bg-purple-900/40 text-white disabled:opacity-30"
+          className="
+            px-4 py-1.5 rounded-lg
+            bg-purple-900/40
+            text-purple-300
+            border border-purple-500/30
+            shadow-[0_0_10px_rgba(168,85,247,0.25)]
+            hover:shadow-[0_0_18px_rgba(168,85,247,0.45)]
+            hover:text-white
+            transition
+            disabled:opacity-30
+            disabled:shadow-none
+          "
         >
-          Next
+          Next ▶
         </button>
       </div>
 
