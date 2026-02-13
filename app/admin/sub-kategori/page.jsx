@@ -88,16 +88,10 @@ export default function SubKategoriPage() {
   const fetchAll = async () => {
     setLoading(true)
     try {
-      const [subRes, catRes] = await Promise.all([
+      const [subJson, catJson] = await Promise.all([
         authFetch('/api/v1/admin/subcategories'),
         authFetch('/api/v1/admin/categories'),
       ])
-
-      if (!subRes.ok) throw new Error('Gagal fetch subkategori')
-      if (!catRes.ok) throw new Error('Gagal fetch kategori')
-
-      const subJson = await safeJson(subRes)
-      const catJson = await safeJson(catRes)
 
       setItems(subJson.data || [])
       setCategories(catJson.data || [])
@@ -109,6 +103,7 @@ export default function SubKategoriPage() {
       setLoading(false)
     }
   }
+
 
 
   useEffect(() => {
