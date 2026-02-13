@@ -27,6 +27,8 @@ export default function LicensesPage() {
   const [proofs, setProofs] = useState([]);
   const [showProofModal, setShowProofModal] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const perPage = 10; 
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -60,6 +62,10 @@ export default function LicensesPage() {
   useEffect(() => {
     if (id) loadData();
   }, [id]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [licenses]);
+
 
 
   // ================= SINGLE INSERT =================
@@ -238,6 +244,13 @@ export default function LicensesPage() {
     </tr>
   );
 
+  const totalPages = Math.ceil(licenses.length / perPage);
+
+  const paginatedLicenses = licenses.slice(
+    (currentPage - 1) * perPage,
+    currentPage * perPage
+  );
+
 
   return (
     <motion.div
@@ -389,7 +402,7 @@ export default function LicensesPage() {
               </tr>
             ) : (
               <AnimatePresence>
-                {licenses.map((l, i) => (
+                {paginatedLicenses.map((l, i) => (
                   <motion.tr
                     key={l.id}
                     initial={{ opacity: 0, y: 12 }}
@@ -422,6 +435,38 @@ export default function LicensesPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex justify-center items-center gap-2 py-4">
+        <button
+          onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+          disabled={currentPage === 1}
+          className="px-3 py-1 rounded bg-purple-900/40 text-white disabled:opacity-30"
+        >
+          Prev
+        </button>
+
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+          <button
+            key={page}
+            onClick={() => setCurrentPage(page)}
+            className={`px-3 py-1 rounded text-sm ${
+              page === currentPage
+                ? "bg-purple-600 text-white"
+                : "bg-purple-900/30 text-gray-300"
+            }`}
+          >
+            {page}
+          </button>
+        ))}
+
+        <button
+          onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className="px-3 py-1 rounded bg-purple-900/40 text-white disabled:opacity-30"
+        >
+          Next
+        </button>
       </div>
 
       {/* ================= MODALS ================= */}
