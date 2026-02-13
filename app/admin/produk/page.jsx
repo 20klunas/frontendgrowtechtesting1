@@ -336,7 +336,7 @@ export default function ProdukPage() {
                         onClick={() => router.push(`/admin/produk/${p.id}/licenses`)}
                         className="btn-purple"
                       >
-                        Licenses
+                        Data Key
                       </button>
                     </td>
                   </motion.tr>
