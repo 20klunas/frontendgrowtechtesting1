@@ -8,6 +8,9 @@ export const licenseService = {
   getSummary: (productId) =>
     authFetch(`/api/v1/admin/products/${productId}/licenses/summary`),
 
+  getProduct: (productId) =>
+    authFetch(`/api/v1/admin/products/${productId}`),
+
   createSingle: (productId, data) =>
     authFetch(`/api/v1/admin/products/${productId}/licenses`, {
       method: "POST",
