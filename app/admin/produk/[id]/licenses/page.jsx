@@ -158,9 +158,9 @@ export default function LicensesPage() {
         console.log("TAKE STOCK RESPONSE:", res);
 
         const licenses =
-        res?.data?.licenses ||
-        res?.data?.data?.licenses ||
-        [];
+          res?.data?.items ||
+          res?.data?.data?.items ||
+          [];
 
         console.log("LICENSES RESULT:", licenses);
 
@@ -172,10 +172,12 @@ export default function LicensesPage() {
         return;
         }
 
-        const worksheetData = licenses.map((key, index) => ({
-        No: index + 1,
-        License_Key: key,
-        Taken_At: new Date().toLocaleString(),
+        const worksheetData = licenses.map((item, index) => ({
+          No: index + 1,
+          License_Key: item.license_key,
+          Data_Other: item.data_other ?? "",
+          Note: item.note ?? "",
+          Taken_At: new Date().toLocaleString(),
         }));
 
         console.log("Worksheet Data:", worksheetData);
@@ -403,7 +405,7 @@ export default function LicensesPage() {
                     }}
                     className="border-b border-white/5"
                   >
-                    <td className="py-4 text-white font-medium">
+                    <td className="py-4 text-white text-center font-medium">
                       {l.license_key}
                     </td>
 
@@ -484,20 +486,24 @@ export default function LicensesPage() {
             <div className="max-h-[300px] overflow-y-auto space-y-2">
               {proofs.map((p) => (
                 <div
-                  key={p.id}
+                  key={p.proof_id}
                   className="border border-purple-600/30 rounded-lg p-3 text-sm"
                 >
                   <p className="text-white font-semibold">
-                    Proof #{p.id}
+                    Proof #{p.proof_id}
                   </p>
                   <p className="text-gray-400">
-                    Qty: {p.qty} • {p.created_at}
+                    Updated: {new Date(p.updated_at * 1000).toLocaleString()}
+                  </p>
+
+                  <p className="text-xs text-purple-400">
+                    Size: {(p.size / 1024).toFixed(1)} KB
                   </p>
 
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => window.open(
-                        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/stock/proofs/${p.id}`
+                        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/stock/proofs/${p.proof_id}`
                       )}
                       className="btn-success"
                     >
@@ -506,7 +512,7 @@ export default function LicensesPage() {
 
                     <button
                       onClick={() => window.open(
-                        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/stock/proofs/${p.id}/csv`
+                        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/stock/proofs/${p.proof_id}/csv`
                       )}
                       className="btn-info"
                     >
@@ -515,7 +521,7 @@ export default function LicensesPage() {
 
                     <button
                       onClick={() => window.open(
-                        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/stock/proofs/${p.id}/json`
+                        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/stock/proofs/${p.proof_id}/json`
                       )}
                       className="btn-purple-solid"
                     >
