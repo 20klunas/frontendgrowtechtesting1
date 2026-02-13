@@ -268,13 +268,23 @@ export default function LicensesPage() {
             + Tambah License
           </button>
 
-          <button onClick={() => setShowBulkModal(true)} className="btn-purple">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowBulkModal(true)}
+            className="btn-purple"
+          >
             Bulk Upload
-          </button>
+          </motion.button>
 
-          <button onClick={() => setShowDuplicateModal(true)} className="btn-purple">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowDuplicateModal(true)}
+            className="btn-purple"
+          >
             Check Duplicate
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -300,9 +310,15 @@ export default function LicensesPage() {
           className="w-24 h-10 rounded-lg bg-purple-900/40 px-3 text-white"
         />
 
-        <button onClick={handleTakeStock} className="btn-success">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 260, damping: 18 }}
+          onClick={handleTakeStock}
+          className="btn-purple-solid"
+        >
           Take Stock
-        </button>
+        </motion.button>
         <button onClick={() => {
             const blob = new Blob(["TEST"], { type: "text/plain" });
             const url = URL.createObjectURL(blob);

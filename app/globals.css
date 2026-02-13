@@ -557,3 +557,53 @@ body {
 .badge-ready {
   @apply inline-block px-3 py-1 rounded-full bg-green-500 text-black text-xs font-semibold;
 }
+
+/* ================= BUTTON UNGU ELEGANT ================= */
+
+.btn-purple {
+  @apply h-10 px-5 rounded-full text-white font-medium transition-all duration-300;
+  background: linear-gradient(135deg, #7c3aed, #4c1d95);
+  box-shadow: 0 0 0 rgba(168, 85, 247, 0);
+}
+
+.btn-purple:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.55);
+  background: linear-gradient(135deg, #8b5cf6, #5b21b6);
+}
+
+.btn-purple:active {
+  transform: scale(0.96);
+}
+
+.btn-purple-solid {
+  @apply h-10 px-6 rounded-xl text-white font-semibold transition-all duration-300;
+  background: linear-gradient(135deg, #9333ea, #6b21a8);
+  box-shadow: 0 8px 25px rgba(168, 85, 247, 0.35);
+}
+
+.btn-purple-solid:hover {
+  box-shadow: 0 10px 35px rgba(168, 85, 247, 0.6);
+  transform: translateY(-2px);
+}
+
+table thead tr {
+  background: linear-gradient(
+    90deg,
+    rgba(168, 85, 247, 0.15),
+    rgba(76, 29, 149, 0.25)
+  );
+}
+
+table tbody tr {
+  transition: background 0.25s ease;
+}
+
+.rounded-xl {
+  box-shadow: 0 0 0 rgba(168, 85, 247, 0);
+  transition: box-shadow 0.3s ease;
+}
+
+.rounded-xl:hover {
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.25);
+}
