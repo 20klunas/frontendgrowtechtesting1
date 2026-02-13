@@ -332,12 +332,15 @@ export default function ProdukPage() {
                       >
                         Hapus
                       </button>
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 18 }}
                         onClick={() => router.push(`/admin/produk/${p.id}/licenses`)}
-                        className="btn-purple"
+                        className="btn-purple-solid"
                       >
                         Data Key
-                      </button>
+                      </motion.button>
                     </td>
                   </motion.tr>
                 ))}
