@@ -124,17 +124,19 @@ export default function ProdukPage() {
   };
 
   // ================= TOGGLE PUBLISH =================
-  const togglePublish = async (id) => {
+  const togglePublish = async (id, state) => {
     try {
+      setProcessingId(id);
+
       setProducts(prev =>
         prev.map(p =>
           p.id === id
-            ? { ...p, is_published: !p.is_published }
+            ? { ...p, is_published: !state }
             : p
         )
       );
 
-      await productService.publish(id);
+      await productService.publish(id, !state);
 
       showToast("success", "Publish status diperbarui");
 
@@ -142,7 +144,11 @@ export default function ProdukPage() {
       loadProducts();
       showToast("error", "Gagal publish produk");
     }
+
+    setProcessingId(null);
   };
+
+
 
   // ================= SKELETON =================
   const SkeletonRow = () => (
@@ -453,7 +459,8 @@ export default function ProdukPage() {
                       <motion.button
                         whileTap={{ scale: 0.9 }}
                         whileHover={{ scale: 1.05 }}
-                        onClick={() => togglePublish(p.id)}
+                        onClick={() => togglePublish(p.id, p.is_published)}
+                        disabled={processingId === p.id}
                         className={
                           p.is_published ? "badge-info" : "badge-warning"
                         }

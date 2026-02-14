@@ -74,10 +74,13 @@ export const productService = {
     return res.json();
   },
 
-  async publish(id) {
+  async publish(id, state) {
     const res = await fetch(`${API}/api/v1/admin/products/${id}/publish`, {
-      method: "POST",
-      headers: authHeader(false),
+      method: "PATCH",
+      headers: authHeader(),
+      body: JSON.stringify({
+        is_published: state,
+      }),
     });
 
     if (!res.ok) {
