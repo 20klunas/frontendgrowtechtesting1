@@ -26,6 +26,9 @@ export default function ProdukPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   const [editForm, setEditForm] = useState({
     name: "",
     duration_days: 7,
@@ -199,9 +202,15 @@ export default function ProdukPage() {
     setEditForm({
       name: product.name,
       duration_days: product.duration_days,
-      member_price: product.tier_pricing?.member ?? "",
-      reseller_price: product.tier_pricing?.reseller ?? "",
-      vip_price: product.tier_pricing?.vip ?? "",
+      member_price: product.tier_pricing?.member
+        ? formatRupiah(product.tier_pricing.member.toString())
+        : "",
+      reseller_price: product.tier_pricing?.reseller
+        ? formatRupiah(product.tier_pricing.reseller.toString())
+        : "",
+      vip_price: product.tier_pricing?.vip
+        ? formatRupiah(product.tier_pricing.vip.toString())
+        : "",
     });
 
     setShowEditModal(true);
@@ -214,18 +223,20 @@ export default function ProdukPage() {
     const prev = products;
 
     try {
-      setProducts(prevProducts =>
-        prevProducts.filter(p => p.id !== id)
-      );
+      setIsDeleting(true);
+
+      setProducts(prev => prev.filter(p => p.id !== id));
 
       await productService.remove(id);
 
       showToast("success", "Produk berhasil dihapus");
-    } catch (err) {
+
+    } catch {
       setProducts(prev);
       showToast("error", "Gagal menghapus produk");
     }
 
+    setIsDeleting(false);
     setShowDeleteModal(false);
     setSelectedProduct(null);
   };
@@ -234,6 +245,8 @@ export default function ProdukPage() {
     if (!selectedProduct) return;
 
     try {
+      setIsSaving(true);
+
       await productService.update(selectedProduct.id, {
         name: editForm.name,
         duration_days: Number(editForm.duration_days),
@@ -248,9 +261,11 @@ export default function ProdukPage() {
       setShowEditModal(false);
       loadProducts();
 
-    } catch (err) {
+    } catch {
       showToast("error", "Gagal update produk");
     }
+
+    setIsSaving(false);
   };
 
   const formatRupiah = (value) => {
@@ -258,7 +273,25 @@ export default function ProdukPage() {
     return new Intl.NumberFormat("id-ID").format(number);
   };
 
+  const parseRupiah = (value) => {
+    return Number(value.replace(/\D/g, ""));
+  };
 
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") {
+        setShowDeleteModal(false);
+        setShowEditModal(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  const Spinner = () => (
+    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+  );
 
   return (
     <motion.div
@@ -486,55 +519,50 @@ export default function ProdukPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+            onClick={() => !isDeleting && setShowDeleteModal(false)}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50"
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20 }}
-              className="
-                bg-gradient-to-b from-purple-950/90 to-black
-                border border-purple-500/30
-                rounded-2xl
-                p-8
-                w-[420px]
-                text-center
-                shadow-[0_0_35px_rgba(168,85,247,0.35)]
-              "
+              exit={{ scale: 0.85, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 280, damping: 22 }}
+              className="bg-gradient-to-b from-purple-950 to-black
+                        border border-purple-500/20
+                        rounded-2xl p-8 w-[420px]
+                        shadow-[0_0_45px_rgba(168,85,247,0.35)]"
             >
-              <div className="
-                w-16 h-16 mx-auto mb-4
-                rounded-full
-                bg-red-500/10
-                border border-red-500/30
-                flex items-center justify-center
-                text-red-500 text-3xl
-              ">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full
+                              bg-red-500/10 border border-red-500/30
+                              flex items-center justify-center text-red-500 text-3xl">
                 ✖
               </div>
 
-              <h2 className="text-white text-xl font-semibold mb-2">
-                Konfirmasi Hapus
+              <h2 className="text-white text-xl font-semibold text-center">
+                Hapus Produk
               </h2>
 
-              <p className="text-gray-400 text-sm mb-6">
-                Produk <span className="text-purple-400">{selectedProduct?.name}</span> akan dihapus permanen.
+              <p className="text-gray-400 text-sm text-center mt-2 mb-6">
+                Produk <span className="text-purple-400">{selectedProduct?.name}</span> akan dihapus permanen
               </p>
 
               <div className="flex justify-center gap-3">
                 <button
+                  disabled={isDeleting}
                   onClick={() => setShowDeleteModal(false)}
-                  className="btn-secondary"
+                  className="btn-secondary disabled:opacity-40"
                 >
                   Batal
                 </button>
 
                 <button
+                  disabled={isDeleting}
                   onClick={handleConfirmDelete}
-                  className="btn-danger"
+                  className="btn-danger disabled:opacity-40 flex items-center gap-2"
                 >
-                  Hapus
+                  {isDeleting && <Spinner />}
+                  {isDeleting ? "Menghapus..." : "Hapus"}
                 </button>
               </div>
             </motion.div>
@@ -549,30 +577,28 @@ export default function ProdukPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+            onClick={() => !isSaving && setShowEditModal(false)}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50"
           >
             <motion.div
+              onClick={(e) => e.stopPropagation()}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
-              className="
-                bg-gradient-to-b from-purple-950/90 to-black
-                border border-purple-500/30
-                rounded-2xl
-                p-6
-                w-[460px]
-                shadow-[0_0_35px_rgba(168,85,247,0.25)]
-              "
+              className="bg-gradient-to-b from-purple-950 to-black
+                        border border-purple-500/20
+                        rounded-2xl p-6 w-[480px]
+                        shadow-[0_0_45px_rgba(168,85,247,0.25)]"
             >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-white text-lg font-semibold">
+              <div className="flex justify-between mb-4">
+                <h2 className="text-white font-semibold text-lg">
                   ✨ Edit Produk
                 </h2>
 
                 <button
                   onClick={() => setShowEditModal(false)}
-                  className="text-gray-400 hover:text-red-400 transition"
+                  className="text-gray-400 hover:text-red-400"
                 >
                   ✕
                 </button>
@@ -584,7 +610,6 @@ export default function ProdukPage() {
                   onChange={(e) =>
                     setEditForm({ ...editForm, name: e.target.value })
                   }
-                  placeholder="Nama Produk"
                   className="input"
                 />
 
@@ -594,16 +619,13 @@ export default function ProdukPage() {
                   onChange={(e) =>
                     setEditForm({ ...editForm, duration_days: e.target.value })
                   }
-                  placeholder="Durasi (hari)"
                   className="input"
                 />
 
                 <div className="grid grid-cols-3 gap-2">
                   {["member_price", "reseller_price", "vip_price"].map((field) => (
                     <div key={field} className="relative">
-                      <span className="absolute left-3 top-2 text-gray-400 text-sm">
-                        Rp
-                      </span>
+                      <span className="absolute left-3 top-2 text-gray-500">Rp</span>
                       <input
                         value={editForm[field]}
                         onChange={(e) =>
@@ -621,24 +643,26 @@ export default function ProdukPage() {
 
               <div className="flex justify-end gap-3 mt-6">
                 <button
+                  disabled={isSaving}
                   onClick={() => setShowEditModal(false)}
-                  className="btn-secondary"
+                  className="btn-secondary disabled:opacity-40"
                 >
                   Batal
                 </button>
 
                 <button
+                  disabled={isSaving}
                   onClick={handleEditSubmit}
-                  className="btn-primary"
+                  className="btn-primary disabled:opacity-40 flex items-center gap-2"
                 >
-                  Simpan
+                  {isSaving && <Spinner />}
+                  {isSaving ? "Menyimpan..." : "Simpan"}
                 </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
 
       {/* Skeleton shimmer style */}
       <style jsx>{`
