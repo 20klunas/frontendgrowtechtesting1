@@ -21,6 +21,19 @@ export default function ProdukPage() {
   const [toast, setToast] = useState(null);
   const [licenseSummary, setLicenseSummary] = useState({});
 
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const [editForm, setEditForm] = useState({
+    name: "",
+    duration_days: 7,
+    member_price: "",
+    reseller_price: "",
+    vip_price: "",
+  });
+
   // ================= TOAST =================
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -174,6 +187,72 @@ export default function ProdukPage() {
       console.error("Summary error", err);
     }
   };
+
+  const openDeleteModal = (product) => {
+    setSelectedProduct(product);
+    setShowDeleteModal(true);
+  };
+
+  const openEditModal = (product) => {
+    setSelectedProduct(product);
+
+    setEditForm({
+      name: product.name,
+      duration_days: product.duration_days,
+      member_price: product.tier_pricing?.member ?? "",
+      reseller_price: product.tier_pricing?.reseller ?? "",
+      vip_price: product.tier_pricing?.vip ?? "",
+    });
+
+    setShowEditModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedProduct) return;
+
+    const id = selectedProduct.id;
+    const prev = products;
+
+    try {
+      setProducts(prevProducts =>
+        prevProducts.filter(p => p.id !== id)
+      );
+
+      await productService.remove(id);
+
+      showToast("success", "Produk berhasil dihapus");
+    } catch (err) {
+      setProducts(prev);
+      showToast("error", "Gagal menghapus produk");
+    }
+
+    setShowDeleteModal(false);
+    setSelectedProduct(null);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!selectedProduct) return;
+
+    try {
+      await productService.update(selectedProduct.id, {
+        name: editForm.name,
+        duration_days: Number(editForm.duration_days),
+        tier_pricing: {
+          member: Number(editForm.member_price),
+          reseller: Number(editForm.reseller_price),
+          vip: Number(editForm.vip_price),
+        }
+      });
+
+      showToast("success", "Produk berhasil diupdate");
+      setShowEditModal(false);
+      loadProducts();
+
+    } catch (err) {
+      showToast("error", "Gagal update produk");
+    }
+  };
+
 
   return (
     <motion.div
@@ -339,14 +418,14 @@ export default function ProdukPage() {
                     {/* AKSI */}
                     <td className="py-3 text-center space-x-2">
                       <button
-                        onClick={() => router.push(`/admin/produk/${p.id}/edit`)}
+                        onClick={() => openEditModal(p)}
                         className="btn-edit-sm"
                       >
                         Edit
                       </button>
 
                       <button
-                        onClick={() => handleDelete(p.id)}
+                        onClick={() => openDeleteModal(p)}
                         className="btn-delete-sm"
                       >
                         Hapus
@@ -387,6 +466,133 @@ export default function ProdukPage() {
           </div>
         )}
       </div>
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-black border border-purple-600 rounded-2xl p-8 w-[420px] text-center shadow-[0_0_25px_rgba(168,85,247,0.25)]"
+            >
+              <div className="text-red-500 text-4xl mb-4">✖</div>
+
+              <h2 className="text-white text-xl font-semibold mb-6">
+                Yakin menghapus data?
+              </h2>
+
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-5 py-2 rounded-lg bg-white text-black font-medium"
+                >
+                  Close
+                </button>
+
+                <button
+                  onClick={handleConfirmDelete}
+                  className="px-5 py-2 rounded-lg bg-red-600 text-white font-medium"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showEditModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-black border border-purple-600 rounded-2xl p-6 w-[450px]"
+            >
+              <h2 className="text-white text-lg font-semibold mb-4">
+                Edit Produk
+              </h2>
+
+              <div className="space-y-3">
+                <input
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
+                  placeholder="Nama Produk"
+                  className="input"
+                />
+
+                <input
+                  type="number"
+                  value={editForm.duration_days}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, duration_days: e.target.value })
+                  }
+                  placeholder="Durasi"
+                  className="input"
+                />
+
+                <input
+                  type="number"
+                  value={editForm.member_price}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, member_price: e.target.value })
+                  }
+                  placeholder="Harga Member"
+                  className="input"
+                />
+
+                <input
+                  type="number"
+                  value={editForm.reseller_price}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, reseller_price: e.target.value })
+                  }
+                  placeholder="Harga Reseller"
+                  className="input"
+                />
+
+                <input
+                  type="number"
+                  value={editForm.vip_price}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, vip_price: e.target.value })
+                  }
+                  placeholder="Harga VIP"
+                  className="input"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-5">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="btn-delete-sm"
+                >
+                  Batal
+                </button>
+
+                <button
+                  onClick={handleEditSubmit}
+                  className="btn-add"
+                >
+                  Simpan
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Skeleton shimmer style */}
       <style jsx>{`
