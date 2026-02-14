@@ -274,7 +274,7 @@ export default function ProdukPage() {
                   >
                     <td className="py-3 text-white text-center">{p.name}</td>
                     <td className="py-3 text-center">{p.duration_days} hari</td>
-                    <td className="py-3 text-center">
+                    {/* <td className="py-3 text-center">
                       {licenseSummary[p.id] ? (
                         <div className="flex flex-col items-center leading-tight">
 
@@ -296,7 +296,7 @@ export default function ProdukPage() {
 
                         </div>
                       ) : "-"}
-                    </td>
+                    </td> */}
                     <td className="py-3 text-center">
                       Rp {p.tier_pricing?.member?.toLocaleString() || "-"}
                     </td>
