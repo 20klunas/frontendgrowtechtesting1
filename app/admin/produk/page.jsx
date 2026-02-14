@@ -154,8 +154,17 @@ export default function ProdukPage() {
             }
           );
 
-          const json = await res.json();
-          summaries[p.id] = json.data?.counts || null;
+          const text = await res.text();   // 👈 penting
+
+          console.log("SUMMARY RAW:", p.id, text);
+
+          try {
+            const json = JSON.parse(text);
+            summaries[p.id] = json.data?.counts ?? null;
+          } catch (err) {
+            console.error("JSON PARSE ERROR:", p.id);
+            summaries[p.id] = null;
+          }
         })
       );
 
@@ -165,7 +174,6 @@ export default function ProdukPage() {
       console.error("Summary error", err);
     }
   };
-
 
   return (
     <motion.div
