@@ -76,7 +76,7 @@ export const productService = {
 
   async publish(id, state) {
     const res = await fetch(`${API}/api/v1/admin/products/${id}/publish`, {
-      method: "PATCH",
+      method: "POST",   // ✅ SAMAKAN BACKEND
       headers: authHeader(),
       body: JSON.stringify({
         is_published: state,
