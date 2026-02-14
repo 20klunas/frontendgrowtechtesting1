@@ -254,13 +254,12 @@ export default function ProdukPage() {
   };
 
   const formatRupiah = (value) => {
-    if (!value) return "";
-    const number = value.toString().replace(/\D/g, "");
+    const number = value.replace(/\D/g, "");
     return new Intl.NumberFormat("id-ID").format(number);
   };
 
   const parseRupiah = (value) => {
-    return Number(value.replace(/\./g, ""));
+    return Number(value.replace(/\D/g, ""));
   };
 
   return (
@@ -481,197 +480,167 @@ export default function ProdukPage() {
           </div>
         )}
       </div>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
-      >
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          className="
-            bg-gradient-to-b from-purple-950/90 to-black
-            border border-purple-500/30
-            rounded-2xl
-            p-8
-            w-[420px]
-            text-center
-            shadow-[0_0_35px_rgba(168,85,247,0.35)]
-          "
-        >
-          <div className="
-            w-16 h-16 mx-auto mb-4
-            rounded-full
-            bg-red-500/10
-            border border-red-500/30
-            flex items-center justify-center
-            text-red-500 text-3xl
-          ">
-            ✖
-          </div>
 
-          <h2 className="text-white text-xl font-semibold mb-2">
-            Konfirmasi Hapus
-          </h2>
-
-          <p className="text-gray-400 text-sm mb-6">
-            Produk <span className="text-purple-400">{selectedProduct?.name}</span> akan dihapus permanen.
-          </p>
-
-          <div className="flex justify-center gap-3">
-            <button
-              onClick={() => setShowDeleteModal(false)}
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
               className="
-                px-5 py-2 rounded-lg
-                bg-white/10 text-white
-                border border-white/20
-                hover:bg-white/20
-                transition
+                bg-gradient-to-b from-purple-950/90 to-black
+                border border-purple-500/30
+                rounded-2xl
+                p-8
+                w-[420px]
+                text-center
+                shadow-[0_0_35px_rgba(168,85,247,0.35)]
               "
             >
-              Batal
-            </button>
+              <div className="
+                w-16 h-16 mx-auto mb-4
+                rounded-full
+                bg-red-500/10
+                border border-red-500/30
+                flex items-center justify-center
+                text-red-500 text-3xl
+              ">
+                ✖
+              </div>
 
-            <button
-              onClick={handleConfirmDelete}
+              <h2 className="text-white text-xl font-semibold mb-2">
+                Konfirmasi Hapus
+              </h2>
+
+              <p className="text-gray-400 text-sm mb-6">
+                Produk <span className="text-purple-400">{selectedProduct?.name}</span> akan dihapus permanen.
+              </p>
+
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="btn-secondary"
+                >
+                  Batal
+                </button>
+
+                <button
+                  onClick={handleConfirmDelete}
+                  className="btn-danger"
+                >
+                  Hapus
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* EDIT MODAL */}
+      <AnimatePresence>
+        {showEditModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
               className="
-                px-5 py-2 rounded-lg
-                bg-red-600 text-white
-                hover:bg-red-500
-                shadow-[0_0_15px_rgba(239,68,68,0.5)]
-                transition
+                bg-gradient-to-b from-purple-950/90 to-black
+                border border-purple-500/30
+                rounded-2xl
+                p-6
+                w-[460px]
+                shadow-[0_0_35px_rgba(168,85,247,0.25)]
               "
             >
-              Hapus
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-white text-lg font-semibold">
+                  ✨ Edit Produk
+                </h2>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
-      >
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          className="
-            bg-gradient-to-b from-purple-950/90 to-black
-            border border-purple-500/30
-            rounded-2xl
-            p-6
-            w-[460px]
-            shadow-[0_0_35px_rgba(168,85,247,0.25)]
-          "
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-white text-lg font-semibold">
-              ✨ Edit Produk
-            </h2>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-gray-400 hover:text-red-400 transition"
+                >
+                  ✕
+                </button>
+              </div>
 
-            <button
-              onClick={() => setShowEditModal(false)}
-              className="text-gray-400 hover:text-red-400 transition"
-            >
-              ✕
-            </button>
-          </div>
+              <div className="space-y-3">
+                <input
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
+                  placeholder="Nama Produk"
+                  className="input"
+                />
 
-          <div className="space-y-3">
-            <input
-              value={editForm.name}
-              onChange={(e) =>
-                setEditForm({ ...editForm, name: e.target.value })
-              }
-              placeholder="Nama Produk"
-              className="input"
-            />
+                <input
+                  type="number"
+                  value={editForm.duration_days}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, duration_days: e.target.value })
+                  }
+                  placeholder="Durasi (hari)"
+                  className="input"
+                />
 
-            <input
-              type="number"
-              value={editForm.duration_days}
-              onChange={(e) =>
-                setEditForm({ ...editForm, duration_days: e.target.value })
-              }
-              placeholder="Durasi (hari)"
-              className="input"
-            />
+                <div className="grid grid-cols-3 gap-2">
+                  {["member_price", "reseller_price", "vip_price"].map((field) => (
+                    <div key={field} className="relative">
+                      <span className="absolute left-3 top-2 text-gray-400 text-sm">
+                        Rp
+                      </span>
+                      <input
+                        value={editForm[field]}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            [field]: formatRupiah(e.target.value)
+                          })
+                        }
+                        className="input pl-10"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <input
-                value={editForm.member_price}
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    member_price: formatRupiah(e.target.value)
-                  })
-                }
-                placeholder="Member"
-                className="input"
-              />
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="btn-secondary"
+                >
+                  Batal
+                </button>
 
-              <input
-                value={editForm.reseller_price}
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    reseller_price: formatRupiah(e.target.value)
-                  })
-                }
-                placeholder="Reseller"
-                className="input"
-              />
+                <button
+                  onClick={handleEditSubmit}
+                  className="btn-primary"
+                >
+                  Simpan
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              <input
-                value={editForm.vip_price}
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    vip_price: formatRupiah(e.target.value)
-                  })
-                }
-                placeholder="VIP"
-                className="input"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 mt-6">
-            <button
-              onClick={() => setShowEditModal(false)}
-              className="
-                px-4 py-2 rounded-lg
-                bg-white/10 text-gray-300
-                border border-white/20
-                hover:bg-white/20
-                transition
-              "
-            >
-              Batal
-            </button>
-
-            <button
-              onClick={handleEditSubmit}
-              className="
-                px-4 py-2 rounded-lg
-                bg-purple-600 text-white
-                hover:bg-purple-500
-                shadow-[0_0_15px_rgba(168,85,247,0.6)]
-                transition
-              "
-            >
-              Simpan
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
 
       {/* Skeleton shimmer style */}
       <style jsx>{`
