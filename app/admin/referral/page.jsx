@@ -1,12 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Cookies from 'js-cookie'
 import ReferralTabs from './components/ReferralTabs'
 import { motion } from 'framer-motion'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
 export default function ReferralSettingsPage() {
+  const router = useRouter()
+
   const [loading, setLoading] = useState(true)
   const [savingCommission, setSavingCommission] = useState(false)
   const [savingWithdrawal, setSavingWithdrawal] = useState(false)
@@ -20,7 +24,14 @@ export default function ReferralSettingsPage() {
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
-    fetchSettings()
+    const token = Cookies.get('token')
+
+    if (!token) {
+      router.replace('/login')
+      return
+    }
+
+    fetchSettings(token)
   }, [])
 
   const showToast = (message, type = 'success') => {
@@ -37,9 +48,21 @@ export default function ReferralSettingsPage() {
     return value.replace(/\./g, '')
   }
 
-  const fetchSettings = async () => {
+  const fetchSettings = async (token) => {
     try {
-      const res = await fetch(`${API}/api/v1/admin/referral-settings`)
+      const res = await fetch(`${API}/api/v1/admin/referral-settings`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (res.status === 401) {
+        Cookies.remove('token')
+        router.replace('/login')
+        return
+      }
+
       const json = await res.json()
 
       if (json.success) {
@@ -51,7 +74,7 @@ export default function ReferralSettingsPage() {
         setMinWithdrawal(formatRupiah(String(data.min_withdrawal)))
       }
     } catch (err) {
-      console.error('Failed to fetch referral settings:', err)
+      console.error(err)
       showToast('Gagal memuat referral settings', 'error')
     } finally {
       setLoading(false)
@@ -59,13 +82,16 @@ export default function ReferralSettingsPage() {
   }
 
   const handleSaveCommission = async () => {
-    if (!settings) return
+    const token = Cookies.get('token')
+    if (!settings || !token) return
+
     setSavingCommission(true)
 
     try {
       const res = await fetch(`${API}/api/v1/admin/referral-settings/${settings.id}`, {
         method: 'PUT',
         headers: {
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -74,9 +100,16 @@ export default function ReferralSettingsPage() {
         }),
       })
 
+      if (res.status === 401) {
+        Cookies.remove('token')
+        router.replace('/login')
+        return
+      }
+
       const json = await res.json()
+
       if (json.success) {
-        fetchSettings()
+        fetchSettings(token)
         showToast('Komisi berhasil diperbarui')
       } else {
         showToast('Gagal menyimpan komisi', 'error')
@@ -90,13 +123,16 @@ export default function ReferralSettingsPage() {
   }
 
   const handleSaveWithdrawal = async () => {
-    if (!settings) return
+    const token = Cookies.get('token')
+    if (!settings || !token) return
+
     setSavingWithdrawal(true)
 
     try {
       const res = await fetch(`${API}/api/v1/admin/referral-settings/${settings.id}`, {
         method: 'PUT',
         headers: {
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -104,9 +140,16 @@ export default function ReferralSettingsPage() {
         }),
       })
 
+      if (res.status === 401) {
+        Cookies.remove('token')
+        router.replace('/login')
+        return
+      }
+
       const json = await res.json()
+
       if (json.success) {
-        fetchSettings()
+        fetchSettings(token)
         showToast('Minimum withdrawal berhasil diperbarui')
       } else {
         showToast('Gagal menyimpan minimum withdrawal', 'error')
@@ -145,7 +188,6 @@ export default function ReferralSettingsPage() {
 
   return (
     <div className="p-8 text-white">
-      {/* Toast */}
       {toast && (
         <div
           className={`fixed top-5 right-5 px-4 py-3 rounded-lg shadow-lg text-sm z-50
@@ -162,13 +204,7 @@ export default function ReferralSettingsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Komisi */}
         <motion.div
-          className="
-            rounded-2xl
-            border border-purple-600/60
-            bg-black
-            p-6
-            shadow-[0_0_25px_rgba(168,85,247,0.15)]
-          "
+          className="rounded-2xl border border-purple-600/60 bg-black p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
@@ -229,13 +265,7 @@ export default function ReferralSettingsPage() {
 
         {/* Minimum WD */}
         <motion.div
-          className="
-            rounded-2xl
-            border border-purple-600/60
-            bg-black
-            p-6
-            shadow-[0_0_25px_rgba(168,85,247,0.15)]
-          "
+          className="rounded-2xl border border-purple-600/60 bg-black p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
