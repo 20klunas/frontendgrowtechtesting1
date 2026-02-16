@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import VoucherCard from './components/VoucherCard'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 
 export default function VoucherPage() {
   const data = [
@@ -18,12 +19,18 @@ export default function VoucherPage() {
   return (
     <div className="p-10">
       {/* TITLE */}
-      <motion.button className="btn-purple-solid flex justify-between items-center mb-8" whileHover={{ scale:1.05}} whileTap={{ scale:0.95 }} transition={{ type: 'spring', stiffness: 460, damping: 18 }}>
+      <motion.div
+        className="flex justify-between items-center mb-8"
+        whileHover={{ scale: 1.02 }}
+        transition={{ type: 'spring', stiffness: 300 }}
+      >
         <h1 className="text-4xl font-bold">Manajemen Voucher</h1>
+
         <Link href="/admin/voucher/add" className="btn-primary">
           + Tambah Voucher
         </Link>
-      </motion.button>
+      </motion.div>
+
 
       {/* TAB */}
       <div className="flex justify-between items-center mb-8">
