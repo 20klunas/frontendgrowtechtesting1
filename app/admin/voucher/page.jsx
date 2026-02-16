@@ -3,6 +3,7 @@ import { useState } from 'react'
 import VoucherCard from './components/VoucherCard'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import VoucherTabs from './components/VoucherTabs'
 
 export default function VoucherPage() {
   const data = [
@@ -17,12 +18,13 @@ export default function VoucherPage() {
   )
 
   return (
-    <div className="p-10">
-      {/* TITLE */}
+    <div className="p-10 text-white">
+
+      {/* ================= HEADER ================= */}
       <motion.div
         className="flex justify-between items-center mb-8"
-        whileHover={{ scale: 1.02 }}
-        transition={{ type: 'spring', stiffness: 300 }}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
       >
         <h1 className="text-4xl font-bold">Manajemen Voucher</h1>
 
@@ -31,39 +33,36 @@ export default function VoucherPage() {
         </Link>
       </motion.div>
 
-
-      {/* TAB */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex gap-3 mb-6">
-          <Link
-            href="/admin/voucher"
-            className="px-6 py-2 rounded-lg text-sm font-medium transition
-              bg-purple-700 hover:bg-purple-600"
-          >
-            Voucher
-          </Link>
-
-          <Link
-            href="/admin/voucher/discount"
-            className="px-6 py-2 rounded-lg text-sm font-medium transition
-              border border-purple-600 hover:bg-purple-900/40"
-          >
-            Discount
-          </Link>
-        </div>
+      {/* ================= TAB + SEARCH ================= */}
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
+        <VoucherTabs />
 
         <input
-          className="input w-72"
-          placeholder="Cari kode voucher"
+          className="input w-full md:w-72"
+          placeholder="Cari kode voucher..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
       </div>
 
-      {/* LIST */}
-      {filtered.map(v => (
-        <VoucherCard key={v.id} data={v} />
-      ))}
+      {/* ================= LIST ================= */}
+      <div className="space-y-5">
+        {filtered.length > 0 ? (
+          filtered.map(v => (
+            <VoucherCard key={v.id} data={v} />
+          ))
+        ) : (
+          <EmptyState text="Voucher tidak ditemukan" />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function EmptyState({ text }) {
+  return (
+    <div className="text-center py-20 text-gray-400 border border-purple-900/40 rounded-2xl">
+      {text}
     </div>
   )
 }

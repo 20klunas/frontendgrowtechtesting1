@@ -643,3 +643,7 @@ table tbody tr:hover {
     left: 150%;
   }
 }
+
+.action-btn {
+  @apply px-3 py-2 rounded-lg transition shadow-md text-white;
+}
