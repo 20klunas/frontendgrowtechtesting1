@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import ConfirmDeleteModal from '../../../components/admin/ConfirmDeleteModal'
-
+import { motion } from 'framer-motion'
 export default function DiscountPage() {
   const discounts = [
     { id: 1, name: 'Diskon Natal', value: '2%', category: 'Cloud Phone', sub: 'Premium', active: true },
