@@ -36,7 +36,7 @@ export default function DiscountPage() {
 
       setDiscounts(list)
     } catch (err) {
-      console.error('LOAD DISCOUNTS ERROR:', err)
+      console.error(err)
     } finally {
       setLoading(false)
     }
@@ -47,51 +47,26 @@ export default function DiscountPage() {
   }, [])
 
   const handleDelete = async () => {
-    try {
-      await fetch(
-        `${API}/api/v1/admin/discount-campaigns/${selectedId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${Cookies.get('token')}`,
-          },
-        }
-      )
+    await fetch(`${API}/api/v1/admin/discount-campaigns/${selectedId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${Cookies.get('token')}` },
+    })
 
-      setOpenDelete(false)
-      setSelectedId(null)
-      loadDiscounts()
-    } catch {
-      alert('Gagal menghapus discount')
-    }
+    setOpenDelete(false)
+    loadDiscounts()
   }
 
   const toggleEnabled = async (d) => {
-    try {
-      const res = await fetch(
-        `${API}/api/v1/admin/discount-campaigns/${d.id}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${Cookies.get('token')}`,
-          },
-          body: JSON.stringify({
-            enabled: !d.enabled,
-          }),
-        }
-      )
+    await fetch(`${API}/api/v1/admin/discount-campaigns/${d.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Cookies.get('token')}`,
+      },
+      body: JSON.stringify({ enabled: !d.enabled }),
+    })
 
-      if (!res.ok) throw new Error()
-
-      setDiscounts(prev =>
-        prev.map(x =>
-          x.id === d.id ? { ...x, enabled: !x.enabled } : x
-        )
-      )
-    } catch {
-      alert('Gagal update status')
-    }
+    loadDiscounts()
   }
 
   return (
@@ -112,62 +87,84 @@ export default function DiscountPage() {
         <VoucherTabs />
       </div>
 
-      <div className="rounded-2xl border border-purple-900/40 overflow-hidden">
-        <div className="grid grid-cols-6 bg-purple-900/20 px-6 py-3 text-sm text-gray-300 font-medium">
-          <div>Nama Discount</div>
-          <div>Nominal</div>
-          <div>Kategori</div>
-          <div>Sub</div>
-          <div>Status</div>
-          <div className="text-right">Aksi</div>
-        </div>
+      <div className="rounded-2xl border border-purple-900/40 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-purple-900/20 text-gray-300">
+            <tr>
+              <th className="p-3">Nama</th>
+              <th>Nominal</th>
+              <th>Tipe</th>
+              <th>Value</th>
+              <th>Kategori</th>
+              <th>Sub</th>
+              <th>Mulai</th>
+              <th>Selesai</th>
+              <th>Priority</th>
+              <th>Stack</th>
+              <th>Status</th>
+              <th>Enabled</th>
+              <th className="text-right pr-4">Aksi</th>
+            </tr>
+          </thead>
 
-        {loading && (
-          <div className="p-6 text-gray-400">Loading...</div>
-        )}
+          <tbody>
+            {loading && (
+              <tr>
+                <td colSpan="13" className="p-6 text-center text-gray-400">
+                  Loading...
+                </td>
+              </tr>
+            )}
 
-        {!loading && discounts.length === 0 && (
-          <div className="p-6 text-gray-400">
-            Belum ada discount campaign
-          </div>
-        )}
-
-        {discounts.map(d => (
-          <div
-            key={d.id}
-            className="grid grid-cols-6 items-center px-6 py-4 border-t border-purple-900/30 hover:bg-purple-900/10 transition"
-          >
-            <div className="font-medium">{d.nama_discount}</div>
-            <div>{d.nominal}</div>
-            <div>{d.kategori_produk || '-'}</div>
-            <div>{d.sub_kategori || '-'}</div>
-
-            <div>
-              <button onClick={() => toggleEnabled(d)}>
-                <StatusBadge active={d.enabled} />
-              </button>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Link
-                href={`/admin/voucher/discount/edit/${d.id}`}
-                className="action-btn bg-orange-500 hover:bg-orange-400"
+            {!loading && discounts.map(d => (
+              <tr
+                key={d.id}
+                className="border-t border-purple-900/30 hover:bg-purple-900/10"
               >
-                ✏
-              </Link>
+                <td className="p-3 font-medium">{d.nama_discount}</td>
+                <td>{d.nominal}</td>
+                <td>{d.discount_type}</td>
+                <td>{d.discount_value}</td>
+                <td>{d.kategori_produk || '-'}</td>
+                <td>{d.sub_kategori || '-'}</td>
+                <td>{formatDate(d.starts_at)}</td>
+                <td>{formatDate(d.ends_at)}</td>
+                <td>{d.priority}</td>
+                <td>{d.stack_policy}</td>
+                <td>{d.status}</td>
 
-              <button
-                onClick={() => {
-                  setSelectedId(d.id)
-                  setOpenDelete(true)
-                }}
-                className="action-btn bg-red-600 hover:bg-red-500"
-              >
-                🗑
-              </button>
-            </div>
-          </div>
-        ))}
+                <td>
+                  <button onClick={() => toggleEnabled(d)}>
+                    <Badge active={d.enabled} />
+                  </button>
+                </td>
+
+                <td>
+                  <Badge active={d.enabled} />
+                </td>
+
+                <td className="flex justify-end gap-2 p-3">
+                  <Link
+                    href={`/admin/voucher/discount/edit/${d.id}`}
+                    className="action-btn bg-orange-500"
+                  >
+                    ✏
+                  </Link>
+
+                  <button
+                    onClick={() => {
+                      setSelectedId(d.id)
+                      setOpenDelete(true)
+                    }}
+                    className="action-btn bg-red-600"
+                  >
+                    🗑
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <ConfirmDeleteModal
@@ -179,16 +176,19 @@ export default function DiscountPage() {
   )
 }
 
-function StatusBadge({ active }) {
+function Badge({ active }) {
   return (
-    <span
-      className={`px-3 py-1 rounded-full text-xs font-medium border
-        ${active
-          ? 'bg-green-600/20 text-green-400 border-green-600/40'
-          : 'bg-red-600/20 text-red-400 border-red-600/40'
-        }`}
-    >
+    <span className={`px-3 py-1 rounded-full text-xs border
+      ${active
+        ? 'bg-green-600/20 text-green-400 border-green-600/40'
+        : 'bg-red-600/20 text-red-400 border-red-600/40'
+      }`}>
       {active ? 'Aktif' : 'Nonaktif'}
     </span>
   )
+}
+
+function formatDate(date) {
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString('id-ID')
 }

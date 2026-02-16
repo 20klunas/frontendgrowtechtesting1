@@ -11,44 +11,27 @@ export default function EditDiscountPage() {
 
   const [form, setForm] = useState(null)
 
-  const loadDetail = async () => {
-    const res = await fetch(
-      `${API}/api/v1/admin/discount-campaigns/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${Cookies.get('token')}`,
-        },
-      }
-    )
-
-    const json = await res.json()
-    setForm(json.data)
-  }
-
   useEffect(() => {
-    loadDetail()
+    fetch(`${API}/api/v1/admin/discount-campaigns/${id}`, {
+      headers: { Authorization: `Bearer ${Cookies.get('token')}` },
+    })
+      .then(res => res.json())
+      .then(json => setForm(json.data))
   }, [])
 
   const handleUpdate = async () => {
-    try {
-      const res = await fetch(
-        `${API}/api/v1/admin/discount-campaigns/${id}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${Cookies.get('token')}`,
-          },
-          body: JSON.stringify(form),
-        }
-      )
+    const res = await fetch(`${API}/api/v1/admin/discount-campaigns/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Cookies.get('token')}`,
+      },
+      body: JSON.stringify(form),
+    })
 
-      if (!res.ok) throw new Error()
+    if (!res.ok) return alert('Gagal update')
 
-      router.push('/admin/voucher/discount')
-    } catch {
-      alert('Gagal update discount')
-    }
+    router.push('/admin/voucher/discount')
   }
 
   if (!form) return <div className="p-10 text-white">Loading...</div>
@@ -57,49 +40,52 @@ export default function EditDiscountPage() {
     <div className="p-10 max-w-5xl mx-auto text-white">
       <h1 className="text-4xl font-bold mb-10">Edit Discount</h1>
 
-      <div className="border border-purple-700 rounded-2xl p-8 bg-black/60">
-        <div className="grid grid-cols-2 gap-6">
-          <div className="col-span-2">
-            <label className="text-sm text-gray-400">Nama Discount</label>
-            <input
-              className="input w-full"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-            />
-          </div>
+      <div className="border border-purple-700 rounded-2xl p-8 bg-black/60 grid grid-cols-2 gap-6">
+        <Input label="Nama Discount" value={form.name}
+          onChange={v => setForm({ ...form, name: v })} />
 
-          <div>
-            <label className="text-sm text-gray-400">Nilai Discount</label>
-            <input
-              className="input w-full"
-              value={form.discount_value}
-              onChange={e =>
-                setForm({ ...form, discount_value: Number(e.target.value) })
-              }
-            />
-          </div>
+        <Input label="Discount Value" type="number"
+          value={form.discount_value}
+          onChange={v => setForm({ ...form, discount_value: Number(v) })} />
 
-          <div>
-            <label className="text-sm text-gray-400">Tipe</label>
-            <select
-              className="input w-full"
-              value={form.discount_type}
-              onChange={e =>
-                setForm({ ...form, discount_type: e.target.value })
-              }
-            >
-              <option value="percent">Percent</option>
-              <option value="amount">Amount</option>
-            </select>
-          </div>
-        </div>
+        <Input label="Priority" type="number"
+          value={form.priority}
+          onChange={v => setForm({ ...form, priority: Number(v) })} />
 
-        <div className="flex justify-end mt-8">
-          <button onClick={handleUpdate} className="btn-primary">
-            Simpan Perubahan
-          </button>
-        </div>
+        <Select label="Stack Policy"
+          value={form.stack_policy}
+          options={['stackable', 'exclusive']}
+          onChange={v => setForm({ ...form, stack_policy: v })} />
+
+        <button onClick={handleUpdate} className="btn-primary col-span-2">
+          Simpan Perubahan
+        </button>
       </div>
+    </div>
+  )
+}
+
+function Input({ label, ...props }) {
+  return (
+    <div>
+      <label className="text-sm text-gray-400">{label}</label>
+      <input className="input w-full" {...props}
+        onChange={e => props.onChange?.(e.target.value)} />
+    </div>
+  )
+}
+
+function Select({ label, options, value, onChange }) {
+  return (
+    <div>
+      <label className="text-sm text-gray-400">{label}</label>
+      <select
+        className="input w-full"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      >
+        {options.map(o => <option key={o}>{o}</option>)}
+      </select>
     </div>
   )
 }
