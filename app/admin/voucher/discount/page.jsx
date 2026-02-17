@@ -363,17 +363,25 @@ function SkeletonRows() {
 }
 
 function TypeBadge({ type }) {
-  const map = {
-    rupiah: 'bg-blue-600/20 text-blue-400 border-blue-600/40',
+  const labelMap = {
+    fixed: 'Rupiah',
+    percent: 'Percent',
+  }
+
+  const styleMap = {
+    fixed: 'bg-blue-600/20 text-blue-400 border-blue-600/40',
     percent: 'bg-purple-600/20 text-purple-400 border-purple-600/40',
   }
 
+  const label = labelMap[type] || type
+
   return (
-    <span className={`px-2 py-1 rounded-md text-xs border ${map[type]}`}>
-      {type}
+    <span className={`px-2 py-1 rounded-md text-xs border ${styleMap[type] || 'border-white/10'}`}>
+      {label}
     </span>
   )
 }
+
 
 function StackBadge({ policy }) {
   const exclusive = policy === 'exclusive'
