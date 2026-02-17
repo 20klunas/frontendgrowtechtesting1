@@ -37,7 +37,15 @@ export default function AddDiscountPage() {
       headers: { Authorization: `Bearer ${Cookies.get('token')}` },
     })
       .then(res => res.json())
-      .then(json => setSubcategories(json.data || []))
+      .then(json => {
+        const list = Array.isArray(json.data)
+          ? json.data
+          : Array.isArray(json.data?.data)
+          ? json.data.data
+          : []
+
+        setSubcategories(list)
+      })
 
     fetch(`${API}/api/v1/admin/products`, {
       headers: { Authorization: `Bearer ${Cookies.get('token')}` },
@@ -57,7 +65,7 @@ export default function AddDiscountPage() {
   /* ================= FILTER ================= */
   const filteredSubcategories = useMemo(() => {
     return subcategories.filter(s =>
-      s.name.toLowerCase().includes(subcategorySearch.toLowerCase())
+      (s.name || '').toLowerCase().includes(subcategorySearch.toLowerCase())
     )
   }, [subcategorySearch, subcategories])
 
