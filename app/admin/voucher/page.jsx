@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import Cookies from 'js-cookie'
 import { motion } from 'framer-motion'
@@ -28,7 +29,7 @@ export default function VoucherPage() {
 
       const json = await res.json()
 
-      console.log('VOUCHER RESPONSE:', json)
+      console.log('VOUCHER RESPONSE:', json) // 🔍 debug penting
 
       const list =
         Array.isArray(json.data)
@@ -57,6 +58,7 @@ export default function VoucherPage() {
       v.code?.toLowerCase().includes(search.toLowerCase())
     )
   }, [vouchers, search])
+
 
   const handleDelete = async (id) => {
     if (!confirm('Yakin hapus voucher ini?')) return
@@ -87,15 +89,13 @@ export default function VoucherPage() {
   return (
     <div className="p-10 text-white">
 
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <motion.div
-        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8"
+        className="flex justify-between items-center mb-8"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-4xl font-bold tracking-tight">
-          Manajemen Voucher
-        </h1>
+        <h1 className="text-4xl font-bold">Manajemen Voucher</h1>
 
         <button
           onClick={() => {
@@ -108,7 +108,7 @@ export default function VoucherPage() {
         </button>
       </motion.div>
 
-      {/* ================= TAB + SEARCH ================= */}
+      {/* TAB + SEARCH */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <VoucherTabs />
 
@@ -120,27 +120,23 @@ export default function VoucherPage() {
         />
       </div>
 
-      {/* ================= CONTAINER ================= */}
-      <div className="rounded-2xl border border-purple-900/40 bg-gradient-to-b from-black to-purple-950/20 p-5">
-
-        {/* ================= LIST ================= */}
+      {/* LIST */}
+      <div className="space-y-5">
         {loading ? (
-          <SkeletonGrid />
+          <SkeletonList />
         ) : filtered.length > 0 ? (
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map(v => (
-              <VoucherCard
-                key={v.id}
-                data={v}
-                onEdit={() => {
-                  setSelected(v)
-                  setOpenModal(true)
-                }}
-                onDelete={() => handleDelete(v.id)}
-                onToggle={() => handleToggle(v)}
-              />
-            ))}
-          </div>
+          filtered.map(v => (
+            <VoucherCard
+              key={v.id}
+              data={v}
+              onEdit={() => {
+                setSelected(v)
+                setOpenModal(true)
+              }}
+              onDelete={() => handleDelete(v.id)}
+              onToggle={() => handleToggle(v)}
+            />
+          ))
         ) : (
           <EmptyState text="Voucher tidak ditemukan" />
         )}
@@ -158,21 +154,21 @@ export default function VoucherPage() {
 
 function EmptyState({ text }) {
   return (
-    <div className="text-center py-20 text-gray-400">
+    <div className="text-center py-20 text-gray-400 border border-purple-900/40 rounded-2xl">
       {text}
     </div>
   )
 }
 
-function SkeletonGrid() {
+function SkeletonList() {
   return (
-    <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {Array.from({ length: 6 }).map((_, i) => (
+    <>
+      {Array.from({ length: 3 }).map((_, i) => (
         <div
           key={i}
-          className="h-36 rounded-2xl bg-gradient-to-r from-purple-900/20 via-purple-700/20 to-purple-900/20 animate-pulse"
+          className="h-28 rounded-2xl bg-gradient-to-r from-purple-900/20 via-purple-700/20 to-purple-900/20 animate-pulse"
         />
       ))}
-    </div>
+    </>
   )
 }
