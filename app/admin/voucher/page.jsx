@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import Cookies from 'js-cookie'
 import { motion } from 'framer-motion'
@@ -29,7 +28,7 @@ export default function VoucherPage() {
 
       const json = await res.json()
 
-      console.log('VOUCHER RESPONSE:', json) // 🔍 debug penting
+      console.log('VOUCHER RESPONSE:', json)
 
       const list =
         Array.isArray(json.data)
@@ -58,7 +57,6 @@ export default function VoucherPage() {
       v.code?.toLowerCase().includes(search.toLowerCase())
     )
   }, [vouchers, search])
-
 
   const handleDelete = async (id) => {
     if (!confirm('Yakin hapus voucher ini?')) return
@@ -89,13 +87,15 @@ export default function VoucherPage() {
   return (
     <div className="p-10 text-white">
 
-      {/* HEADER */}
+      {/* ================= HEADER ================= */}
       <motion.div
-        className="flex justify-between items-center mb-8"
+        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-4xl font-bold">Manajemen Voucher</h1>
+        <h1 className="text-4xl font-bold tracking-tight">
+          Manajemen Voucher
+        </h1>
 
         <button
           onClick={() => {
@@ -108,35 +108,39 @@ export default function VoucherPage() {
         </button>
       </motion.div>
 
-      {/* TAB + SEARCH */}
-      <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
+      {/* ================= TAB + SEARCH ================= */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <VoucherTabs />
 
         <input
-          className="input w-full md:w-72"
+          className="input w-full md:w-80"
           placeholder="Cari kode voucher..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
       </div>
 
-      {/* LIST */}
-      <div className="space-y-5">
+      {/* ================= CONTAINER ================= */}
+      <div className="rounded-2xl border border-purple-900/40 bg-gradient-to-b from-black to-purple-950/20 p-5">
+
+        {/* ================= LIST ================= */}
         {loading ? (
-          <SkeletonList />
+          <SkeletonGrid />
         ) : filtered.length > 0 ? (
-          filtered.map(v => (
-            <VoucherCard
-              key={v.id}
-              data={v}
-              onEdit={() => {
-                setSelected(v)
-                setOpenModal(true)
-              }}
-              onDelete={() => handleDelete(v.id)}
-              onToggle={() => handleToggle(v)}
-            />
-          ))
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filtered.map(v => (
+              <VoucherCard
+                key={v.id}
+                data={v}
+                onEdit={() => {
+                  setSelected(v)
+                  setOpenModal(true)
+                }}
+                onDelete={() => handleDelete(v.id)}
+                onToggle={() => handleToggle(v)}
+              />
+            ))}
+          </div>
         ) : (
           <EmptyState text="Voucher tidak ditemukan" />
         )}
@@ -154,21 +158,21 @@ export default function VoucherPage() {
 
 function EmptyState({ text }) {
   return (
-    <div className="text-center py-20 text-gray-400 border border-purple-900/40 rounded-2xl">
+    <div className="text-center py-20 text-gray-400">
       {text}
     </div>
   )
 }
 
-function SkeletonList() {
+function SkeletonGrid() {
   return (
-    <>
-      {Array.from({ length: 3 }).map((_, i) => (
+    <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="h-28 rounded-2xl bg-gradient-to-r from-purple-900/20 via-purple-700/20 to-purple-900/20 animate-pulse"
+          className="h-36 rounded-2xl bg-gradient-to-r from-purple-900/20 via-purple-700/20 to-purple-900/20 animate-pulse"
         />
       ))}
-    </>
+    </div>
   )
 }
