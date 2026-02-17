@@ -88,10 +88,13 @@ export default function SubKategoriPage() {
   const fetchAll = async () => {
     setLoading(true)
     try {
-      const [subJson, catJson] = await Promise.all([
+      const [subRes, catRes] = await Promise.all([
         authFetch('/api/v1/admin/subcategories'),
         authFetch('/api/v1/admin/categories'),
       ])
+
+      const subJson = await safeJson(subRes)
+      const catJson = await safeJson(catRes)
 
       setItems(subJson.data || [])
       setCategories(catJson.data || [])
@@ -103,8 +106,6 @@ export default function SubKategoriPage() {
       setLoading(false)
     }
   }
-
-
 
   useEffect(() => {
     fetchAll()
@@ -233,7 +234,6 @@ export default function SubKategoriPage() {
 
       const method = mode === 'edit' ? 'PATCH' : 'POST'
 
-      // ✅ jangan kirim 0 untuk sort_order
       const payload = {
         category_id: Number(form.category_id),
         name: form.name,
@@ -252,11 +252,7 @@ export default function SubKategoriPage() {
         body: JSON.stringify(payload),
       })
 
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text)
-      }
-
+      const json = await safeJson(res) 
 
       if (!res.ok || !json?.success) {
         console.log('SAVE ERROR:', json)
@@ -265,6 +261,7 @@ export default function SubKategoriPage() {
 
       await fetchAll()
       closeModal()
+
     } catch (err) {
       console.error(err)
       alert(err?.message || 'Gagal menyimpan')
@@ -272,6 +269,7 @@ export default function SubKategoriPage() {
       setSubmitting(false)
     }
   }
+
 
   const handleDelete = async () => {
     if (!selected?.id) return
