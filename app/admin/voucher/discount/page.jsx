@@ -157,18 +157,18 @@ export default function DiscountPage() {
               <SortableTh label="Nama" onClick={() => handleSort('nama_discount')} />
               <SortableTh label="Nominal" align="right" onClick={() => handleSort('nominal')} />
               <SortableTh label="Type" align="center" onClick={() => handleSort('discount_type')} />
-              <SortableTh label="Value" align="right" onClick={() => handleSort('discount_value')} />
-              <th className="text-right p-3">Min Order</th>
-              <th className="text-right p-3">Max Discount</th>
+              <SortableTh label="Value" align="center" onClick={() => handleSort('discount_value')} />
+              <th className="text-center p-3">Min Order</th>
+              <th className="text-center p-3">Max Discount</th>
               <th className="text-center p-3">Starts</th>
               <th className="text-center p-3">Ends</th>
               <SortableTh label="Priority" align="center" onClick={() => handleSort('priority')} />
               <SortableTh label="Stack" align="center" onClick={() => handleSort('stack_policy')} />
-              <th className="text-right p-3">Usage</th>
-              <th className="text-right p-3">Per User</th>
+              <th className="text-center p-3">Usage</th>
+              <th className="text-center p-3">Per User</th>
               <th className="text-center p-3">Status</th>
-              <th className="text-left p-3">Targets</th>
-              <th className="text-right p-3 pr-6">Aksi</th>
+              <th className="text-center p-3">Targets</th>
+              <th className="text-center p-3 pr-6">Aksi</th>
             </tr>
           </thead>
 
@@ -191,11 +191,11 @@ export default function DiscountPage() {
                     hover:bg-purple-900/20 transition
                   `}
                 >
-                  <td className="p-4 font-medium whitespace-nowrap">
+                  <td className="p-4 font-medium whitespace-nowrap text-center">
                     {d.nama_discount}
                   </td>
 
-                  <td className="text-right font-mono">
+                  <td className="text-center font-mono">
                     {d.nominal}
                   </td>
 
@@ -203,15 +203,15 @@ export default function DiscountPage() {
                     <TypeBadge type={d.discount_type} />
                   </td>
 
-                  <td className="text-right font-mono">
+                  <td className="text-center font-mono">
                     {d.discount_value}
                   </td>
 
-                  <td className="text-right">
+                  <td className="text-center">
                     {d.min_order_amount ?? '-'}
                   </td>
 
-                  <td className="text-right">
+                  <td className="text-center">
                     {d.max_discount_amount ?? '-'}
                   </td>
 
@@ -229,11 +229,11 @@ export default function DiscountPage() {
                     <StackBadge policy={d.stack_policy} />
                   </td>
 
-                  <td className="text-right">
+                  <td className="text-center">
                     {d.usage_limit_total ?? '-'}
                   </td>
 
-                  <td className="text-right">
+                  <td className="text-center">
                     {d.usage_limit_per_user ?? '-'}
                   </td>
 
@@ -247,7 +247,7 @@ export default function DiscountPage() {
                     </button>
                   </td>
 
-                  <td className="text-left">
+                  <td className="text-center">
                     <div className="flex flex-wrap gap-1">
                       {d.targets?.length ? (
                         d.targets.map(t => (
