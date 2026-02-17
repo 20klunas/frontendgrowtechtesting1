@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
 
@@ -12,13 +12,36 @@ export default function EditDiscountPage() {
   const [form, setForm] = useState(null)
   const [subcategories, setSubcategories] = useState([])
   const [products, setProducts] = useState([])
+  const [existingDiscounts, setExistingDiscounts] = useState([])
 
+  const [subcategorySearch, setSubcategorySearch] = useState('')
+  const [productSearch, setProductSearch] = useState('')
+
+  /* ================= LOAD DATA ================= */
   useEffect(() => {
     fetch(`${API}/api/v1/admin/discount-campaigns/${id}`, {
       headers: { Authorization: `Bearer ${Cookies.get('token')}` },
     })
       .then(res => res.json())
-      .then(json => setForm(json.data))
+      .then(json => {
+        const data = json.data
+
+        setForm({
+          name: data.name,
+          enabled: data.enabled,
+          starts_at: formatForInput(data.starts_at),
+          ends_at: formatForInput(data.ends_at),
+          discount_type: data.discount_type,
+          discount_value: data.discount_value,
+          min_order_amount: data.min_order_amount || '',
+          max_discount_amount: data.max_discount_amount || '',
+          usage_limit_total: data.usage_limit_total || '',
+          usage_limit_per_user: data.usage_limit_per_user || '',
+          priority: data.priority,
+          stack_policy: data.stack_policy,
+          targets: data.targets || [],
+        })
+      })
 
     fetch(`${API}/api/v1/admin/subcategories`, {
       headers: { Authorization: `Bearer ${Cookies.get('token')}` },
@@ -31,9 +54,53 @@ export default function EditDiscountPage() {
     })
       .then(res => res.json())
       .then(json => setProducts(json.data || []))
-  }, [])
+
+    fetch(`${API}/api/v1/admin/discount-campaigns`, {
+      headers: { Authorization: `Bearer ${Cookies.get('token')}` },
+    })
+      .then(res => res.json())
+      .then(json =>
+        setExistingDiscounts(json.data?.data || json.data || [])
+      )
+  }, [id])
+
+  /* ================= FILTER ================= */
+  const filteredSubcategories = useMemo(() => {
+    return subcategories.filter(s =>
+      s.name.toLowerCase().includes(subcategorySearch.toLowerCase())
+    )
+  }, [subcategorySearch, subcategories])
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p =>
+      p.name.toLowerCase().includes(productSearch.toLowerCase())
+    )
+  }, [productSearch, products])
+
+  /* ================= CONFLICT DETECTOR ================= */
+  const hasConflict = useMemo(() => {
+    if (!form?.starts_at || !form?.ends_at) return false
+
+    const start = new Date(form.starts_at)
+    const end = new Date(form.ends_at)
+
+    return existingDiscounts.some(d => {
+      if (d.id === Number(id)) return false
+
+      if (!d.starts_at || !d.ends_at) return false
+
+      const dStart = new Date(d.starts_at)
+      const dEnd = new Date(d.ends_at)
+
+      return start <= dEnd && end >= dStart
+    })
+  }, [form?.starts_at, form?.ends_at, existingDiscounts, id])
+
+  /* ================= TARGET HANDLER ================= */
 
   const addTarget = async (type, targetId) => {
+    if (!targetId) return
+
     await fetch(`${API}/api/v1/admin/discount-campaigns/${id}/targets`, {
       method: 'POST',
       headers: {
@@ -45,7 +112,10 @@ export default function EditDiscountPage() {
       }),
     })
 
-    location.reload()
+    setForm(prev => ({
+      ...prev,
+      targets: [...prev.targets, { type, id: Number(targetId) }],
+    }))
   }
 
   const removeTarget = async (type, targetId) => {
@@ -60,17 +130,40 @@ export default function EditDiscountPage() {
       }),
     })
 
-    location.reload()
+    setForm(prev => ({
+      ...prev,
+      targets: prev.targets.filter(
+        t => !(t.type === type && t.id === targetId)
+      ),
+    }))
   }
 
+  /* ================= FORMAT ================= */
+
+  const formatRupiah = value =>
+    value ? new Intl.NumberFormat('id-ID').format(value) : ''
+
+  const parseRupiah = value =>
+    value.replace(/\./g, '')
+
+  /* ================= UPDATE ================= */
+
   const handleUpdate = async () => {
+    const payload = {
+      ...form,
+      min_order_amount: form.min_order_amount || null,
+      max_discount_amount: form.max_discount_amount || null,
+      usage_limit_total: form.usage_limit_total || null,
+      usage_limit_per_user: form.usage_limit_per_user || null,
+    }
+
     const res = await fetch(`${API}/api/v1/admin/discount-campaigns/${id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${Cookies.get('token')}`,
       },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     })
 
     if (!res.ok) return alert('Gagal update')
@@ -81,46 +174,178 @@ export default function EditDiscountPage() {
   if (!form) return <div className="p-10 text-white">Loading...</div>
 
   return (
-    <div className="p-10 max-w-5xl mx-auto text-white">
-      <h1 className="text-4xl font-bold mb-10">Edit Discount</h1>
+    <div className="p-10 max-w-5xl mx-auto text-white space-y-6">
 
-      <div className="grid grid-cols-2 gap-6">
-        <Input label="Nama Discount" value={form.name}
-          onChange={v => setForm({ ...form, name: v })} />
+      <h1 className="text-4xl font-bold">Edit Discount</h1>
 
-        <Input label="Discount Value" type="number"
-          value={form.discount_value}
-          onChange={v => setForm({ ...form, discount_value: Number(v) })} />
-
-        <Input label="Priority" type="number"
-          value={form.priority}
-          onChange={v => setForm({ ...form, priority: Number(v) })} />
-
-        <Select
-          label="Tambah Target Subcategory"
-          options={subcategories.map(s => ({ label: s.name, value: s.id }))}
-          onChange={v => addTarget('subcategory', v)}
+      <Section title="Informasi Dasar">
+        <Input label="Nama Discount"
+          value={form.name}
+          onChange={v => setForm({ ...form, name: v })}
         />
 
-        <Select
-          label="Tambah Target Product"
-          options={products.map(p => ({ label: p.name, value: p.id }))}
-          onChange={v => addTarget('product', v)}
+        <Input label="Discount Value"
+          type="number"
+          value={form.discount_value}
+          onChange={v =>
+            setForm({ ...form, discount_value: Number(v) })}
+        />
+
+        <Select label="Discount Type"
+          value={form.discount_type}
+          options={['percent', 'amount']}
+          onChange={v =>
+            setForm({ ...form, discount_type: v })}
+        />
+
+        <Input label="Priority"
+          type="number"
+          value={form.priority}
+          onChange={v =>
+            setForm({ ...form, priority: Number(v) })}
+        />
+
+        <Select label="Stack Policy"
+          value={form.stack_policy}
+          options={['stackable', 'exclusive']}
+          onChange={v =>
+            setForm({ ...form, stack_policy: v })}
+        />
+      </Section>
+
+      <Section title="Aturan Discount">
+        <Input
+          label="Min Order Amount (Rp)"
+          value={formatRupiah(form.min_order_amount)}
+          onChange={v =>
+            setForm({ ...form, min_order_amount: parseRupiah(v) })}
+        />
+
+        <Input
+          label="Max Discount Amount (Rp)"
+          value={formatRupiah(form.max_discount_amount)}
+          onChange={v =>
+            setForm({ ...form, max_discount_amount: parseRupiah(v) })}
+        />
+
+        <Input label="Usage Limit Total"
+          value={form.usage_limit_total}
+          onChange={v =>
+            setForm({ ...form, usage_limit_total: v })}
+        />
+
+        <Input label="Usage Limit Per User"
+          value={form.usage_limit_per_user}
+          onChange={v =>
+            setForm({ ...form, usage_limit_per_user: v })}
+        />
+      </Section>
+
+      <Section title="Jadwal Aktif">
+        <Input label="Starts At"
+          type="datetime-local"
+          value={form.starts_at}
+          onChange={v =>
+            setForm({ ...form, starts_at: v })}
+        />
+
+        <Input label="Ends At"
+          type="datetime-local"
+          value={form.ends_at}
+          onChange={v =>
+            setForm({ ...form, ends_at: v })}
+        />
+
+        {hasConflict && (
+          <div className="col-span-2 bg-red-900/20 border border-red-600/40 text-red-400 px-4 py-3 rounded-xl">
+            ⚠ Jadwal bertabrakan dengan discount lain
+          </div>
+        )}
+      </Section>
+
+      <Section title="Target Discount">
+        <SearchableDropdown
+          label="Tambah Subcategory"
+          placeholder="Cari subcategory..."
+          search={subcategorySearch}
+          setSearch={setSubcategorySearch}
+          items={filteredSubcategories}
+          onSelect={id => addTarget('subcategory', id)}
+        />
+
+        <SearchableDropdown
+          label="Tambah Product"
+          placeholder="Cari product..."
+          search={productSearch}
+          setSearch={setProductSearch}
+          items={filteredProducts}
+          onSelect={id => addTarget('product', id)}
         />
 
         <div className="col-span-2">
-          <p className="text-sm text-purple-300 mb-2">Existing Targets</p>
-          {form.targets?.map(t => (
-            <div key={`${t.type}-${t.id}`} className="flex justify-between">
+          <p className="text-sm text-purple-300 mb-2">
+            Existing Targets
+          </p>
+
+          {form.targets.length === 0 && (
+            <p className="text-xs text-gray-500">
+              Tidak ada target
+            </p>
+          )}
+
+          {form.targets.map(t => (
+            <div
+              key={`${t.type}-${t.id}`}
+              className="flex justify-between bg-purple-900/20 px-3 py-2 rounded-lg mb-2"
+            >
               <span>{t.type} #{t.id}</span>
-              <button onClick={() => removeTarget(t.type, t.id)}>❌</button>
+              <button onClick={() => removeTarget(t.type, t.id)}>
+                ❌
+              </button>
             </div>
           ))}
         </div>
+      </Section>
 
-        <button onClick={handleUpdate} className="btn-primary col-span-2">
-          Simpan Perubahan
-        </button>
+      <div className="border border-purple-700/40 rounded-xl p-4">
+        <label className="flex gap-2">
+          <input
+            type="checkbox"
+            checked={form.enabled}
+            onChange={e =>
+              setForm({ ...form, enabled: e.target.checked })}
+          />
+          Enabled
+        </label>
+      </div>
+
+      <button
+        onClick={handleUpdate}
+        className="btn-primary w-full"
+      >
+        Simpan Perubahan
+      </button>
+    </div>
+  )
+}
+
+/* ================= HELPERS ================= */
+
+function formatForInput(date) {
+  if (!date) return ''
+  return new Date(date).toISOString().slice(0, 16)
+}
+
+/* ================= UI COMPONENTS ================= */
+
+function Section({ title, children }) {
+  return (
+    <div className="border border-purple-700/40 rounded-2xl p-6 bg-black/40">
+      <h2 className="text-lg font-semibold mb-4 text-purple-300">
+        {title}
+      </h2>
+      <div className="grid grid-cols-2 gap-4">
+        {children}
       </div>
     </div>
   )
@@ -130,22 +355,68 @@ function Input({ label, ...props }) {
   return (
     <div>
       <label className="text-sm text-gray-400">{label}</label>
-      <input className="input w-full" {...props}
-        onChange={e => props.onChange?.(e.target.value)} />
+      <input
+        className="input w-full"
+        {...props}
+        onChange={e => props.onChange?.(e.target.value)}
+      />
     </div>
   )
 }
 
-function Select({ label, options, onChange }) {
+function Select({ label, options, value, onChange }) {
   return (
     <div>
       <label className="text-sm text-gray-400">{label}</label>
-      <select className="input w-full" onChange={e => onChange(e.target.value)}>
-        <option value="">Pilih</option>
-        {options.map(o =>
-          <option key={o.value} value={o.value}>{o.label}</option>
-        )}
+      <select
+        className="input w-full"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      >
+        {options.map(o => (
+          <option key={o}>{o}</option>
+        ))}
       </select>
+    </div>
+  )
+}
+
+function SearchableDropdown({
+  label,
+  placeholder,
+  search,
+  setSearch,
+  items,
+  onSelect,
+}) {
+  return (
+    <div>
+      <label className="text-sm text-gray-400">{label}</label>
+
+      <input
+        className="input w-full mb-2"
+        placeholder={placeholder}
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+      />
+
+      <div className="border border-purple-700/40 rounded-lg max-h-40 overflow-y-auto bg-purple-900/10">
+        {items.length === 0 && (
+          <p className="text-xs text-gray-500 p-2">
+            Tidak ada data
+          </p>
+        )}
+
+        {items.map(item => (
+          <div
+            key={item.id}
+            onClick={() => onSelect(item.id)}
+            className="px-3 py-2 hover:bg-purple-700/20 cursor-pointer text-sm"
+          >
+            {item.name}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
