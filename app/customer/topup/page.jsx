@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useEffect } from "react"
 import Cookies from "js-cookie"
-
+import Script from 'next/script'
 
 /* ================= DATA ================= */
 
@@ -35,7 +35,6 @@ const PAYMENT_METHODS = [
     prefix: "DKU",
   },
 ]
-
 
 /* ================= PAGE ================= */
 
@@ -172,7 +171,7 @@ export default function TopUpPage() {
             <Header title="Saldo Wallet Anda" icon="💼" />
             <p className="text-sm text-gray-400">Total Saldo</p>
             <p className="text-3xl font-bold mt-2 mb-2">
-              Rp {wallet ? wallet.balance.toLocaleString() : 0}
+              Rp {wallet?.balance?.toLocaleString?.('id-ID') ?? 0}
             </p>
             <p className="text-sm text-red-500">
               ⚠️ Topup untuk melakukan pembelian lebih banyak
@@ -285,9 +284,9 @@ export default function TopUpPage() {
               {history.map((row, i) => (
                 <tr key={row.id} className="border-b border-purple-800/40">
                   <td className="py-3">{i + 1}</td>
-                  <td>Rp {row.amount.toLocaleString()}</td>
+                  <td>Rp {Number(row.amount || 0).toLocaleString('id-ID')}</td>
                   <td>{row.type}</td>
-                  <td>{new Date(row.created_at).toLocaleString()}</td>
+                  <td>{row.created_at ? new Date(row.created_at).toLocaleString('id-ID') : '-'}</td>
                   <td className={row.direction === "CREDIT" ? "text-green-400" : "text-red-400"}>
                     {row.direction}
                   </td>
@@ -345,7 +344,7 @@ export default function TopUpPage() {
 
             <p className="text-sm text-gray-400">Saldo Terbaru</p>
             <p className="text-2xl font-bold mb-6">
-              Rp {wallet ? wallet.balance.toLocaleString() : 0}
+              Rp {wallet?.balance?.toLocaleString?.('id-ID') ?? 0}
             </p>
 
             <button
@@ -403,3 +402,8 @@ function Row({ label, value }) {
   )
 }
 
+<Script
+  src="https://app.sandbox.midtrans.com/snap/snap.js"
+  data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+  strategy="afterInteractive"
+/>
