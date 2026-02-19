@@ -1,18 +1,24 @@
 'use client'
+
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 
 export default function CheckoutLayout({ children }) {
   const pathname = usePathname();
 
-  let step = 1; // DEFAULT = Langkah 1 (Pilih Produk)
+  const getStep = () => {
+    if (pathname.startsWith("/customer/category/product/payment")) {
+      return 3;
+    }
 
-  if (pathname.includes("lengkapipembelian")) {
-    step = 2;
-  }
+    if (pathname.startsWith("/customer/category/product/lengkapipembelian")) {
+      return 2;
+    }
 
-  if (pathname.includes("payment")) {
-    step = 3;
-  }
+    return 1; // default → Pilih Produk
+  };
+
+  const step = getStep();
 
   const steps = [
     "Pilih Produk",
@@ -23,7 +29,7 @@ export default function CheckoutLayout({ children }) {
   return (
     <main className="min-h-screen bg-black text-white">
 
-      {/* STEPPER */}
+      {/* ================= STEPPER ================= */}
       <div className="border-b border-transparent mb-8">
         <div className="max-w-7xl mx-auto px-8 py-8 flex items-center justify-center gap-12">
 
@@ -35,7 +41,13 @@ export default function CheckoutLayout({ children }) {
               <div key={i} className="flex items-center gap-6">
 
                 {/* CIRCLE */}
-                <div
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0.5 }}
+                  animate={{ 
+                    scale: active ? 1.05 : 1,
+                    opacity: 1 
+                  }}
+                  transition={{ duration: 0.25 }}
                   className={`
                     flex items-center justify-center
                     w-12 h-12 rounded-full
@@ -48,7 +60,7 @@ export default function CheckoutLayout({ children }) {
                   `}
                 >
                   {i + 1}
-                </div>
+                </motion.div>
 
                 {/* LABEL */}
                 <div className="leading-tight">
@@ -71,8 +83,14 @@ export default function CheckoutLayout({ children }) {
 
                 {/* LINE */}
                 {i < steps.length - 1 && (
-                  <div
-                    className={`mx-6 h-[2px] w-16 ${
+                  <motion.div
+                    initial={{ scaleX: 0.6, opacity: 0.5 }}
+                    animate={{ 
+                      scaleX: step > i + 1 ? 1 : 0.6,
+                      opacity: 1 
+                    }}
+                    transition={{ duration: 0.3 }}
+                    className={`mx-6 h-[2px] w-16 origin-left ${
                       step > i + 1 ? "bg-green-500" : "bg-white/60"
                     }`}
                   />
@@ -83,6 +101,7 @@ export default function CheckoutLayout({ children }) {
         </div>
       </div>
 
+      {/* ================= PAGE CONTENT ================= */}
       {children}
     </main>
   );
