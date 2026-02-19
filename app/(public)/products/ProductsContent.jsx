@@ -23,10 +23,9 @@ export default function ProductsContent() {
     try {
       setLoading(true);
 
-      // ✅ Build URL dinamis
       const url = subcategoryId
-        ? `${API}/products?subcategory_id=${subcategoryId}`
-        : `${API}/products`;
+        ? `${API}/api/v1/products?subcategory_id=${subcategoryId}`
+        : `${API}/api/v1/products`;
 
       const res = await fetch(url);
 
@@ -42,7 +41,6 @@ export default function ProductsContent() {
       const json = await res.json();
 
       if (json.success) {
-        // ✅ FIX pagination structure
         setProducts(json?.data?.data || []);
       }
     } catch (err) {
