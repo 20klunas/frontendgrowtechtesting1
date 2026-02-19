@@ -24,6 +24,7 @@ export default function NavbarCustomer() {
   const [brand, setBrand] = useState({})
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [cartCount, setCartCount] = useState(0)
 
   const avatarSrc = user?.avatar_url || user?.avatar || null
 
@@ -46,6 +47,45 @@ export default function NavbarCustomer() {
   }, [])
 
   if (loading) return null
+
+  /* ================= FETCH CART COUNT ================= */
+  useEffect(() => {
+    if (!user) return
+
+    fetchCart()
+  }, [user])
+
+  const fetchCart = async () => {
+    try {
+      const res = await fetch(`${API}/api/v1/cart`, {
+        credentials: "include",
+      })
+
+      const contentType = res.headers.get("content-type")
+
+      if (!contentType?.includes("application/json")) {
+        const text = await res.text()
+        console.error("Cart non-JSON:", text)
+        return
+      }
+
+      const json = await res.json()
+
+      if (json.success) {
+        const items = json?.data?.items || json?.data || []
+
+        // ✅ Hitung jumlah item
+        const total = items.reduce((sum, item) => {
+          return sum + (item.qty || 1)
+        }, 0)
+
+        setCartCount(total)
+      }
+    } catch (err) {
+      console.error("Failed fetch cart:", err)
+      setCartCount(0)
+    }
+  }
 
   /* ================= NAV CONFIG ================= */
   const navItems = [
@@ -205,9 +245,11 @@ export default function NavbarCustomer() {
             )}
           >
             🛒
-            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold">
-              1
-            </span>
+            {cartCount > 0 && (
+              <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold">
+                {cartCount}
+              </span>
+            )}
           </Link>
 
           {/* USER BUTTON */}

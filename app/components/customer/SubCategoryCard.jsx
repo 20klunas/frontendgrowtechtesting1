@@ -54,7 +54,7 @@ export default function ProductCard({ subcategory }) {
 
         <button
           onClick={(e) => {
-            e.stopPropagation(); // supaya tidak double trigger
+            e.stopPropagation();
             handleClick();
           }}
           className="mt-2 w-full rounded-lg bg-purple-600 hover:bg-purple-500 transition py-2.5 text-sm font-medium text-white shadow-md hover:shadow-purple-500/40"
