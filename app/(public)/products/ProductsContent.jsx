@@ -16,26 +16,38 @@ export default function ProductsContent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (subcategoryId) {
-      fetchProducts();
-    }
+    fetchProducts();
   }, [subcategoryId]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
 
-      const res = await fetch(
-        `${API}/products?subcategory_id=${subcategoryId}`
-      );
+      // ✅ Build URL dinamis
+      const url = subcategoryId
+        ? `${API}/products?subcategory_id=${subcategoryId}`
+        : `${API}/products`;
+
+      const res = await fetch(url);
+
+      // 🚨 Guard response bukan JSON
+      const contentType = res.headers.get("content-type");
+
+      if (!contentType?.includes("application/json")) {
+        const text = await res.text();
+        console.error("Non-JSON response:", text);
+        throw new Error("API did not return JSON");
+      }
+
       const json = await res.json();
 
       if (json.success) {
-        // ✅ FIX STRUKTUR PAGINATION
+        // ✅ FIX pagination structure
         setProducts(json?.data?.data || []);
       }
     } catch (err) {
       console.error("Failed fetch products:", err);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -47,7 +59,9 @@ export default function ProductsContent() {
 
   return (
     <main className="product-wrapper">
-      <h1 className="product-title">Daftar Produk</h1>
+      <h1 className="product-title">
+        {subcategoryId ? "Produk Subkategori" : "Semua Produk"}
+      </h1>
 
       <div className="product-grid">
         {loading ? (
@@ -60,54 +74,61 @@ export default function ProductsContent() {
         ) : products.length === 0 ? (
           <EmptyState />
         ) : (
-          products.map((product) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 25 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              whileHover={{ scale: 1.03 }}
-              className="group relative rounded-2xl p-5 bg-gradient-to-b from-zinc-900 to-black border border-zinc-800 shadow-lg"
-            >
-              {/* Glow */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 bg-purple-500/10 blur-2xl" />
+          products.map((product) => {
+            const pricing =
+              Array.isArray(product.tier_pricing)
+                ? product.tier_pricing[0]
+                : product.tier_pricing;
 
-              <div className="relative space-y-2">
-                <h3 className="text-lg font-semibold text-white">
-                  {product.name}
-                </h3>
+            return (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 25 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                whileHover={{ scale: 1.03 }}
+                className="group relative rounded-2xl p-5 bg-gradient-to-b from-zinc-900 to-black border border-zinc-800 shadow-lg"
+              >
+                {/* Glow */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 bg-purple-500/10 blur-2xl" />
 
-                <p className="text-sm text-zinc-400 line-clamp-2">
-                  {product.description}
-                </p>
+                <div className="relative space-y-2">
+                  <h3 className="text-lg font-semibold text-white">
+                    {product.name}
+                  </h3>
 
-                {product.duration_days && (
-                  <p className="text-xs text-zinc-500">
-                    Durasi: {product.duration_days} hari
+                  <p className="text-sm text-zinc-400 line-clamp-2">
+                    {product.description}
                   </p>
-                )}
 
-                {/* Harga */}
-                {product.tier_pricing?.[0] && (
-                  <div className="pt-2 text-sm">
-                    <p className="text-purple-400 font-medium">
-                      Harga mulai:
+                  {product.duration_days && (
+                    <p className="text-xs text-zinc-500">
+                      Durasi: {product.duration_days} hari
                     </p>
-                    <p className="text-white font-semibold">
-                      Rp {product.tier_pricing[0].member?.toLocaleString()}
-                    </p>
-                  </div>
-                )}
+                  )}
 
-                <button
-                  onClick={() => handleBuy(product)}
-                  className="mt-3 w-full rounded-lg bg-purple-600 hover:bg-purple-500 transition py-2.5 text-sm font-medium text-white shadow-md hover:shadow-purple-500/40"
-                >
-                  Beli Sekarang
-                </button>
-              </div>
-            </motion.div>
-          ))
+                  {/* Harga */}
+                  {pricing?.member && (
+                    <div className="pt-2 text-sm">
+                      <p className="text-purple-400 font-medium">
+                        Harga mulai:
+                      </p>
+                      <p className="text-white font-semibold">
+                        Rp {pricing.member.toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handleBuy(product)}
+                    className="mt-3 w-full rounded-lg bg-purple-600 hover:bg-purple-500 transition py-2.5 text-sm font-medium text-white shadow-md hover:shadow-purple-500/40"
+                  >
+                    Beli Sekarang
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })
         )}
       </div>
     </main>
@@ -130,7 +151,9 @@ function EmptyState() {
   return (
     <div className="col-span-full text-center py-20 text-zinc-500">
       <p className="text-lg">Tidak ada produk</p>
-      <p className="text-sm">Produk pada subkategori ini belum tersedia</p>
+      <p className="text-sm">
+        Produk untuk filter ini belum tersedia
+      </p>
     </div>
   );
 }
