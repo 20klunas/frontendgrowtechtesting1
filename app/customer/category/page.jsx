@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ProductCard from "../../components/SubCategoryCard";
+import ProductCard from "../../components/customer/SubCategoryCard";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
