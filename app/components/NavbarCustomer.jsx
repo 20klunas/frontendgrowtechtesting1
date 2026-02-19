@@ -25,6 +25,8 @@ export default function NavbarCustomer() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [cartCount, setCartCount] = useState(0)
+  const [cartItems, setCartItems] = useState([])
+  const [cartOpen, setCartOpen] = useState(false)
 
   const avatarSrc = user?.avatar_url || user?.avatar || null
 
@@ -88,6 +90,7 @@ export default function NavbarCustomer() {
 
       if (json.success) {
         const items = json?.data?.items || []
+        setCartItems(items)
         const total = items.reduce((sum, item) => sum + (item.qty || 1), 0)
         setCartCount(total)
       }
@@ -248,15 +251,12 @@ export default function NavbarCustomer() {
         </div>
 
         {/* ================= RIGHT ================= */}
-        <div className="relative flex items-center gap-5">
+        <div className="relative flex items-center gap-5" onMouseEnter={() => setCartOpen(true)} onMouseLeave={() => setCartOpen(false)}>
 
           {/* CART */}
           <Link
             href="/customer/category/product/detail/cart"
-            className={cn(
-              "relative text-white transition",
-              isActive("/customer/category/product/detail/cart") && "text-purple-300"
-            )}
+            className="relative text-white transition"
           >
             🛒
             {cartCount > 0 && (
@@ -265,6 +265,69 @@ export default function NavbarCustomer() {
               </span>
             )}
           </Link>
+          {cartOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="
+                absolute right-0 top-10 w-80
+                rounded-xl border border-purple-700/50
+                bg-[#14002a] shadow-2xl
+                p-4 z-50
+              "
+            >
+              <h3 className="text-sm font-semibold text-white mb-3">
+                Keranjang
+              </h3>
+
+              {cartItems.length === 0 ? (
+                <p className="text-sm text-white/60">
+                  Cart kosong
+                </p>
+              ) : (
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {cartItems.map(item => (
+                    <div
+                      key={item.id}
+                      className="flex gap-3 items-center"
+                    >
+                      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-purple-900/30">
+                        <Image
+                          src={item.product?.thumbnail || "/no-image.png"}
+                          alt={item.product?.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+
+                      <div className="flex-1">
+                        <p className="text-sm text-white line-clamp-1">
+                          {item.product?.name}
+                        </p>
+                        <p className="text-xs text-purple-300">
+                          Qty: {item.qty}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <Link
+                href="/customer/category/product/detail/cart"
+                className="
+                  mt-4 block text-center text-sm font-medium
+                  bg-purple-600 hover:bg-purple-500
+                  text-white py-2 rounded-lg transition
+                "
+              >
+                Lihat Keranjang
+              </Link>
+            </motion.div>
+          )}
+
+
 
           {/* USER BUTTON */}
           <button
