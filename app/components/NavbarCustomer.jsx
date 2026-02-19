@@ -55,28 +55,19 @@ export default function NavbarCustomer() {
 
   const fetchCart = async () => {
     try {
+      const token = localStorage.getItem("token") // atau dari cookies
+
       const res = await fetch(`${API}/api/v1/cart`, {
-        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
-
-      const contentType = res.headers.get("content-type")
-
-      if (!contentType?.includes("application/json")) {
-        const text = await res.text()
-        console.error("Cart non-JSON:", text)
-        return
-      }
 
       const json = await res.json()
 
       if (json.success) {
-        const items = json?.data?.items || json?.data || []
-
-        // ✅ Hitung jumlah item
-        const total = items.reduce((sum, item) => {
-          return sum + (item.qty || 1)
-        }, 0)
-
+        const items = json?.data?.items || []
+        const total = items.reduce((sum, item) => sum + (item.qty || 1), 0)
         setCartCount(total)
       }
     } catch (err) {
@@ -84,6 +75,7 @@ export default function NavbarCustomer() {
       setCartCount(0)
     }
   }
+
 
   if (loading) return null
 
