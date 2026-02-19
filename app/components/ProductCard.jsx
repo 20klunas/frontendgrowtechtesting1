@@ -18,6 +18,7 @@ export default function ProductCard({ subcategory }) {
           alt={subcategory.name}
           width={300}
           height={200}
+          className="rounded-xl"
         />
       </div>
 

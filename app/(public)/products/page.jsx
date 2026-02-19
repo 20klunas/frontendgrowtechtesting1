@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-export default function ProductsPage() {
+export default function ProductsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 

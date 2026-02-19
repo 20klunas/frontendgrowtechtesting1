@@ -19,6 +19,7 @@ export default function ProductPage() {
     try {
       const res = await fetch(`${API}/categories`);
       const json = await res.json();
+
       if (json.success) {
         setCategories(json.data);
       }
@@ -78,11 +79,8 @@ export default function ProductPage() {
 
         {/* CONTENT */}
         <section className="product-content">
-          {/* TOOLBAR */}
           <div className="product-toolbar text-white">
-            <span>
-              Menampilkan {subcategories.length} subkategori
-            </span>
+            <span>Menampilkan semua produk</span>
 
             <input type="text" placeholder="Cari Produk" />
 
@@ -93,7 +91,6 @@ export default function ProductPage() {
             </select>
           </div>
 
-          {/* GRID */}
           <div className="product-grid">
             {subcategories.map((sub) => (
               <ProductCard key={sub.id} subcategory={sub} />
