@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from "../../app/hooks/useAuth"
 import { cn } from "../lib/utils"
-
+import Cookies from "js-cookie"
 /* ================= UTIL ================= */
 const normalizeSettings = (rows = []) =>
   rows.reduce((acc, row) => {
@@ -20,7 +20,7 @@ export default function NavbarCustomer() {
   const API = process.env.NEXT_PUBLIC_API_URL
   const pathname = usePathname()
   const { user, logout, loading } = useAuth()
-
+  const token = Cookies.get("token")
   const [brand, setBrand] = useState({})
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -55,7 +55,7 @@ export default function NavbarCustomer() {
 
   const fetchCart = async () => {
     try {
-      const token = localStorage.getItem("token")
+      const token = Cookies.get("token")
 
       if (!token) {
         console.warn("No token found")
