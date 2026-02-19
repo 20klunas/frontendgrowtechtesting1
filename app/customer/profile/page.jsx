@@ -24,9 +24,6 @@ export default function ProfilePage() {
     address: "",
   });
 
-  /* =============================
-   * LOAD PROFILE
-   * ============================= */
   useEffect(() => {
     if (loading) return;
 
@@ -45,7 +42,6 @@ export default function ProfilePage() {
         setForm(profileData);
         setInitialForm(profileData);
 
-        // ✅ sync auth context biar avatar ke-refresh
         setUser(data);
       } catch (err) {
         console.error("GET PROFILE ERROR:", err);
@@ -56,16 +52,13 @@ export default function ProfilePage() {
     fetchProfile();
   }, [loading, setUser]);
 
-  /* =============================
-   * UPLOAD AVATAR (auto when file selected)
-   * ============================= */
   useEffect(() => {
     if (!avatarFile) return;
 
     const uploadAvatar = async () => {
       setUploadingAvatar(true);
       try {
-        // 1) minta signed upload url
+
         const signRes = await apiFetch("/api/v1/auth/me/avatar/sign", {
           method: "POST",
           body: JSON.stringify({ mime: avatarFile.type }),
@@ -73,7 +66,6 @@ export default function ProfilePage() {
 
         const { path, signed_url, public_url } = signRes.data;
 
-        // 2) upload file langsung ke supabase via signed URL
         const putRes = await fetch(signed_url, {
           method: "PUT",
           headers: { "Content-Type": avatarFile.type },
@@ -86,17 +78,15 @@ export default function ProfilePage() {
           throw new Error(`Upload ke Supabase gagal: HTTP ${putRes.status}`);
         }
 
-        // 3) simpan path & public_url ke DB (BE kamu simpan ke users.avatar + users.avatar_path)
         await apiFetch("/api/v1/auth/me/avatar", {
           method: "PATCH",
           body: JSON.stringify({
             avatar_path: path,
-            avatar_url: public_url, // ✅ sesuai validasi BE
-            avatar: public_url,     // ✅ optional: kompatibel
+            avatar_url: public_url,
+            avatar: public_url, 
           }),
         });
 
-        // 4) ambil ulang profile terbaru
         const profileRes = await apiFetch("/api/v1/auth/me/profile", {
           method: "GET",
         });
@@ -118,9 +108,6 @@ export default function ProfilePage() {
   if (loading) return null;
   if (!user) return <p className="text-white text-center">User tidak ditemukan</p>;
 
-  /* =============================
-   * HELPERS
-   * ============================= */
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleAvatarSelect = (e) => {
@@ -147,16 +134,13 @@ export default function ProfilePage() {
     initialForm &&
     Object.keys(form).some((key) => form[key] !== initialForm[key]);
 
-  /* =============================
-   * SAVE PROFILE
-   * ============================= */
   const handleSave = async () => {
     setSaving(true);
     try {
       const res = await apiFetch("/api/v1/auth/me/profile", {
         method: "PATCH",
         body: JSON.stringify({
-          name: form.name, // kalau BE kamu gak update name, hapus ini
+          name: form.name, 
           full_name: form.full_name,
           address: form.address,
         }),
@@ -184,7 +168,6 @@ export default function ProfilePage() {
     }
   };
 
-  // ✅ avatar source: BE kadang kirim avatar, kadang avatar_url (di updateAvatar kamu sudah set avatar_url)
   const avatarSrc = user?.avatar_url || user?.avatar || null;
 
   return (
@@ -288,9 +271,6 @@ export default function ProfilePage() {
   );
 }
 
-/* =============================
- * INPUT COMPONENT
- * ============================= */
 function Input({
   icon,
   label,
