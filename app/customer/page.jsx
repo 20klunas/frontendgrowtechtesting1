@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -30,7 +32,6 @@ export default function CustomerHomePage() {
       .catch(console.error)
   }, [API])
 
-  /* ================= POPUP CUSTOMER ================= */
   useEffect(() => {
     fetch(`${API}/api/v1/content/popup`)
       .then(res => res.json())
@@ -43,8 +44,6 @@ export default function CustomerHomePage() {
       .catch(console.error)
   }, [API])
 
-
-  /* ================= WEBSITE BRAND ================= */
   useEffect(() => {
     fetch(`${API}/api/v1/content/settings?group=website`)
       .then(res => res.json())
@@ -58,33 +57,32 @@ export default function CustomerHomePage() {
   return (
     <main className="relative min-h-screen bg-black text-white">
 
-      {/* ================= POPUP DARI ADMIN ================= */}
-      {popup && open && popup.is_active && (
+      {/* POPUP */}
+      {popup && open && popup?.is_active && (
         <Popup
-          title={popup.title}
-          content={popup.content}
-          image={popup.image_url}
-          ctaText={popup.cta_text}
-          ctaUrl={popup.cta_url}
+          title={popup?.title}
+          content={popup?.content}
+          image={popup?.image_url}
+          ctaText={popup?.cta_text}
+          ctaUrl={popup?.cta_url}
           onClose={() => setOpen(false)}
         />
       )}
 
-      {/* ================= HERO ================= */}
+      {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="mx-auto max-w-7xl px-8 pt-24 pb-32 grid grid-cols-1 lg:grid-cols-2 items-center gap-12">
 
-          {/* LEFT */}
           <div>
             <h1 className="text-5xl font-bold leading-tight">
-              {brand.home_title || "Growtech Central"}
+              {brand?.home_title || "Growtech Central"}
               <br />
               <span className="text-purple-400">
-                {brand.home_subtitle || "Toko Digital Terpercaya"}
+                {brand?.home_subtitle || "Toko Digital Terpercaya"}
               </span>
             </h1>
 
-            {brand.description && (
+            {brand?.description && (
               <p className="mt-6 max-w-xl text-gray-300 leading-relaxed">
                 {brand.description}
               </p>
@@ -104,7 +102,6 @@ export default function CustomerHomePage() {
             </div>
           </div>
 
-          {/* RIGHT LOGO */}
           <div className="relative flex justify-center lg:justify-end">
             <Image
               src="/logoherosection.png"
@@ -138,13 +135,13 @@ export default function CustomerHomePage() {
       </section>
 
       <BannerCarousel
-        banners={banners}
+        banners={banners || []}
         baseWidth={340}
         autoplay
         loop
       />
 
-      {/* ================= PRODUK POPULER ================= */}
+      {/* PRODUK POPULER */}
       <section className="mx-auto max-w-7xl px-8 pt-32 pb-40">
         <h2 className="text-3xl font-bold text-purple-400 mb-10">
           Produk Populer
