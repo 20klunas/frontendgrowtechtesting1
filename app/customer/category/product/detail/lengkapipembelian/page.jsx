@@ -12,12 +12,29 @@ export default function StepTwo() {
   useEffect(() => {
     const stored = sessionStorage.getItem("checkout");
 
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setCheckout(parsed);
+    if (!stored) return;
 
-      const firstItem = parsed?.items?.[0];
+    try {
+      const parsed = JSON.parse(stored);
+
+      // ✅ Support multiple possible shapes
+      const items = parsed.items || parsed.data?.items || [];
+      const summary = parsed.summary || parsed.data?.summary || {};
+
+      const normalized = {
+        items,
+        summary,
+        tax_percent: parsed.tax_percent ?? summary.tax_percent ?? 0,
+        wallet_balance: parsed.wallet_balance ?? 0,
+      };
+
+      setCheckout(normalized);
+
+      const firstItem = items?.[0];
       setQty(firstItem?.qty || 1);
+
+    } catch (err) {
+      console.error("Failed parsing checkout:", err);
     }
   }, []);
 
@@ -37,7 +54,7 @@ export default function StepTwo() {
 
   // ================= CALCULATION =================
   const subtotal = unitPrice * qty;
-  const taxPercent = checkout?.tax_percent ?? 0;
+  const taxPercent = checkout.tax_percent ?? 0;
   const taxAmount = Math.round(subtotal * (taxPercent / 100));
   const total = subtotal + taxAmount;
 
@@ -54,7 +71,6 @@ export default function StepTwo() {
   return (
     <section className="max-w-5xl mx-auto px-6 py-12 text-white">
 
-      {/* ================= TITLE ================= */}
       <h1 className="mb-8 text-3xl font-bold">
         Lengkapi Data Pembelian
       </h1>
@@ -81,7 +97,7 @@ export default function StepTwo() {
 
           <div className="flex-1">
             <p className="font-medium">
-              {product?.name}
+              {product?.name || "Produk"}
             </p>
             <p className="text-sm text-gray-400">
               Rp {unitPrice.toLocaleString()} / unit
@@ -96,7 +112,7 @@ export default function StepTwo() {
           </div>
         </div>
 
-        {/* ================= JUMLAH ================= */}
+        {/* ================= QTY ================= */}
         <div className="mt-6 flex items-center justify-between">
           <span className="text-sm text-gray-400">
             Jumlah Pembelian
@@ -105,7 +121,7 @@ export default function StepTwo() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleMinus}
-              className="h-9 w-9 rounded-full bg-gray-200 text-black font-bold"
+              className="h-9 w-9 rounded-full bg-gray-200 text-black font-bold hover:scale-110 transition"
             >
               −
             </button>
@@ -117,8 +133,8 @@ export default function StepTwo() {
 
             <button
               onClick={handlePlus}
-              className="h-9 w-9 rounded-full bg-gray-200 text-black font-bold disabled:opacity-40"
               disabled={qty >= stockAvailable}
+              className="h-9 w-9 rounded-full bg-gray-200 text-black font-bold hover:scale-110 transition disabled:opacity-40"
             >
               +
             </button>
@@ -160,13 +176,13 @@ export default function StepTwo() {
               Gunakan Saldo Wallet
             </p>
             <p className="text-sm text-gray-400">
-              Saldo Tersedia: Rp {(checkout?.wallet_balance ?? 0).toLocaleString()}
+              Saldo Tersedia: Rp {(checkout.wallet_balance || 0).toLocaleString()}
             </p>
           </div>
 
           <Link
             href="/customer/topup"
-            className="rounded-full bg-purple-700 px-6 py-2 text-sm font-medium hover:bg-purple-600"
+            className="rounded-full bg-purple-700 px-6 py-2 text-sm font-medium hover:bg-purple-600 transition"
           >
             Top up
           </Link>
@@ -177,14 +193,14 @@ export default function StepTwo() {
       <div className="mb-10 flex items-center gap-6">
         <Link
           href="/customer/category/product/detail/cart"
-          className="flex-1 rounded-xl border border-purple-700 py-3 text-center hover:bg-purple-900/40"
+          className="flex-1 rounded-xl border border-purple-700 py-3 text-center hover:bg-purple-900/40 transition"
         >
           Kembali
         </Link>
 
         <Link
           href="/customer/category/product/detail/lengkapipembelian/methodpayment"
-          className="flex-1 rounded-xl bg-purple-700 py-3 text-center font-semibold hover:bg-purple-600"
+          className="flex-1 rounded-xl bg-purple-700 py-3 text-center font-semibold hover:bg-purple-600 transition hover:scale-[1.02]"
         >
           Lanjut Ke Pembayaran &gt;
         </Link>
@@ -217,7 +233,7 @@ export default function StepTwo() {
             <span>{taxPercent}%</span>
           </div>
 
-          <div className="flex justify-between border-t border-purple-800 pt-3">
+          <div className="flex justify-between border-t border-purple-800 pt-3 text-base font-semibold">
             <span>Total</span>
             <span className="text-purple-400">
               Rp {total.toLocaleString()}
