@@ -4,13 +4,10 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Cookies from "js-cookie";
-import { useRouter } from "next/navigation";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function CartPage() {
-  const router = useRouter();
-
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
@@ -21,14 +18,13 @@ export default function CartPage() {
 
   const fetchCart = async () => {
     try {
-      setLoading(true);
-
       const token = Cookies.get("token");
 
       if (!token) {
-        console.warn("No token → user not logged in");
+        console.warn("No token found");
         setUnauthorized(true);
         setItems([]);
+        setLoading(false);
         return;
       }
 
@@ -38,17 +34,16 @@ export default function CartPage() {
         },
       });
 
-      if (res.status === 401) {
-        console.warn("Unauthorized (401)");
-        setUnauthorized(true);
-        setItems([]);
-        return;
-      }
-
       if (!res.ok) {
         const text = await res.text();
         console.error("Cart error:", res.status, text);
+
+        if (res.status === 401) {
+          setUnauthorized(true);
+        }
+
         setItems([]);
+        setLoading(false);
         return;
       }
 
@@ -57,13 +52,17 @@ export default function CartPage() {
       if (!contentType?.includes("application/json")) {
         const text = await res.text();
         console.error("Non JSON response:", text);
+        setLoading(false);
         return;
       }
 
       const json = await res.json();
 
       if (json.success) {
-        setItems(json.data.items || []);
+        setItems(json?.data?.items || []);
+      } else {
+        console.warn("Cart response success=false", json);
+        setItems([]);
       }
     } catch (err) {
       console.error("Failed fetch cart:", err);
@@ -73,7 +72,7 @@ export default function CartPage() {
     }
   };
 
-  // ✅ Update qty
+  // ================= UPDATE QTY =================
   const updateQty = async (id, qty) => {
     if (qty < 1) return;
 
@@ -96,7 +95,7 @@ export default function CartPage() {
     }
   };
 
-  // ✅ Remove item
+  // ================= REMOVE ITEM =================
   const removeItem = async (id) => {
     try {
       const token = Cookies.get("token");
@@ -115,14 +114,14 @@ export default function CartPage() {
     }
   };
 
-  // ✅ Hitung subtotal
+  // ================= SUBTOTAL =================
   const subtotal = items.reduce((acc, item) => {
     const price = item.product?.price || 0;
-    return acc + price * item.qty;
+    return acc + price * (item.qty || 1);
   }, 0);
 
-  // ✅ Kalau belum login
-  if (unauthorized) {
+  // ================= UNAUTHORIZED VIEW =================
+  if (!loading && unauthorized) {
     return (
       <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
         <p className="text-gray-400 mb-4">
@@ -131,7 +130,7 @@ export default function CartPage() {
 
         <Link
           href="/login"
-          className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500"
+          className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 transition"
         >
           Login Sekarang
         </Link>
@@ -147,7 +146,7 @@ export default function CartPage() {
 
       <section className="max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-3 gap-10">
         
-        {/* LEFT */}
+        {/* ================= LEFT ================= */}
         <div className="lg:col-span-2 space-y-6">
           {loading ? (
             <p className="text-gray-400">Loading cart...</p>
@@ -218,7 +217,7 @@ export default function CartPage() {
 
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="text-gray-400 hover:text-red-500"
+                      className="text-gray-400 hover:text-red-500 transition"
                     >
                       🗑
                     </button>
@@ -229,7 +228,7 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* SUMMARY */}
+        {/* ================= SUMMARY ================= */}
         <div className="rounded-2xl border border-purple-700 p-6 h-fit">
           <h3 className="text-xl font-semibold mb-6">Ringkasan</h3>
 
@@ -250,14 +249,14 @@ export default function CartPage() {
           <div className="space-y-3">
             <Link
               href="/customer/checkout/detail"
-              className="block w-full rounded-xl bg-purple-700 py-3 text-center font-semibold hover:bg-purple-600"
+              className="block w-full rounded-xl bg-purple-700 py-3 text-center font-semibold hover:bg-purple-600 transition"
             >
               → Lanjut Checkout
             </Link>
 
             <Link
               href="/customer/product"
-              className="block w-full rounded-xl bg-white py-3 text-center font-semibold text-black"
+              className="block w-full rounded-xl bg-white py-3 text-center font-semibold text-black hover:bg-gray-200 transition"
             >
               Lanjut Belanja
             </Link>
