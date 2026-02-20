@@ -9,6 +9,7 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function CartPage() {
   const [items, setItems] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
 
@@ -60,6 +61,7 @@ export default function CartPage() {
 
       if (json.success) {
         setItems(json?.data?.items || []);
+        setSummary(json?.data?.summary || null);
       } else {
         console.warn("Cart response success=false", json);
         setItems([]);
@@ -114,11 +116,12 @@ export default function CartPage() {
     }
   };
 
-  // ================= SUBTOTAL =================
-  const subtotal = items.reduce((acc, item) => {
-    const price = item.product?.price || 0;
-    return acc + price * (item.qty || 1);
-  }, 0);
+  // ================= FALLBACK SUMMARY =================
+  const subtotal =
+    summary?.subtotal ??
+    items.reduce((acc, item) => acc + (item.line_subtotal || 0), 0);
+
+  const total = summary?.total ?? subtotal;
 
   // ================= UNAUTHORIZED VIEW =================
   if (!loading && unauthorized) {
@@ -155,7 +158,8 @@ export default function CartPage() {
           ) : (
             items.map((item) => {
               const product = item.product;
-              const price = product?.price || 0;
+              const unitPrice = item.unit_price || 0;
+              const lineSubtotal = item.line_subtotal || 0;
 
               return (
                 <div
@@ -165,7 +169,7 @@ export default function CartPage() {
                   {/* IMAGE */}
                   <div className="h-20 w-20 rounded-xl bg-blue-600 flex items-center justify-center">
                     <Image
-                      src={product?.image_url || "/placeholder.png"}
+                      src={product?.subcategory?.image_url || "/placeholder.png"}
                       alt={product?.name}
                       width={48}
                       height={48}
@@ -179,11 +183,11 @@ export default function CartPage() {
                     </h3>
 
                     <p className="text-sm text-gray-400">
-                      Rp {price.toLocaleString()} / item
+                      Rp {unitPrice.toLocaleString()} / item
                     </p>
 
                     <p className="text-sm text-gray-500">
-                      Sisa Stock: {product?.stock ?? 0}
+                      Stock Tersedia: {item.stock_available ?? 0}
                     </p>
 
                     {/* QTY */}
@@ -202,6 +206,7 @@ export default function CartPage() {
                       <button
                         onClick={() => updateQty(item.id, item.qty + 1)}
                         className="h-8 w-8 rounded bg-white text-black font-bold"
+                        disabled={!item.can_buy}
                       >
                         +
                       </button>
@@ -212,7 +217,7 @@ export default function CartPage() {
                   <div className="text-right space-y-2">
                     <p className="text-sm text-gray-400">Harga</p>
                     <p className="font-semibold">
-                      Rp {(price * item.qty).toLocaleString()}
+                      Rp {lineSubtotal.toLocaleString()}
                     </p>
 
                     <button
@@ -238,10 +243,30 @@ export default function CartPage() {
               <span>Rp {subtotal.toLocaleString()}</span>
             </div>
 
+            {summary?.discount_total > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">Diskon</span>
+                <span className="text-red-400">
+                  -Rp {summary.discount_total.toLocaleString()}
+                </span>
+              </div>
+            )}
+
+            {summary?.tax_percent > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">
+                  Pajak ({summary.tax_percent}%)
+                </span>
+                <span>
+                  Rp {summary.tax_amount.toLocaleString()}
+                </span>
+              </div>
+            )}
+
             <div className="border-t border-purple-700 pt-4 flex justify-between text-lg font-semibold">
               <span>Total</span>
               <span className="text-purple-400">
-                Rp {subtotal.toLocaleString()}
+                Rp {total.toLocaleString()}
               </span>
             </div>
           </div>
