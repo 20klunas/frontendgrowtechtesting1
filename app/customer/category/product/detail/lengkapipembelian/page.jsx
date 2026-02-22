@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Cookies from "js-cookie";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { authFetch } from "@/lib/authFetch";
 
 export default function StepTwo() {
   const [checkout, setCheckout] = useState(null);
@@ -16,47 +14,29 @@ export default function StepTwo() {
     fetchCheckout();
   }, []);
 
+  useEffect(() => {
+    console.log("Checkout loaded:", checkout);
+  }, [checkout]);
+
   const fetchCheckout = async () => {
     try {
-      const token = Cookies.get("token");
-
-      if (!token) {
-        window.location.href = "/login";
-        return;
-      }
-
-      const res = await fetch(`${API}/api/v1/cart/checkout`, {
-        method: "POST", // karena backend kamu preview via POST
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          voucher_code: null,
-        }),
+      const json = await authFetch("/api/v1/cart/checkout", {
+        method: "POST",
+        body: JSON.stringify({ voucher_code: null }),
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        console.warn("Checkout fetch failed:", res.status, text);
-        setCheckout(null);
-        return;
-      }
-
-      const json = await res.json();
 
       if (json.success) {
         setCheckout(json.data);
         setQty(json.data.items?.[0]?.qty || 1);
       }
     } catch (err) {
-      console.error("Fetch checkout error:", err);
+      console.warn("Checkout fetch failed:", err.message);
+      setCheckout(null);
     } finally {
       setLoading(false);
     }
   };
 
-  // ================= LOADING =================
   if (loading) {
     return (
       <section className="max-w-5xl mx-auto px-6 py-12 text-white">
@@ -65,7 +45,6 @@ export default function StepTwo() {
     );
   }
 
-  // ================= CHECKOUT KOSONG =================
   if (!checkout || !checkout.items?.length) {
     return (
       <section className="max-w-5xl mx-auto px-6 py-12 text-white text-center">
@@ -91,42 +70,39 @@ export default function StepTwo() {
     999;
 
   const subtotal = checkout.summary?.subtotal ?? 0;
-  const discount = checkout.summary?.discount_total ?? 0;
   const taxPercent = checkout.summary?.tax_percent ?? 0;
   const taxAmount = checkout.summary?.tax_amount ?? 0;
   const total = checkout.summary?.total ?? 0;
 
   const updateQty = async (newQty) => {
-    try {
-      const token = Cookies.get("token");
+    if (newQty < 1) return;
+    if (newQty > stockAvailable) return;
 
-      await fetch(`${API}/api/v1/cart/items/${item.id}`, {
+    try {
+      await authFetch(`/api/v1/cart/items/${item.cart_item_id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ qty: newQty }),
       });
 
-      fetchCheckout(); // refresh summary backend
+      fetchCheckout();
     } catch (err) {
-      console.error("Update qty failed:", err);
+      console.error("Update qty failed:", err.message);
     }
   };
 
   const handleMinus = () => {
     if (qty <= 1) return;
-    updateQty(qty - 1);
+    const newQty = qty - 1;
+    setQty(newQty);     // ✅ optimistic UI
+    updateQty(newQty);
   };
 
   const handlePlus = () => {
     if (qty >= stockAvailable) return;
-    updateQty(qty + 1);
+    const newQty = qty + 1;
+    setQty(newQty);     // ✅ optimistic UI
+    updateQty(newQty);
   };
-
-  console.log("TOKEN:", Cookies.get("token"));
-  console.log("API:", API);
 
   return (
     <section className="max-w-5xl mx-auto px-6 py-12 text-white">
@@ -164,7 +140,6 @@ export default function StepTwo() {
           </div>
         </div>
 
-        {/* QTY */}
         <div className="mt-6 flex items-center justify-between">
           <span className="text-sm text-gray-400">
             Jumlah Pembelian
@@ -178,7 +153,6 @@ export default function StepTwo() {
         </div>
       </div>
 
-      {/* SUMMARY */}
       <div className="rounded-2xl border border-purple-800 bg-black p-6">
         <div className="flex justify-between">
           <span>Subtotal</span>
