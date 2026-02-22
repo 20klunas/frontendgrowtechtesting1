@@ -10,66 +10,54 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 export default function StepTwo() {
   const [checkout, setCheckout] = useState(null);
   const [qty, setQty] = useState(1);
-  const [voucher, setVoucher] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  // ================= PRIORITAS SESSION =================
   useEffect(() => {
-    const stored = sessionStorage.getItem("checkout");
-    if (!stored) return;
-
-    try {
-      const parsed = JSON.parse(stored);
-      setCheckout(parsed);
-      setQty(parsed.items?.[0]?.qty || 1);
-    } catch (err) {
-      console.error("Session parse error:", err);
-    }
+    fetchCheckout();
   }, []);
 
-  // ================= FETCH BACKEND (HANYA JIKA SESSION TIDAK ADA) =================
-  useEffect(() => {
-    if (checkout) return; // ✅ cegah double checkout
+  const fetchCheckout = async () => {
+    try {
+      const token = Cookies.get("token");
 
-    const fetchCheckout = async () => {
-      try {
-        const token = Cookies.get("token");
-        if (!token) return;
-
-        const res = await fetch(`${API}/api/v1/cart/checkout`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            voucher_code: null,
-          }),
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          console.warn("Checkout fetch failed:", res.status, text);
-          return;
-        }
-
-        const json = await res.json();
-
-        if (json.success) {
-          setCheckout(json.data);
-          setQty(json.data.items?.[0]?.qty || 1);
-
-          sessionStorage.setItem("checkout", JSON.stringify(json.data));
-        }
-      } catch (err) {
-        console.error("Fetch checkout error:", err);
+      if (!token) {
+        window.location.href = "/login";
+        return;
       }
-    };
 
-    fetchCheckout();
-  }, [checkout]);
+      const res = await fetch(`${API}/api/v1/cart/checkout`, {
+        method: "POST", // karena backend kamu preview via POST
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          voucher_code: null,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.warn("Checkout fetch failed:", res.status, text);
+        setCheckout(null);
+        return;
+      }
+
+      const json = await res.json();
+
+      if (json.success) {
+        setCheckout(json.data);
+        setQty(json.data.items?.[0]?.qty || 1);
+      }
+    } catch (err) {
+      console.error("Fetch checkout error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ================= LOADING =================
-  if (!checkout) {
+  if (loading) {
     return (
       <section className="max-w-5xl mx-auto px-6 py-12 text-white">
         <p className="text-gray-400">Memuat data checkout...</p>
@@ -78,7 +66,7 @@ export default function StepTwo() {
   }
 
   // ================= CHECKOUT KOSONG =================
-  if (!checkout.items?.length) {
+  if (!checkout || !checkout.items?.length) {
     return (
       <section className="max-w-5xl mx-auto px-6 py-12 text-white text-center">
         <p className="text-gray-400">Checkout kosong</p>
@@ -95,7 +83,6 @@ export default function StepTwo() {
 
   const item = checkout.items[0];
   const product = item.product;
-
   const unitPrice = item.unit_price ?? 0;
 
   const stockAvailable =
@@ -121,18 +108,11 @@ export default function StepTwo() {
 
   return (
     <section className="max-w-5xl mx-auto px-6 py-12 text-white">
-
       <h1 className="mb-8 text-3xl font-bold">
         Lengkapi Data Pembelian
       </h1>
 
-      {/* ================= PRODUK ================= */}
       <div className="mb-8 rounded-2xl border border-purple-800 bg-black p-6">
-
-        <h3 className="mb-4 text-lg font-semibold">
-          Produk Yang Dipilih
-        </h3>
-
         <div className="flex items-center gap-4">
           <div className="relative h-16 w-16 overflow-hidden rounded-xl border border-purple-700">
             <Image
@@ -149,90 +129,50 @@ export default function StepTwo() {
 
           <div className="flex-1">
             <p className="font-medium">{product.name}</p>
-
             <p className="text-sm text-gray-400">
               Rp {unitPrice.toLocaleString()} / unit
-            </p>
-
-            <p className="text-xs text-yellow-400">
-              ⭐ {product.rating?.toFixed(1) || "0.0"} ({product.rating_count || 0})
             </p>
           </div>
 
           <div className="text-right font-semibold">
-            Total :{" "}
+            Total :
             <span className="text-purple-400">
               Rp {(unitPrice * qty).toLocaleString()}
             </span>
           </div>
         </div>
 
-        {/* ================= QTY ================= */}
+        {/* QTY */}
         <div className="mt-6 flex items-center justify-between">
           <span className="text-sm text-gray-400">
             Jumlah Pembelian
           </span>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleMinus}
-              disabled={qty <= 1}
-              className="h-9 w-9 rounded-full bg-gray-200 text-black font-bold disabled:opacity-40"
-            >
-              −
-            </button>
-
-            <div className="rounded-full bg-gray-200 px-4 py-1 text-black font-semibold">
-              {qty}
-            </div>
-
-            <button
-              onClick={handlePlus}
-              disabled={qty >= stockAvailable}
-              className="h-9 w-9 rounded-full bg-gray-200 text-black font-bold disabled:opacity-40"
-            >
-              +
-            </button>
+            <button onClick={handleMinus}>−</button>
+            <div>{qty}</div>
+            <button onClick={handlePlus}>+</button>
           </div>
         </div>
-
-        <p className="mt-2 text-xs text-gray-500">
-          Stock tersedia: {stockAvailable}
-        </p>
-
-        {product.track_stock && stockAvailable <= product.stock_min_alert && (
-          <p className="text-xs text-red-400 mt-1">
-            ⚠ Stok hampir habis
-          </p>
-        )}
       </div>
 
-      {/* ================= RINGKASAN ================= */}
+      {/* SUMMARY */}
       <div className="rounded-2xl border border-purple-800 bg-black p-6">
-        <h3 className="mb-4 text-lg font-semibold">Ringkasan</h3>
+        <div className="flex justify-between">
+          <span>Subtotal</span>
+          <span>Rp {subtotal.toLocaleString()}</span>
+        </div>
 
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span>Subtotal</span>
-            <span>Rp {subtotal.toLocaleString()}</span>
-          </div>
+        <div className="flex justify-between">
+          <span>Pajak ({taxPercent}%)</span>
+          <span>Rp {taxAmount.toLocaleString()}</span>
+        </div>
 
-          <div className="flex justify-between">
-            <span>Diskon</span>
-            <span>Rp {discount.toLocaleString()}</span>
-          </div>
-
-          <div className="flex justify-between">
-            <span>Pajak ({taxPercent}%)</span>
-            <span>Rp {taxAmount.toLocaleString()}</span>
-          </div>
-
-          <div className="flex justify-between border-t border-purple-800 pt-3 font-semibold">
-            <span>Total</span>
-            <span className="text-purple-400">
-              Rp {total.toLocaleString()}
-            </span>
-          </div>
+        <div className="flex justify-between font-semibold">
+          <span>Total</span>
+          <span className="text-purple-400">
+            Rp {total.toLocaleString()}
+          </span>
         </div>
       </div>
     </section>
