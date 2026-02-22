@@ -29,6 +29,7 @@ export default function SubKategoriPage() {
     name: '',
     slug: '',
     provider: '',
+    description: '',
     image_url: '',
     image_path: '',
     is_active: true,
@@ -237,6 +238,7 @@ export default function SubKategoriPage() {
         name: form.name,
         slug: form.slug,
         provider: form.provider || null,
+        description: form.description || null,
         image_url: form.image_url || null,
         image_path: form.image_path || null,
         is_active: !!form.is_active,
@@ -296,6 +298,7 @@ export default function SubKategoriPage() {
       name: '',
       slug: '',
       provider: '',
+      description: '',
       image_url: '',
       image_path: '',
       is_active: true,
@@ -313,6 +316,7 @@ export default function SubKategoriPage() {
       name: item.name,
       slug: item.slug,
       provider: item.provider || '',
+      description: item.description || '',
       image_url: item.image_url || '',
       image_path: item.image_path || '',
       is_active: !!item.is_active,
@@ -353,6 +357,7 @@ export default function SubKategoriPage() {
                 <th>Nama</th>
                 <th>Kategori</th>
                 <th>Provider</th>
+                <th>Description</th>
                 <th>Aksi</th>
               </tr>
             </thead>
@@ -371,6 +376,7 @@ export default function SubKategoriPage() {
                   <td className="text-center">{item.name}</td>
                   <td className="text-center">{item.category?.name}</td>
                   <td className="text-center">{item.provider}</td>
+                  <td className="text-center">{item.description || '-'}</td>
                   <td className="space-x-2">
                     <button onClick={() => openEdit(item)} className="btn-edit-sm">
                       Edit
@@ -453,6 +459,13 @@ export default function SubKategoriPage() {
                 placeholder="Provider"
                 value={form.provider}
                 onChange={(e) => setForm({ ...form, provider: e.target.value })}
+              />
+
+              <input
+                className="input-primary mb-3"
+                placeholder="Description"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
 
               <input
