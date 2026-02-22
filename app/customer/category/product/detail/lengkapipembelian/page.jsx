@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { authFetch } from "@/lib/authFetch";
+import { authFetch } from "../../../../../lib/authFetch";
 
 export default function StepTwo() {
   const [checkout, setCheckout] = useState(null);
