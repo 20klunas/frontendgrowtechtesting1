@@ -11,7 +11,7 @@ export default function CheckoutLayout({ children }) {
       return 3;
     }
 
-    if (pathname.startsWith("/customer/category/product/lengkapipembelian")) {
+    if (pathname.startsWith("/customer/category/product/detail/lengkapipembelian")) {
       return 2;
     }
 
