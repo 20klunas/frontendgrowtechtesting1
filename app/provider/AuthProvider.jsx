@@ -20,9 +20,9 @@ export function AuthProvider({ children }) {
     }
 
     // 💡 kalau user sudah ada (hasil login), jangan fetch lagi
-    if (user !== null) {
-      setLoading(false)
-      return
+    if (user) {
+      setLoading(false);
+      return;
     }
 
     const fetchMe = async () => {

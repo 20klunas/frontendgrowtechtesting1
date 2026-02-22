@@ -36,7 +36,6 @@ export default function LoginPage() {
 
       const json = await res.json()
       const token = json.data.token
-      localStorage.setItem("token", token)
 
       Cookies.set("token", token, {
         path: "/",

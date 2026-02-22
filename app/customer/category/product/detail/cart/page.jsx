@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
+import { authFetch } from "@/lib/authFetch"; // ✅ pakai wrapper
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -24,32 +24,18 @@ export default function CartPage() {
   // ================= FETCH CART =================
   const fetchCart = async () => {
     try {
-      const token = Cookies.get("token");
+      const json = await authFetch("/api/v1/cart");
 
-      if (!token) {
-        setUnauthorized(true);
-        setItems([]);
-        return;
-      }
-
-      const res = await fetch(`${API}/api/v1/cart`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        if (res.status === 401) setUnauthorized(true);
-        setItems([]);
-        return;
-      }
-
-      const json = await res.json();
-
-      if (json.success) {
-        setItems(json.data.items || []);
-        setSummary(json.data.summary || null);
-      }
+      setItems(json.data.items || []);
+      setSummary(json.data.summary || null);
+      setUnauthorized(false);
     } catch (err) {
-      console.error("Failed fetch cart:", err);
+      console.error("Fetch cart error:", err.message);
+
+      if (err.message.includes("Unauthorized")) {
+        setUnauthorized(true);
+      }
+
       setItems([]);
     } finally {
       setLoading(false);
@@ -62,40 +48,27 @@ export default function CartPage() {
     if (qty > stock) return;
 
     try {
-      const token = Cookies.get("token");
-      if (!token) return;
-
-      await fetch(`${API}/api/v1/cart/items/${id}`, {
+      await authFetch(`/api/v1/cart/items/${id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ qty }),
       });
 
-      fetchCart();
+      fetchCart(); // refresh cart + summary
     } catch (err) {
-      console.error("Failed update qty:", err);
+      console.error("Update qty error:", err.message);
     }
   };
 
   // ================= REMOVE ITEM =================
   const removeItem = async (id) => {
     try {
-      const token = Cookies.get("token");
-      if (!token) return;
-
-      await fetch(`${API}/api/v1/cart/items/${id}`, {
+      await authFetch(`/api/v1/cart/items/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       fetchCart();
     } catch (err) {
-      console.error("Failed remove item:", err);
+      console.error("Remove item error:", err.message);
     }
   };
 
@@ -104,38 +77,15 @@ export default function CartPage() {
     try {
       setCheckoutLoading(true);
 
-      const token = Cookies.get("token");
-      if (!token) return;
-
-      const res = await fetch(`${API}/api/v1/cart/checkout`, {
+      await authFetch("/api/v1/cart/checkout", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          voucher_code: null,
-        }),
+        body: JSON.stringify({ voucher_code: null }),
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("Checkout error:", res.status, text);
-        alert("Checkout gagal");
-        return;
-      }
-
-      const json = await res.json();
-
-      if (!json.success) {
-        alert(json.message || "Checkout gagal");
-        return;
-      }
-
-      sessionStorage.setItem("checkout", JSON.stringify(json.data));
       router.push("/customer/category/product/detail/lengkapipembelian");
     } catch (err) {
-      console.error("Checkout failed:", err);
+      console.error("Checkout error:", err.message);
+      alert(err.message || "Checkout gagal");
     } finally {
       setCheckoutLoading(false);
     }

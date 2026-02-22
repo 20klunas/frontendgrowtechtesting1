@@ -96,15 +96,37 @@ export default function StepTwo() {
   const taxAmount = checkout.summary?.tax_amount ?? 0;
   const total = checkout.summary?.total ?? 0;
 
+  const updateQty = async (newQty) => {
+    try {
+      const token = Cookies.get("token");
+
+      await fetch(`${API}/api/v1/cart/items/${item.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ qty: newQty }),
+      });
+
+      fetchCheckout(); // refresh summary backend
+    } catch (err) {
+      console.error("Update qty failed:", err);
+    }
+  };
+
   const handleMinus = () => {
     if (qty <= 1) return;
-    setQty(qty - 1);
+    updateQty(qty - 1);
   };
 
   const handlePlus = () => {
     if (qty >= stockAvailable) return;
-    setQty(qty + 1);
+    updateQty(qty + 1);
   };
+
+  console.log("TOKEN:", Cookies.get("token"));
+  console.log("API:", API);
 
   return (
     <section className="max-w-5xl mx-auto px-6 py-12 text-white">
