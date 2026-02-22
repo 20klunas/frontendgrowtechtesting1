@@ -11,26 +11,21 @@ export default function StepTwo() {
 
   useEffect(() => {
     const stored = sessionStorage.getItem("checkout");
-
     if (!stored) return;
 
     try {
       const parsed = JSON.parse(stored);
 
-      // ✅ Support multiple possible shapes
-      const items = parsed.items || parsed.data?.items || [];
-      const summary = parsed.summary || parsed.data?.summary || {};
-
+      // ✅ Struktur BARU → langsung parsed.items & parsed.summary
       const normalized = {
-        items,
-        summary,
-        tax_percent: parsed.tax_percent ?? summary.tax_percent ?? 0,
+        items: parsed.items || [],
+        summary: parsed.summary || {},
         wallet_balance: parsed.wallet_balance ?? 0,
       };
 
       setCheckout(normalized);
 
-      const firstItem = items?.[0];
+      const firstItem = parsed.items?.[0];
       setQty(firstItem?.qty || 1);
 
     } catch (err) {
@@ -49,14 +44,15 @@ export default function StepTwo() {
   const item = checkout.items?.[0];
   const product = item?.product;
 
-  const unitPrice = item?.unit_price || 0;
+  const unitPrice = item?.unit_price ?? 0;
   const stockAvailable = item?.stock_available ?? 0;
 
-  // ================= CALCULATION =================
-  const subtotal = unitPrice * qty;
-  const taxPercent = checkout.tax_percent ?? 0;
-  const taxAmount = Math.round(subtotal * (taxPercent / 100));
-  const total = subtotal + taxAmount;
+  // ✅ Gunakan SUMMARY dari backend (NO manual calc)
+  const subtotal = checkout.summary?.subtotal ?? 0;
+  const discount = checkout.summary?.discount_total ?? 0;
+  const taxPercent = checkout.summary?.tax_percent ?? 0;
+  const taxAmount = checkout.summary?.tax_amount ?? 0;
+  const total = checkout.summary?.total ?? 0;
 
   const handleMinus = () => {
     if (qty <= 1) return;
@@ -85,10 +81,7 @@ export default function StepTwo() {
         <div className="flex items-center gap-4">
           <div className="relative h-16 w-16 overflow-hidden rounded-xl border border-purple-700">
             <Image
-              src={
-                product?.subcategory?.image_url ||
-                "/placeholder.png"
-              }
+              src={product?.subcategory?.image_url || "/placeholder.png"}
               fill
               alt={product?.name}
               className="object-cover"
@@ -99,8 +92,14 @@ export default function StepTwo() {
             <p className="font-medium">
               {product?.name || "Produk"}
             </p>
+
             <p className="text-sm text-gray-400">
               Rp {unitPrice.toLocaleString()} / unit
+            </p>
+
+            {/* ⭐ Rating dari backend */}
+            <p className="text-xs text-yellow-400">
+              ⭐ {product?.rating?.toFixed(1) || "0.0"} ({product?.rating_count || 0})
             </p>
           </div>
 
@@ -144,6 +143,13 @@ export default function StepTwo() {
         <p className="mt-2 text-xs text-gray-500">
           Stock tersedia: {stockAvailable}
         </p>
+
+        {/* ⚠ Stock alert */}
+        {product?.track_stock && stockAvailable <= product?.stock_min_alert && (
+          <p className="text-xs text-red-400 mt-1">
+            ⚠ Stok hampir habis
+          </p>
+        )}
       </div>
 
       {/* ================= VOUCHER ================= */}
@@ -213,24 +219,20 @@ export default function StepTwo() {
         </h3>
 
         <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span>Harga Unit</span>
-            <span>Rp {unitPrice.toLocaleString()}</span>
-          </div>
 
           <div className="flex justify-between">
-            <span>Jumlah</span>
-            <span>{qty}x</span>
-          </div>
-
-          <div className="flex justify-between">
-            <span>Sub Total</span>
+            <span>Subtotal</span>
             <span>Rp {subtotal.toLocaleString()}</span>
           </div>
 
           <div className="flex justify-between">
-            <span>Tax</span>
-            <span>{taxPercent}%</span>
+            <span>Diskon</span>
+            <span>Rp {discount.toLocaleString()}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Pajak ({taxPercent}%)</span>
+            <span>Rp {taxAmount.toLocaleString()}</span>
           </div>
 
           <div className="flex justify-between border-t border-purple-800 pt-3 text-base font-semibold">
@@ -239,6 +241,7 @@ export default function StepTwo() {
               Rp {total.toLocaleString()}
             </span>
           </div>
+
         </div>
       </div>
     </section>
