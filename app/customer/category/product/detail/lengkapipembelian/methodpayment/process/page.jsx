@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { authFetch } from "../../../../../../lib/authFetch";
+import { authFetch } from "../../../../../../../lib/authFetch";
 import { Lock, CheckCircle } from "lucide-react";
 
 function ProcessContent() {
