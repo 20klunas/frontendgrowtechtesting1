@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { authFetch } from "@/lib/authFetch";
+import { authFetch } from "../../../../../../../lib/authFetch";
 import {
   CheckCircle,
   Copy,
