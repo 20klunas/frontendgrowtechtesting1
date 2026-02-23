@@ -16,9 +16,14 @@ export default function CartPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const [voucher, setVoucher] = useState("");
+  const [voucherValid, setVoucherValid] = useState(null);
   const [applyingVoucher, setApplyingVoucher] = useState(false);
-  const [voucherValid, setVoucherValid] = useState(null); // null | true | false
+
   const debounceRef = useRef(null);
+
+  // animated numbers
+  const [animatedTotal, setAnimatedTotal] = useState(0);
+  const prevTotalRef = useRef(0);
 
   useEffect(() => {
     fetchCart();
@@ -47,8 +52,7 @@ export default function CartPage() {
 
   // ================= UPDATE QTY =================
   const updateQty = async (id, qty, stock) => {
-    if (qty < 1) return;
-    if (qty > stock) return;
+    if (qty < 1 || qty > stock) return;
 
     try {
       await authFetch(`/api/v1/cart/items/${id}`, {
@@ -57,7 +61,7 @@ export default function CartPage() {
       });
 
       fetchCart();
-      triggerVoucherRecalc(qty);
+      triggerVoucherRecalc();
     } catch (err) {
       console.error("Update qty error:", err.message);
     }
@@ -102,13 +106,13 @@ export default function CartPage() {
     }
   };
 
-  // ================= DEBOUNCE AUTO APPLY =================
+  // ================= DEBOUNCE =================
   const triggerVoucherRecalc = () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(() => {
       applyVoucher(voucher);
-    }, 500); // debounce 500ms
+    }, 500);
   };
 
   useEffect(() => {
@@ -140,6 +144,32 @@ export default function CartPage() {
   const subtotal = summary?.subtotal ?? 0;
   const discount = summary?.discount_total ?? 0;
   const total = summary?.total ?? subtotal;
+
+  // ================= TOTAL COUNTING ANIMATION =================
+  useEffect(() => {
+    const start = prevTotalRef.current;
+    const end = total;
+
+    if (start === end) return;
+
+    const duration = 500;
+    const startTime = performance.now();
+
+    const animate = (time) => {
+      const progress = Math.min((time - startTime) / duration, 1);
+      const value = Math.floor(start + (end - start) * progress);
+
+      setAnimatedTotal(value);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        prevTotalRef.current = end;
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [total]);
 
   // ================= UNAUTHORIZED =================
   if (!loading && unauthorized) {
@@ -184,13 +214,14 @@ export default function CartPage() {
               return (
                 <div
                   key={item.id}
-                  className="
+                  className={`
                     rounded-2xl border border-purple-700 p-6
                     flex items-center gap-6
                     transition-all duration-300
                     hover:border-purple-500
                     hover:shadow-[0_0_25px_rgba(168,85,247,0.25)]
-                  "
+                    hover:scale-[1.01]
+                  `}
                 >
                   <div className="h-20 w-20 rounded-xl bg-blue-600 flex items-center justify-center">
                     <Image
@@ -218,7 +249,7 @@ export default function CartPage() {
                       <button
                         onClick={() => updateQty(item.id, qty - 1, stock)}
                         disabled={qty <= 1}
-                        className="h-9 w-9 rounded-lg bg-white text-black font-bold"
+                        className="h-9 w-9 rounded-lg bg-white text-black font-bold hover:scale-110 transition"
                       >
                         −
                       </button>
@@ -230,7 +261,7 @@ export default function CartPage() {
                       <button
                         onClick={() => updateQty(item.id, qty + 1, stock)}
                         disabled={qty >= stock}
-                        className="h-9 w-9 rounded-lg bg-white text-black font-bold"
+                        className="h-9 w-9 rounded-lg bg-white text-black font-bold hover:scale-110 transition"
                       >
                         +
                       </button>
@@ -245,7 +276,7 @@ export default function CartPage() {
 
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="text-gray-400 hover:text-red-500"
+                      className="text-gray-400 hover:text-red-500 hover:scale-110 transition"
                     >
                       🗑
                     </button>
@@ -256,10 +287,10 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* ================= RIGHT PANEL ================= */}
+        {/* ================= RIGHT ================= */}
         <div className="space-y-6">
 
-          {/* VOUCHER INPUT */}
+          {/* VOUCHER */}
           <div className="rounded-2xl border border-purple-700 p-6">
             <div className="flex justify-between mb-2">
               <p className="text-sm text-gray-300">Kode Voucher</p>
@@ -278,11 +309,10 @@ export default function CartPage() {
               className="
                 w-full rounded-xl bg-black border border-purple-700
                 px-3 py-2 text-sm outline-none
-                focus:border-purple-500
+                focus:border-purple-500 transition
               "
             />
 
-            {/* Voucher Status */}
             {voucher && voucherValid === true && (
               <p className="text-green-400 text-xs mt-2 animate-fade-in">
                 ✔ Voucher valid
@@ -294,41 +324,54 @@ export default function CartPage() {
                 ✖ Voucher tidak valid
               </p>
             )}
+
+            {discount > 0 && (
+              <span className="mt-3 inline-block text-xs bg-green-500/20 text-green-400 px-3 py-1 rounded-full animate-fade-in">
+                🎉 Promo Applied
+              </span>
+            )}
           </div>
 
           {/* SUMMARY */}
-          <div className="rounded-2xl border border-purple-700 p-6 h-fit">
+          <div className="rounded-2xl border border-purple-700 p-6">
+
             <h3 className="text-xl font-semibold mb-6">Ringkasan</h3>
 
-            <div className="space-y-3 text-sm mb-6">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Subtotal</span>
-                <span>Rp {subtotal.toLocaleString()}</span>
+            {loading ? (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-4 bg-purple-900/40 rounded w-full" />
+                <div className="h-4 bg-purple-900/40 rounded w-2/3" />
+                <div className="h-6 bg-purple-900/40 rounded w-1/2" />
               </div>
+            ) : (
+              <div className="space-y-3 text-sm mb-6">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Subtotal</span>
+                  <span>Rp {subtotal.toLocaleString()}</span>
+                </div>
 
-              {/* DISCOUNT ANIMATION */}
-              <div
-                className={`
-                  flex justify-between text-green-400
-                  transition-all duration-500
-                  ${discount > 0
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 -translate-y-2 h-0 overflow-hidden"}
-                `}
-              >
-                <span>Diskon</span>
-                <span>- Rp {discount.toLocaleString()}</span>
+                <div
+                  className={`
+                    flex justify-between text-green-400
+                    transition-all duration-500
+                    ${discount > 0
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 -translate-y-2 h-0 overflow-hidden"}
+                  `}
+                >
+                  <span>Diskon</span>
+                  <span>- Rp {discount.toLocaleString()}</span>
+                </div>
+
+                <div className="border-t border-purple-700 pt-4 flex justify-between text-lg font-semibold">
+                  <span>Total</span>
+                  <span className="text-purple-400">
+                    Rp {animatedTotal.toLocaleString()}
+                  </span>
+                </div>
               </div>
+            )}
 
-              <div className="border-t border-purple-700 pt-4 flex justify-between text-lg font-semibold">
-                <span>Total</span>
-                <span className="text-purple-400">
-                  Rp {total.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            {/* CHECKOUT BUTTON */}
             <button
               onClick={handleCheckout}
               disabled={checkoutLoading || items.length === 0}
@@ -337,6 +380,7 @@ export default function CartPage() {
                 text-center font-semibold
                 transition-all duration-300
                 hover:bg-purple-600 hover:scale-[1.02]
+                hover:shadow-lg
                 disabled:opacity-50
               "
             >
@@ -350,7 +394,7 @@ export default function CartPage() {
               className="
                 mt-3 block w-full rounded-xl bg-white py-3
                 text-center font-semibold text-black
-                transition hover:bg-gray-200
+                transition hover:bg-gray-200 hover:scale-[1.02]
               "
             >
               Lanjut Belanja
@@ -359,13 +403,12 @@ export default function CartPage() {
         </div>
       </section>
 
-      {/* Tailwind Animation Helper */}
       <style jsx>{`
         .animate-fade-in {
-          animation: fadeIn 0.4s ease forwards;
+          animation: fadeIn 0.35s ease forwards;
         }
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-3px); }
+          from { opacity: 0; transform: translateY(-4px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
