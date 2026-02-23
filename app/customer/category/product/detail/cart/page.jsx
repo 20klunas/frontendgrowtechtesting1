@@ -371,14 +371,7 @@ export default function CartPage() {
             <button
               onClick={handleCheckout}
               disabled={checkoutLoading || items.length === 0}
-              className="
-                block w-full rounded-xl bg-purple-700 py-3
-                text-center font-semibold
-                transition-all duration-300
-                hover:bg-purple-600 hover:scale-[1.02]
-                hover:shadow-lg
-                disabled:opacity-50
-              "
+              className="block w-full rounded-xl bg-purple-700 py-3 text-center font-semibold transition-all duration-300 hover:bg-purple-600 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50"
             >
               {checkoutLoading
                 ? "Memproses Checkout..."
@@ -387,11 +380,7 @@ export default function CartPage() {
 
             <Link
               href="/customer/product"
-              className="
-                mt-3 block w-full rounded-xl bg-white py-3
-                text-center font-semibold text-black
-                transition hover:bg-gray-200 hover:scale-[1.02]
-              "
+              className="mt-3 block w-full rounded-xl bg-white py-3 text-center font-semibold text-black transition hover:bg-gray-200 hover:scale-[1.02]"
             >
               Lanjut Belanja
             </Link>
