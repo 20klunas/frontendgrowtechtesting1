@@ -93,9 +93,11 @@ function PaymentPage() {
         return;
       }
 
-      /* ✅ WALLET FLOW */
+      /* WALLET FLOW */
       if (selectedMethod === "wallet") {
-        router.push(`./process?order=${orderId}&method=wallet`);
+        router.push(
+          `/customer/category/product/detail/lengkapipembelian/methodpayment/process?order=${orderId}&method=wallet`
+        );
       }
     } catch {
       alert("Pembayaran gagal");
