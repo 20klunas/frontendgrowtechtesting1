@@ -6,12 +6,12 @@ import Link from "next/link";
 import { authFetch } from "../../../../../lib/authFetch";
 import { useRouter } from "next/navigation";
 
-const router = useRouter();
 export default function StepTwo() {
   const [checkout, setCheckout] = useState(null);
   const [qty, setQty] = useState(1);
   // const [voucher, setVoucher] = useState("");
   const [walletBalance, setWalletBalance] = useState(0);
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   // const [applyingVoucher, setApplyingVoucher] = useState(false);
