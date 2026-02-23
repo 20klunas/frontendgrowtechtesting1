@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Lock, Copy } from "lucide-react";
+import { Lock } from "lucide-react";
 
-export default function PaymentProcessPage() {
+function ProcessContent() {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -52,5 +53,13 @@ export default function PaymentProcessPage() {
         </button>
       </div>
     </main>
+  );
+}
+
+export default function PaymentProcessPage() {
+  return (
+    <Suspense fallback={<div className="text-white p-10">Loading payment...</div>}>
+      <ProcessContent />
+    </Suspense>
   );
 }
