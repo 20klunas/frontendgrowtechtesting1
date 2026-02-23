@@ -306,11 +306,7 @@ export default function CartPage() {
               value={voucher}
               onChange={(e) => setVoucher(e.target.value)}
               placeholder="Contoh: PROMO5K"
-              className="
-                w-full rounded-xl bg-black border border-purple-700
-                px-3 py-2 text-sm outline-none
-                focus:border-purple-500 transition
-              "
+              className=" w-full rounded-xl bg-black border border-purple-700 px-3 py-2 text-sm outline-none focus:border-purple-500 transition"
             />
 
             {voucher && voucherValid === true && (
