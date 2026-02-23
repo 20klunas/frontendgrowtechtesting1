@@ -23,8 +23,9 @@ export default function CartPage() {
 
   const debounceRef = useRef(null);
 
-  // flip animation state
+  // animations
   const [flip, setFlip] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     fetchCart();
@@ -64,6 +65,10 @@ export default function CartPage() {
       if (json.success) {
         setVoucherValid(true);
         setPreviewSummary(json.data.summary);
+
+        // trigger confetti once
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 1200);
       } else {
         setVoucherValid(false);
       }
@@ -116,13 +121,15 @@ export default function CartPage() {
   const discount = previewSummary?.discount_total ?? 0;
   const total = previewSummary?.total ?? subtotal;
 
-  // ================= TRIGGER FLIP WHEN TOTAL CHANGES =================
+  const savedAmount = Math.max(baseTotal - total, 0);
+
+  // ================= FLIP TRIGGER =================
   const prevTotalRef = useRef(total);
 
   useEffect(() => {
     if (prevTotalRef.current !== total) {
       setFlip(true);
-      setTimeout(() => setFlip(false), 600);
+      setTimeout(() => setFlip(false), 650);
       prevTotalRef.current = total;
     }
   }, [total]);
@@ -146,7 +153,16 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-black text-white relative overflow-hidden">
+      {/* CONFETTI */}
+      {showConfetti && (
+        <div className="confetti-container">
+          {Array.from({ length: 25 }).map((_, i) => (
+            <span key={i} className="confetti" />
+          ))}
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-8 pt-10">
         <h1 className="text-4xl font-bold mb-10">Keranjang</h1>
       </div>
@@ -170,14 +186,14 @@ export default function CartPage() {
               return (
                 <div
                   key={item.id}
-                  className={`
+                  className="
                     rounded-2xl border border-purple-700 p-6
                     flex items-center gap-6
                     transition-all duration-300
                     hover:border-purple-500
                     hover:shadow-[0_0_25px_rgba(168,85,247,0.25)]
                     hover:scale-[1.01]
-                  `}
+                  "
                 >
                   <div className="h-20 w-20 rounded-xl bg-blue-600 flex items-center justify-center">
                     <Image
@@ -251,12 +267,6 @@ export default function CartPage() {
                 ✖ Voucher tidak valid
               </p>
             )}
-
-            {discount > 0 && (
-              <span className="mt-3 inline-block text-xs bg-green-500/20 text-green-400 px-3 py-1 rounded-full animate-fade-in">
-                🎉 Promo Applied
-              </span>
-            )}
           </div>
 
           {/* SUMMARY */}
@@ -265,9 +275,8 @@ export default function CartPage() {
 
             <div className="space-y-3 text-sm">
 
-              {/* COMPARE */}
               {discount > 0 && (
-                <div className="text-xs text-gray-500 space-y-1 animate-fade-in">
+                <div className="text-xs text-gray-500 animate-fade-in">
                   <div className="flex justify-between">
                     <span>Sebelum Diskon</span>
                     <span className="line-through">
@@ -283,34 +292,37 @@ export default function CartPage() {
               </div>
 
               <div
-                className={`
-                  flex justify-between text-green-400
-                  transition-all duration-500
-                  ${discount > 0
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 -translate-y-2 h-0 overflow-hidden"}
-                `}
+                className={`flex justify-between text-green-400 discount-row ${
+                  discount > 0 ? "show" : ""
+                }`}
               >
                 <span>Diskon</span>
                 <span>- Rp {discount.toLocaleString()}</span>
               </div>
 
-              {/* TOTAL FLIP */}
               <div className="border-t border-purple-700 pt-4 flex justify-between text-lg font-semibold">
                 <span>Total</span>
 
                 <span
-                  className={`text-purple-400 flip-number ${flip ? "flip" : ""}`}
+                  className={`text-purple-400 flip-number ${
+                    flip ? "flip glow" : ""
+                  }`}
                 >
                   Rp {total.toLocaleString()}
                 </span>
               </div>
+
+              {savedAmount > 0 && (
+                <div className="saved-badge animate-fade-in">
+                  💸 You saved Rp {savedAmount.toLocaleString()}
+                </div>
+              )}
             </div>
 
             <button
               onClick={handleCheckout}
               disabled={checkoutLoading || items.length === 0}
-              className="mt-6 block w-full rounded-xl bg-purple-700 py-3 font-semibold hover:bg-purple-600 transition"
+              className="mt-6 block w-full rounded-xl bg-purple-700 py-3 font-semibold hover:bg-purple-600 transition hover:scale-[1.02]"
             >
               {checkoutLoading
                 ? "Memproses Checkout..."
@@ -332,12 +344,71 @@ export default function CartPage() {
 
         .flip-number {
           display: inline-block;
-          transition: transform 0.6s ease, opacity 0.6s ease;
-          transform-origin: center;
+          transition: transform 0.6s ease;
         }
 
         .flip {
           transform: rotateX(360deg);
+        }
+
+        .glow {
+          filter: blur(0.3px);
+          text-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
+        }
+
+        .discount-row {
+          opacity: 0;
+          transform: translateY(-6px);
+          transition: all 0.4s ease;
+        }
+
+        .discount-row.show {
+          opacity: 1;
+          transform: translateY(0);
+          animation: bounce 0.45s ease;
+        }
+
+        @keyframes bounce {
+          0% { transform: translateY(-8px); }
+          50% { transform: translateY(2px); }
+          100% { transform: translateY(0); }
+        }
+
+        .saved-badge {
+          margin-top: 8px;
+          font-size: 12px;
+          color: #22c55e;
+          background: rgba(34,197,94,0.1);
+          border: 1px solid rgba(34,197,94,0.3);
+          padding: 6px 10px;
+          border-radius: 999px;
+          text-align: center;
+        }
+
+        /* CONFETTI */
+        .confetti-container {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          overflow: hidden;
+        }
+
+        .confetti {
+          position: absolute;
+          width: 6px;
+          height: 10px;
+          background: hsl(${Math.random() * 360}, 100%, 60%);
+          top: -10px;
+          left: ${Math.random() * 100}%;
+          opacity: 0.7;
+          animation: fall 1.2s linear forwards;
+        }
+
+        @keyframes fall {
+          to {
+            transform: translateY(110vh) rotate(360deg);
+            opacity: 0;
+          }
         }
       `}</style>
     </main>
