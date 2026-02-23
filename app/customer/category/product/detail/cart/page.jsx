@@ -186,14 +186,7 @@ export default function CartPage() {
               return (
                 <div
                   key={item.id}
-                  className="
-                    rounded-2xl border border-purple-700 p-6
-                    flex items-center gap-6
-                    transition-all duration-300
-                    hover:border-purple-500
-                    hover:shadow-[0_0_25px_rgba(168,85,247,0.25)]
-                    hover:scale-[1.01]
-                  "
+                  className="rounded-2xl border border-purple-700 p-6 flex items-center gap-6 transition-all duration-300 hover:border-purple-500 hover:shadow-[0_0_25px_rgba(168,85,247,0.25)] hover:scale-[1.01]"
                 >
                   <div className="h-20 w-20 rounded-xl bg-blue-600 flex items-center justify-center">
                     <Image
