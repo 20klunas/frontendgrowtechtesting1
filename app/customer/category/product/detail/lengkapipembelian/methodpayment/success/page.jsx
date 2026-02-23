@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-export default function PaymentSuccessPage() {
+function SuccessContent() {
   const params = useSearchParams();
   const orderId = params.get("order");
 
@@ -39,5 +40,13 @@ export default function PaymentSuccessPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={<div className="text-white p-10">Loading...</div>}>
+      <SuccessContent />
+    </Suspense>
   );
 }
