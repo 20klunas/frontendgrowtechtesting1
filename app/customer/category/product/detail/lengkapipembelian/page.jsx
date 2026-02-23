@@ -8,11 +8,11 @@ import { authFetch } from "../../../../../lib/authFetch";
 export default function StepTwo() {
   const [checkout, setCheckout] = useState(null);
   const [qty, setQty] = useState(1);
-  const [voucher, setVoucher] = useState("");
+  // const [voucher, setVoucher] = useState("");
   const [walletBalance, setWalletBalance] = useState(0);
 
   const [loading, setLoading] = useState(true);
-  const [applyingVoucher, setApplyingVoucher] = useState(false);
+  // const [applyingVoucher, setApplyingVoucher] = useState(false);
 
   useEffect(() => {
     fetchCheckout();
@@ -51,32 +51,32 @@ export default function StepTwo() {
   };
 
   // ================= APPLY VOUCHER =================
-  const applyVoucher = async () => {
-    if (!voucher.trim()) {
-      fetchCheckout();
-      return;
-    }
+  // const applyVoucher = async () => {
+  //   if (!voucher.trim()) {
+  //     fetchCheckout();
+  //     return;
+  //   }
 
-    try {
-      setApplyingVoucher(true);
+  //   try {
+  //     setApplyingVoucher(true);
 
-      const json = await authFetch("/api/v1/cart/checkout", {
-        method: "POST",
-        body: JSON.stringify({
-          voucher_code: voucher,
-        }),
-      });
+  //     const json = await authFetch("/api/v1/cart/checkout", {
+  //       method: "POST",
+  //       body: JSON.stringify({
+  //         voucher_code: voucher,
+  //       }),
+  //     });
 
-      if (json.success) {
-        setCheckout(json.data);
-      }
-    } catch (err) {
-      alert(err.message || "Voucher tidak valid");
-      fetchCheckout();
-    } finally {
-      setApplyingVoucher(false);
-    }
-  };
+  //     if (json.success) {
+  //       setCheckout(json.data);
+  //     }
+  //   } catch (err) {
+  //     alert(err.message || "Voucher tidak valid");
+  //     fetchCheckout();
+  //   } finally {
+  //     setApplyingVoucher(false);
+  //   }
+  // };
 
   // ================= UPDATE QTY =================
   const updateQty = async (newQty) => {
@@ -210,7 +210,7 @@ export default function StepTwo() {
       </div>
 
       {/* ================= VOUCHER ================= */}
-      <div className="rounded-2xl border border-purple-800 bg-black p-6 mb-6">
+      {/* <div className="rounded-2xl border border-purple-800 bg-black p-6 mb-6">
         <div className="flex justify-between mb-3">
           <p className="text-sm text-gray-300">
             Kode Voucher / Promo
@@ -235,7 +235,7 @@ export default function StepTwo() {
             {applyingVoucher ? "..." : "Gunakan"}
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* ================= SALDO ================= */}
       <div className="rounded-2xl border border-purple-800 bg-black p-6 mb-8 flex justify-between items-center">

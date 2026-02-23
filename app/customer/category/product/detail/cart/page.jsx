@@ -16,6 +16,8 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [voucher, setVoucher] = useState("");
+  const [applyingVoucher, setApplyingVoucher] = useState(false);
 
   useEffect(() => {
     fetchCart();
@@ -91,7 +93,29 @@ export default function CartPage() {
     }
   };
 
+  const applyVoucher = async () => {
+    try {
+      setApplyingVoucher(true);
+
+      const json = await authFetch("/api/v1/cart/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          voucher_code: voucher || null,
+        }),
+      });
+
+      if (json.success) {
+        fetchCart(); // refresh summary setelah diskon
+      }
+    } catch (err) {
+      alert(err.message || "Voucher tidak valid");
+    } finally {
+      setApplyingVoucher(false);
+    }
+  };
+
   const subtotal = summary?.subtotal ?? 0;
+  const discount = summary?.discount_total ?? 0;
   const total = summary?.total ?? subtotal;
 
   // ================= UNAUTHORIZED =================
@@ -228,6 +252,32 @@ export default function CartPage() {
           )}
         </div>
 
+        {/* ================= VOUCHER ================= */}
+        <div className="rounded-2xl border border-purple-700 p-6">
+          <div className="flex justify-between mb-2">
+            <p className="text-sm text-gray-300">Kode Voucher</p>
+            <span className="text-xs text-gray-500">Optional</span>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={voucher}
+              onChange={(e) => setVoucher(e.target.value)}
+              placeholder="Contoh: PROMO5K"
+              className="flex-1 rounded-xl bg-black border border-purple-700 px-3 py-2 text-sm"
+            />
+
+            <button
+              onClick={applyVoucher}
+              disabled={applyingVoucher}
+              className="px-4 rounded-xl bg-purple-700 hover:bg-purple-600 text-sm"
+            >
+              {applyingVoucher ? "..." : "Gunakan"}
+            </button>
+          </div>
+        </div>
+
         {/* ================= SUMMARY ================= */}
         <div className="rounded-2xl border border-purple-700 p-6 h-fit">
           <h3 className="text-xl font-semibold mb-6">Ringkasan</h3>
@@ -237,6 +287,13 @@ export default function CartPage() {
               <span className="text-gray-400">Subtotal</span>
               <span>Rp {subtotal.toLocaleString()}</span>
             </div>
+
+            {discount > 0 && (
+              <div className="flex justify-between text-green-400">
+                <span>Diskon</span>
+                <span>- Rp {discount.toLocaleString()}</span>
+              </div>
+            )}
 
             <div className="border-t border-purple-700 pt-4 flex justify-between text-lg font-semibold">
               <span>Total</span>
