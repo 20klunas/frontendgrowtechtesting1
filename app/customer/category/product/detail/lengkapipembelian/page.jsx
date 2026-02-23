@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { authFetch } from "../../../../../lib/authFetch";
+import { useRouter } from "next/navigation";
 
+const router = useRouter();
 export default function StepTwo() {
   const [checkout, setCheckout] = useState(null);
   const [qty, setQty] = useState(1);
@@ -13,6 +15,9 @@ export default function StepTwo() {
 
   const [loading, setLoading] = useState(true);
   // const [applyingVoucher, setApplyingVoucher] = useState(false);
+  const handleGoPayment = () => {
+    router.push("/customer/category/product/detail/lengkapipembelian/methodpayment");
+  };
 
   useEffect(() => {
     fetchCheckout();
@@ -264,6 +269,7 @@ export default function StepTwo() {
         </Link>
 
         <button
+          onClick={handleGoPayment}
           className="flex-1 py-3 rounded-xl bg-purple-700 hover:bg-purple-600 font-semibold"
         >
           Lanjut Ke Pembayaran →
