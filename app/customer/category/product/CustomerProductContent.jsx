@@ -16,6 +16,7 @@ export default function CustomerProductContent() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addingId, setAddingId] = useState(null); //
+  const [checkoutLoadingId, setCheckoutLoadingId] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -48,6 +49,86 @@ export default function CustomerProductContent() {
       setProducts([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ================= CHECKOUT =================
+  const handleCheckout = async () => {
+    try {
+      setCheckoutLoading(true);
+
+      await authFetch("/api/v1/cart/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          voucher_code: voucher || null,
+        }),
+      });
+
+      router.push("/customer/category/product/detail/lengkapipembelian");
+    } catch (err) {
+      console.error("Checkout error:", err.message);
+      alert(err.message || "Checkout gagal");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleBuyNow = async (productId) => {
+    try {
+      const token = Cookies.get("token");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      setCheckoutLoadingId(productId);
+
+      // Add ke cart qty 1
+      const addRes = await fetch(`${API}/api/v1/cart/items`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          product_id: productId,
+          qty: 1,
+        }),
+      });
+
+      if (!addRes.ok) {
+        alert("Gagal menambahkan produk");
+        return;
+      }
+
+      // 2️⃣ Checkout
+      const checkoutRes = await fetch(`${API}/api/v1/cart/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          voucher_code: null,
+        }),
+      });
+
+      if (!checkoutRes.ok) {
+        alert("Checkout gagal");
+        return;
+      }
+
+      // 3️⃣ Redirect
+      router.push("/customer/category/product/detail/lengkapipembelian");
+
+      // update badge navbar
+      window.dispatchEvent(new Event("cart-updated"));
+    } catch (err) {
+      console.error("Buy now error:", err);
+      alert("Terjadi kesalahan");
+    } finally {
+      setCheckoutLoadingId(null);
     }
   };
 
@@ -149,6 +230,7 @@ export default function CustomerProductContent() {
               : product.tier_pricing;
 
             const isAdding = addingId === product.id;
+            const isOutOfStock = (product.available_stock ?? 0) <= 0;
 
             return (
               <div
@@ -202,14 +284,29 @@ export default function CustomerProductContent() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Link
-                      href="/customer/checkout/detail"
-                      className="flex-1 text-center rounded-lg bg-purple-600 py-2 text-sm font-semibold hover:bg-purple-700 transition"
+                    <button
+                      onClick={() => handleBuyNow(product.id)}
+                      disabled={checkoutLoadingId === product.id || isOutOfStock}
+                      className={cn(
+                        "flex-1 rounded-lg py-2 text-sm font-semibold transition relative",
+                        isOutOfStock
+                          ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                          : "bg-purple-600 hover:bg-purple-700 text-white",
+                        "disabled:opacity-70"
+                      )}
                     >
-                      Beli Sekarang
-                    </Link>
+                      {checkoutLoadingId === product.id ? (
+                        "Memproses..."
+                      ) : isOutOfStock ? (
+                        <span className="flex items-center justify-center gap-2">
+                          🔒 Stok Habis
+                        </span>
+                      ) : (
+                        "Beli Sekarang"
+                      )}
+                    </button>
 
-                    {/* 🛒 ADD TO CART */}
+                    {/* ADD TO CART */}
                     <button
                       onClick={() => addToCart(product.id)}
                       disabled={isAdding}
