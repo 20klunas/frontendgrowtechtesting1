@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { useAuth } from "../../app/hooks/useAuth"
 import { cn } from "../lib/utils"
 import Cookies from "js-cookie"
+import { useRouter } from "next/navigation";
 /* ================= UTIL ================= */
 const normalizeSettings = (rows = []) =>
   rows.reduce((acc, row) => {
@@ -27,6 +28,12 @@ export default function NavbarCustomer() {
   const [cartCount, setCartCount] = useState(0)
   const [cartItems, setCartItems] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
+  const router = useRouter();
+
+  const [search, setSearch] = useState("");
+  const [subcategories, setSubcategories] = useState([]);
+  const [filteredSubs, setFilteredSubs] = useState([]);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const avatarSrc = user?.avatar_url || user?.avatar || null
 
@@ -40,6 +47,40 @@ export default function NavbarCustomer() {
       })
       .catch(console.error)
   }, [API])
+
+  /* ================= FETCH SUBCATEGORIES ================= */
+  useEffect(() => {
+    fetchSubcategories();
+  }, []);
+
+  const fetchSubcategories = async () => {
+    try {
+      const res = await fetch(`${API}/api/v1/subcategories`);
+      const json = await res.json();
+
+      if (json.success) {
+        setSubcategories(json.data);
+      }
+    } catch (err) {
+      console.error("Failed fetch subcategories:", err);
+    }
+  };
+
+  /* ================= SEARCH FILTER ================= */
+  useEffect(() => {
+    if (!search.trim()) {
+      setFilteredSubs([]);
+      return;
+    }
+
+    const keyword = search.toLowerCase();
+
+    const filtered = subcategories.filter(sub =>
+      sub.name.toLowerCase().includes(keyword)
+    );
+
+    setFilteredSubs(filtered);
+  }, [search, subcategories]);
 
   /* ================= SCROLL SHRINK ================= */
   useEffect(() => {
@@ -113,6 +154,14 @@ export default function NavbarCustomer() {
   const isActive = (href) =>
     pathname === href || pathname.startsWith(`${href}/`)
 
+  /* ================= HANDLERS ================= */
+  const handleSelectSub = (subId) => {
+    setSearch("");
+    setSearchOpen(false);
+
+    router.push(`/customer/category/product?subcategory=${subId}`);
+  };
+
   return (
     <motion.nav
       initial={{ y: -16, opacity: 0 }}
@@ -169,6 +218,7 @@ export default function NavbarCustomer() {
 
           {/* ================= SEARCH ================= */}
           <div className="relative ml-6 w-[320px] group">
+
             {/* ICON */}
             <span
               className="
@@ -200,6 +250,12 @@ export default function NavbarCustomer() {
             <input
               type="text"
               placeholder="Cari produk..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setSearchOpen(true);
+              }}
+              onFocus={() => setSearchOpen(true)}
               className="
                 w-full rounded-full
                 bg-white/95
@@ -228,6 +284,57 @@ export default function NavbarCustomer() {
                 bg-gradient-to-r from-purple-500/10 to-indigo-500/10
               "
             />
+
+            {/* DROPDOWN RESULT */}
+            {searchOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="
+                  absolute top-12 left-0 w-full
+                  rounded-xl
+                  bg-[#14002a]
+                  border border-purple-700/50
+                  shadow-2xl
+                  overflow-hidden
+                  z-50
+                "
+              >
+
+                {search && filteredSubs.length > 0 && (
+                  filteredSubs.map(sub => (
+                    <button
+                      key={sub.id}
+                      onClick={() => handleSelectSub(sub.id)}
+                      className="
+                        w-full text-left px-4 py-2.5
+                        text-sm text-white/80
+                        hover:bg-purple-700/30
+                        hover:text-white
+                        transition
+                      "
+                    >
+                      {sub.name}
+                    </button>
+                  ))
+                )}
+
+                {/* EMPTY STATE */}
+                {search && filteredSubs.length === 0 && (
+                  <div className="px-4 py-3 text-sm text-white/50">
+                    Tidak ada subkategori
+                  </div>
+                )}
+
+                {/* HINT STATE */}
+                {!search && (
+                  <div className="px-4 py-3 text-xs text-white/40">
+                    Ketik nama produk ...
+                  </div>
+                )}
+
+              </motion.div>
+            )}
           </div>
 
         </div>
