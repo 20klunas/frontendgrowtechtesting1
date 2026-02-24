@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { cn } from "../../../lib/utils";
+import { motion } from "framer-motion";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -18,9 +19,21 @@ export default function CustomerProductContent() {
   const [loading, setLoading] = useState(true);
   const [addingId, setAddingId] = useState(null); //
   const [checkoutLoadingId, setCheckoutLoadingId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+
+  const paginatedProducts = products.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   useEffect(() => {
     fetchProducts();
+  }, [subcategoryId]);
+
+  useEffect(() => {
+    setCurrentPage(1);
   }, [subcategoryId]);
 
   const fetchProducts = async () => {
@@ -215,7 +228,13 @@ export default function CustomerProductContent() {
       </div>
 
       {/* ================= GRID ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <motion.div
+        key={currentPage}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+      >
         {loading ? (
           <>
             <SkeletonVariant />
@@ -225,7 +244,7 @@ export default function CustomerProductContent() {
         ) : products.length === 0 ? (
           <EmptyState />
         ) : (
-          products.map((product) => {
+          paginatedProducts.map((product) => {
             const pricing = Array.isArray(product.tier_pricing)
               ? product.tier_pricing[0]
               : product.tier_pricing;
@@ -321,7 +340,52 @@ export default function CustomerProductContent() {
             );
           })
         )}
-      </div>
+      </motion.div>
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-10 gap-2">
+
+          {/* PREV */}
+          <button
+            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 rounded-lg border border-purple-700 text-purple-300 hover:bg-purple-700/30 disabled:opacity-40 transition"
+          >
+            ←
+          </button>
+
+          {/* PAGE NUMBERS */}
+          {Array.from({ length: totalPages }).map((_, i) => {
+            const page = i + 1;
+            const isActive = page === currentPage;
+
+            return (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-semibold transition",
+                  isActive
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-700/40"
+                    : "bg-black text-purple-300 border border-purple-700 hover:bg-purple-700/30"
+                )}
+              >
+                {page}
+              </button>
+            );
+          })}
+
+          {/* NEXT */}
+          <button
+            onClick={() =>
+              setCurrentPage(p => Math.min(p + 1, totalPages))
+            }
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 rounded-lg border border-purple-700 text-purple-300 hover:bg-purple-700/30 disabled:opacity-40 transition"
+          >
+            →
+          </button>
+        </div>
+      )}
     </section>
   );
 }
