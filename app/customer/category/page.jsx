@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ProductCard from "../../components/customer/SubCategoryCard";
+import { motion } from "framer-motion";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -11,6 +12,8 @@ export default function CategoryPage() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const filteredSubcategories = subcategories.filter((sub) =>
     sub.name.toLowerCase().includes(search.toLowerCase())
@@ -20,6 +23,17 @@ export default function CategoryPage() {
     fetchCategories();
     fetchSubcategories();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory]);
+
+  const totalPages = Math.ceil(filteredSubcategories.length / itemsPerPage);
+
+  const paginatedSubs = filteredSubcategories.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const fetchCategories = async () => {
     try {
@@ -113,15 +127,72 @@ export default function CategoryPage() {
           </div>
 
           {/* GRID */}
-          <div className="product-grid">
-            {filteredSubcategories.map((sub) => (
+          <motion.div
+            key={currentPage}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="product-grid"
+          >
+            {paginatedSubs.map((sub) => (
               <ProductCard key={sub.id} subcategory={sub} />
             ))}
 
             {filteredSubcategories.length === 0 && (
               <p className="text-white/60">Subkategori tidak ditemukan</p>
             )}
-          </div>
+          </motion.div>
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-10 gap-2">
+              
+              {/* PREV */}
+              <button
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-lg border border-purple-700 text-purple-300 hover:bg-purple-700/30 disabled:opacity-40 transition"
+              >
+                ←
+              </button>
+
+              {/* PAGE NUMBERS */}
+              {Array.from({ length: totalPages }).map((_, i) => {
+                const page = i + 1;
+                const isActive = page === currentPage;
+
+                return (
+                  <motion.button
+                    key={page}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setCurrentPage(page)}
+                    className={`
+                      px-4 py-2 rounded-lg text-sm font-semibold transition
+                      ${isActive
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-700/40"
+                        : "bg-black text-purple-300 border border-purple-700 hover:bg-purple-700/30"}
+                    `}
+                  >
+                    {isActive && (
+                      <motion.span
+                        layoutId="pagination-glow"
+                        className="absolute inset-0 rounded-lg bg-purple-500/20 blur-md"
+                      />
+                    )}
+                    {page}
+                  </motion.button>
+                );
+              })}
+
+              {/* NEXT */}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-lg border border-purple-700 text-purple-300 hover:bg-purple-700/30 disabled:opacity-40 transition"
+              >
+                →
+              </button>
+            </div>
+          )}
         </section>
       </div>
     </main>
