@@ -63,7 +63,7 @@ function ProcessContent() {
           onClick={() => router.push(`../success?order=${orderId}`)}
           className="w-full rounded-xl bg-green-500 py-3 font-semibold text-black"
         >
-          Refresh / Lanjut
+          Lanjut Ke Pengiriman
         </button>
       </div>
     </main>
