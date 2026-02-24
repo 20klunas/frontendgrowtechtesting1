@@ -171,10 +171,10 @@ export default function CustomerProductContent() {
                   </h3>
 
                   <p className="text-xs text-gray-400 mb-1">
-                    Stok Tersedia {product.stock ?? 0}
+                    Stok Tersedia {product.available_stock ?? 0}
                   </p>
 
-                  {product.track_stock && product.stock <= product.stock_min_alert && (
+                  {product.track_stock && product.available_stock <= product.stock_min_alert && (
                     <p className="text-xs text-red-400">
                       ⚠ Stok hampir habis
                     </p>
