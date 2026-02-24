@@ -10,6 +10,11 @@ export default function CategoryPage() {
   const [subcategories, setSubcategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  const filteredSubcategories = subcategories.filter((sub) =>
+    sub.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   useEffect(() => {
     fetchCategories();
@@ -96,6 +101,8 @@ export default function CategoryPage() {
             <input
               type="text"
               placeholder="Cari Produk"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
 
             <select>
@@ -107,29 +114,12 @@ export default function CategoryPage() {
 
           {/* GRID */}
           <div className="product-grid">
-            {loading ? (
-              <>
-                <ProductCard />
-                <ProductCard />
-                <ProductCard />
-                <ProductCard />
-                <ProductCard />
-                <ProductCard />
-              </>
-            ) : subcategories.length === 0 ? (
-              <div className="col-span-full text-center py-20 text-zinc-500">
-                <p className="text-lg">Tidak ada subkategori</p>
-                <p className="text-sm">
-                  Data belum tersedia
-                </p>
-              </div>
-            ) : (
-              subcategories.map((sub) => (
-                <ProductCard
-                  key={sub.id}
-                  subcategory={sub}
-                />
-              ))
+            {filteredSubcategories.map((sub) => (
+              <ProductCard key={sub.id} subcategory={sub} />
+            ))}
+
+            {filteredSubcategories.length === 0 && (
+              <p className="text-white/60">Subkategori tidak ditemukan</p>
             )}
           </div>
         </section>
