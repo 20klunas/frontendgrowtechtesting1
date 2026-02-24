@@ -60,7 +60,7 @@ function ProcessContent() {
         </div>
 
         <button
-          onClick={() => router.push(`../success?order=${orderId}`)}
+          onClick={() => router.push(`/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`)}
           className="w-full rounded-xl bg-green-500 py-3 font-semibold text-black"
         >
           Lanjut Ke Pengiriman
