@@ -12,6 +12,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@supabase/supabase-js": "^2.91.1",
+    "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.27.5",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.562.0",
