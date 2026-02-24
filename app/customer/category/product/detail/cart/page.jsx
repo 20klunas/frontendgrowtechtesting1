@@ -114,6 +114,41 @@ export default function CartPage() {
     }
   };
 
+  const updateQty = async (itemId, newQty) => {
+    if (newQty < 1) return;
+
+    try {
+      const json = await authFetch(`/api/v1/cart/items/${itemId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ qty: newQty }),
+      });
+
+      if (json.success) {
+        fetchCart(); // refresh cart
+        window.dispatchEvent(new Event("cart-updated"));
+      }
+    } catch (err) {
+      console.error("Update qty error:", err.message);
+      alert(err.message || "Gagal update qty");
+    }
+  };
+
+  const removeItem = async (itemId) => {
+    try {
+      const json = await authFetch(`/api/v1/cart/items/${itemId}`, {
+        method: "DELETE",
+      });
+
+      if (json.success) {
+        fetchCart();
+        window.dispatchEvent(new Event("cart-updated"));
+      }
+    } catch (err) {
+      console.error("Remove item error:", err.message);
+      alert(err.message || "Gagal hapus item");
+    }
+  };
+
   const baseSubtotal = summary?.subtotal ?? 0;
   const baseTotal = summary?.total ?? baseSubtotal;
 
@@ -206,15 +241,60 @@ export default function CartPage() {
                       Rp {unitPrice.toLocaleString()} / item
                     </p>
 
-                    <p className="text-sm text-gray-500">
-                      Qty: {qty} • Stock: {stock}
-                    </p>
+                    <div className="flex items-center gap-3 mt-2">
+
+                      {/* MINUS */}
+                      <button
+                        onClick={() => updateQty(item.id, qty - 1)}
+                        disabled={qty <= 1}
+                        className="w-7 h-7 rounded bg-purple-700/40 hover:bg-purple-600 disabled:opacity-40"
+                      >
+                        −
+                      </button>
+
+                      {/* QTY */}
+                      <span className="text-sm w-6 text-center">
+                        {qty}
+                      </span>
+
+                      {/* PLUS */}
+                      <button
+                        onClick={() => updateQty(item.id, qty + 1)}
+                        disabled={qty >= stock}
+                        className="w-7 h-7 rounded bg-purple-700/40 hover:bg-purple-600 disabled:opacity-40"
+                      >
+                        +
+                      </button>
+
+                      <span className="text-xs text-gray-500 ml-2">
+                        Stock: {stock}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="text-right">
+                  <div className="text-right flex flex-col items-end gap-2">
+
                     <p className="font-semibold">
                       Rp {lineSubtotal.toLocaleString()}
                     </p>
+
+                    {/* DELETE BUTTON */}
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className="opacity-70 hover:opacity-100 hover:scale-110 transition"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          fill="#fff"
+                          d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zM8 9h8v10H8zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"
+                        />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               );
