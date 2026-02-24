@@ -9,6 +9,11 @@ export default function ProductPage() {
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [search, setSearch] = useState("");
+
+  const filteredSubcategories = subcategories.filter((sub) =>
+    sub.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   useEffect(() => {
     fetchCategories();
@@ -82,7 +87,12 @@ export default function ProductPage() {
           <div className="product-toolbar text-white">
             <span>Menampilkan semua produk</span>
 
-            <input type="text" placeholder="Cari Produk" />
+            <input
+              type="text"
+              placeholder="Cari Produk"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
 
             <select>
               <option>Terbaru</option>
@@ -92,9 +102,13 @@ export default function ProductPage() {
           </div>
 
           <div className="product-grid">
-            {subcategories.map((sub) => (
+            {filteredSubcategories.map((sub) => (
               <ProductCard key={sub.id} subcategory={sub} />
             ))}
+
+            {filteredSubcategories.length === 0 && (
+              <p className="text-white/60">Subkategori tidak ditemukan</p>
+            )}
           </div>
         </section>
       </div>
