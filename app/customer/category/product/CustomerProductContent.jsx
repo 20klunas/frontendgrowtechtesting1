@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import { cn } from "../../../lib/utils";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
