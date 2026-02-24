@@ -7,7 +7,7 @@ export default function CheckoutLayout({ children }) {
   const pathname = usePathname();
 
   const getStep = () => {
-    if (pathname.startsWith("/customer/category/product/payment")) {
+    if (pathname.startsWith("/customer/category/product/detail/lengkapipembelian/methodpayment")) {
       return 3;
     }
 
