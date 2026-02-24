@@ -15,7 +15,7 @@ export default function CustomerProductContent() {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [addingId, setAddingId] = useState(null); // 🔥 loading per item
+  const [addingId, setAddingId] = useState(null); //
 
   useEffect(() => {
     fetchProducts();

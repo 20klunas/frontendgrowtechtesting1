@@ -9,6 +9,8 @@ import { useAuth } from "../../app/hooks/useAuth"
 import { cn } from "../lib/utils"
 import Cookies from "js-cookie"
 import { useRouter } from "next/navigation";
+import { useRef } from "react";
+
 /* ================= UTIL ================= */
 const normalizeSettings = (rows = []) =>
   rows.reduce((acc, row) => {
@@ -29,6 +31,7 @@ export default function NavbarCustomer() {
   const [cartItems, setCartItems] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
   const router = useRouter();
+  const searchRef = useRef(null);
 
   const [search, setSearch] = useState("");
   const [subcategories, setSubcategories] = useState([]);
@@ -47,6 +50,18 @@ export default function NavbarCustomer() {
       })
       .catch(console.error)
   }, [API])
+
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   /* ================= FETCH SUBCATEGORIES ================= */
   useEffect(() => {
@@ -217,7 +232,7 @@ export default function NavbarCustomer() {
           ))}
 
           {/* ================= SEARCH ================= */}
-          <div className="relative ml-6 w-[320px] group">
+          <div ref={searchRef} className="relative ml-6 w-[320px] group">
 
             {/* ICON */}
             <span
@@ -358,12 +373,14 @@ export default function NavbarCustomer() {
         </div>
 
         {/* ================= RIGHT ================= */}
-        <div className="relative flex items-center gap-5" onMouseEnter={() => setCartOpen(true)} onMouseLeave={() => setCartOpen(false)}>
+        <div className="relative flex items-center gap-5">
 
           {/* CART */}
           <Link
             href="/customer/category/product/detail/cart"
             className="relative text-white transition"
+            onMouseEnter={() => setCartOpen(true)}
+            onMouseLeave={() => setCartOpen(false)}
           >
             🛒
             {cartCount > 0 && (
@@ -374,6 +391,8 @@ export default function NavbarCustomer() {
           </Link>
           {cartOpen && (
             <motion.div
+              onMouseEnter={() => setCartOpen(true)}
+              onMouseLeave={() => setCartOpen(false)}
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
