@@ -81,13 +81,16 @@ function PaymentPage() {
 
       const payment = json.data.payment;
 
-      /* ✅ MIDTRANS FLOW */
+      /* MIDTRANS FLOW */
       if (selectedMethod === "midtrans") {
-        const snapUrl = payment?.raw_callback?.snap_url;
+        const snapUrl =
+          payment?.raw_callback?.redirect_url ||
+          json?.data?.snap?.redirect_url;
 
         if (snapUrl) {
           window.location.href = snapUrl; // auto open midtrans
         } else {
+          console.error("Payment JSON:", json);
           alert("Snap URL tidak ditemukan");
         }
         return;
@@ -100,6 +103,7 @@ function PaymentPage() {
         );
       }
     } catch {
+      console.error(err);
       alert("Pembayaran gagal");
     } finally {
       setProcessing(false);
