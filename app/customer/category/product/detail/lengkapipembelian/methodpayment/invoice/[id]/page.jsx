@@ -19,13 +19,20 @@ export default function InvoicePage() {
 
   const fetchInvoice = async () => {
     try {
-      const [orderJson, deliveryJson] = await Promise.all([
-        authFetch(`/api/v1/orders/${id}`),
+      const [paymentJson, deliveryJson] = await Promise.all([
+        authFetch(`/api/v1/orders/${id}/payments`),
         authFetch(`/api/v1/orders/${id}/delivery`),
       ]);
 
-      if (orderJson.success) setOrder(orderJson.data.order);
-      if (deliveryJson.success) setDelivery(deliveryJson.data);
+      if (paymentJson.success) {
+        setOrder(paymentJson.data.order);   // ✅ ambil order dari payments
+      }
+
+      if (deliveryJson.success) {
+        setDelivery(deliveryJson.data);
+      }
+    } catch (err) {
+      console.error("Invoice fetch error:", err);
     } finally {
       setLoading(false);
       if (isPdf) triggerPrint();
@@ -61,7 +68,8 @@ export default function InvoicePage() {
           {/* INVOICE */}
           <div className="flex justify-center mb-6">
             <div className="px-4 py-1 border rounded-full text-sm">
-              Invoice : <strong>{order.invoice_number}</strong>
+              Invoice : <strong>{order?.invoice_number ?? "-"}</strong>
+              
             </div>
           </div>
 
@@ -123,5 +131,13 @@ function PrintStyle() {
         }
       }
     `}</style>
+  );
+}
+
+if (!order) {
+  return (
+    <div className="p-10 text-center text-red-400">
+      Invoice tidak ditemukan
+    </div>
   );
 }
