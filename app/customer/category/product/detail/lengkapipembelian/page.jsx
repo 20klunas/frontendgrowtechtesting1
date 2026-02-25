@@ -5,19 +5,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { authFetch } from "../../../../../lib/authFetch";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function StepTwo() {
   const [checkout, setCheckout] = useState(null);
   const [qty, setQty] = useState(1);
-  // const [voucher, setVoucher] = useState("");
   const [walletBalance, setWalletBalance] = useState(0);
   const [products, setProducts] = useState([]);
-  const router = useRouter();
-
   const [loading, setLoading] = useState(true);
-  // const [applyingVoucher, setApplyingVoucher] = useState(false);
+  const [patchingQty, setPatchingQty] = useState(false);
+
+  const router = useRouter();
 
   const handleGoPayment = () => {
     router.push("/customer/category/product/detail/lengkapipembelian/methodpayment");
@@ -60,9 +60,16 @@ export default function StepTwo() {
     }
   };
 
-  // ================= FETCH PRODUCTS =================
+  // ================= FETCH PRODUCTS (CACHED) =================
   const fetchProducts = async () => {
     try {
+      const cached = sessionStorage.getItem("products_cache");
+
+      if (cached) {
+        setProducts(JSON.parse(cached));
+        return;
+      }
+
       const res = await fetch(`${API}/api/v1/products`);
 
       const contentType = res.headers.get("content-type");
@@ -75,7 +82,9 @@ export default function StepTwo() {
       const json = await res.json();
 
       if (json.success) {
-        setProducts(json?.data?.data || []);
+        const data = json?.data?.data || [];
+        setProducts(data);
+        sessionStorage.setItem("products_cache", JSON.stringify(data));
       }
     } catch (err) {
       console.error("Failed fetch products:", err);
@@ -83,37 +92,9 @@ export default function StepTwo() {
     }
   };
 
-  // ================= APPLY VOUCHER =================
-  // const applyVoucher = async () => {
-  //   if (!voucher.trim()) {
-  //     fetchCheckout();
-  //     return;
-  //   }
-
-  //   try {
-  //     setApplyingVoucher(true);
-
-  //     const json = await authFetch("/api/v1/cart/checkout", {
-  //       method: "POST",
-  //       body: JSON.stringify({
-  //         voucher_code: voucher,
-  //       }),
-  //     });
-
-  //     if (json.success) {
-  //       setCheckout(json.data);
-  //     }
-  //   } catch (err) {
-  //     alert(err.message || "Voucher tidak valid");
-  //     fetchCheckout();
-  //   } finally {
-  //     setApplyingVoucher(false);
-  //   }
-  // };
-
   // ================= UPDATE QTY =================
   const updateQty = async (newQty) => {
-    if (!checkout) return;
+    if (!checkout || patchingQty) return;
 
     const item = checkout.items[0];
     const stockAvailable = item.stock_available ?? 0;
@@ -122,6 +103,7 @@ export default function StepTwo() {
     if (newQty > stockAvailable) return;
 
     setQty(newQty); // optimistic UI
+    setPatchingQty(true);
 
     try {
       await fetch(`${API}/api/v1/cart/items`, {
@@ -136,16 +118,23 @@ export default function StepTwo() {
       });
 
       fetchCheckout();
+      window.dispatchEvent(new Event("cart-updated"));
     } catch (err) {
       console.error("Update qty failed:", err.message);
       fetchCheckout();
+    } finally {
+      setPatchingQty(false);
     }
   };
 
+  // ================= SKELETON LOADING =================
   if (loading) {
     return (
-      <section className="max-w-5xl mx-auto px-6 py-12 text-white">
-        <p className="text-gray-400">Memuat data checkout...</p>
+      <section className="max-w-5xl mx-auto px-6 py-12 text-white animate-pulse">
+        <div className="h-8 w-64 bg-purple-900/40 rounded mb-10" />
+        <div className="h-40 bg-purple-900/20 rounded-2xl mb-6" />
+        <div className="h-20 bg-purple-900/20 rounded-2xl mb-6" />
+        <div className="h-12 bg-purple-900/20 rounded-xl mb-6" />
       </section>
     );
   }
@@ -170,7 +159,7 @@ export default function StepTwo() {
   const unitPrice = item.unit_price ?? 0;
   const stockAvailable = item.stock_available ?? 0;
 
-  // ================= IMAGE FROM PRODUCTS API =================
+  // ================= IMAGE MATCH =================
   const matchedProduct = products.find(p => p.id === product?.id);
 
   const productImage =
@@ -230,18 +219,30 @@ export default function StepTwo() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => updateQty(qty - 1)}
-              disabled={qty <= 1}
-              className="h-8 w-8 rounded-full bg-white text-black"
+              disabled={qty <= 1 || patchingQty}
+              className="h-8 w-8 rounded-full bg-white text-black disabled:opacity-40"
             >
               −
             </button>
 
-            <div className="min-w-[24px] text-center">{qty}</div>
+            <div className="min-w-[24px] text-center overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={qty}
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -10, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {qty}
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
             <button
               onClick={() => updateQty(qty + 1)}
-              disabled={qty >= stockAvailable}
-              className="h-8 w-8 rounded-full bg-white text-black"
+              disabled={qty >= stockAvailable || patchingQty}
+              className="h-8 w-8 rounded-full bg-white text-black disabled:opacity-40"
             >
               +
             </button>
