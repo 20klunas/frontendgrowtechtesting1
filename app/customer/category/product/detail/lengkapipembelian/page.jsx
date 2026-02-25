@@ -6,15 +6,19 @@ import Link from "next/link";
 import { authFetch } from "../../../../../lib/authFetch";
 import { useRouter } from "next/navigation";
 
+const API = process.env.NEXT_PUBLIC_API_URL;
+
 export default function StepTwo() {
   const [checkout, setCheckout] = useState(null);
   const [qty, setQty] = useState(1);
   // const [voucher, setVoucher] = useState("");
   const [walletBalance, setWalletBalance] = useState(0);
+  const [products, setProducts] = useState([]);
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   // const [applyingVoucher, setApplyingVoucher] = useState(false);
+
   const handleGoPayment = () => {
     router.push("/customer/category/product/detail/lengkapipembelian/methodpayment");
   };
@@ -22,6 +26,7 @@ export default function StepTwo() {
   useEffect(() => {
     fetchCheckout();
     fetchWallet();
+    fetchProducts();
   }, []);
 
   // ================= FETCH CHECKOUT =================
@@ -52,6 +57,29 @@ export default function StepTwo() {
     } catch (err) {
       console.warn("Wallet fetch failed:", err.message);
       setWalletBalance(0);
+    }
+  };
+
+  // ================= FETCH PRODUCTS =================
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch(`${API}/api/v1/products`);
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType?.includes("application/json")) {
+        const text = await res.text();
+        console.error("Non-JSON response:", text);
+        throw new Error("API did not return JSON");
+      }
+
+      const json = await res.json();
+
+      if (json.success) {
+        setProducts(json?.data?.data || []);
+      }
+    } catch (err) {
+      console.error("Failed fetch products:", err);
+      setProducts([]);
     }
   };
 
@@ -96,16 +124,18 @@ export default function StepTwo() {
     setQty(newQty); // optimistic UI
 
     try {
-      await authFetch(`/api/v1/cart/items/${item.id}`, {
+      await fetch(`${API}/api/v1/cart/items`, {
         method: "PATCH",
-        body: JSON.stringify({ qty: newQty }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          item_id: item.id,
+          qty: newQty,
+        }),
       });
 
-      if (voucher.trim()) {
-        applyVoucher();
-      } else {
-        fetchCheckout();
-      }
+      fetchCheckout();
     } catch (err) {
       console.error("Update qty failed:", err.message);
       fetchCheckout();
@@ -140,6 +170,16 @@ export default function StepTwo() {
   const unitPrice = item.unit_price ?? 0;
   const stockAvailable = item.stock_available ?? 0;
 
+  // ================= IMAGE FROM PRODUCTS API =================
+  const matchedProduct = products.find(p => p.id === product?.id);
+
+  const productImage =
+    matchedProduct?.subcategory?.image_url ||
+    matchedProduct?.image_url ||
+    product?.subcategory?.image_url ||
+    product?.image_url ||
+    "/placeholder.png";
+
   const subtotal = checkout.summary?.subtotal ?? 0;
   const discount = checkout.summary?.discount_total ?? 0;
   const taxPercent = checkout.summary?.tax_percent ?? 0;
@@ -148,7 +188,6 @@ export default function StepTwo() {
 
   return (
     <section className="max-w-5xl mx-auto px-6 py-10 text-white">
-
       <h1 className="text-3xl font-bold mb-10">
         Lengkapi Data Pembelian
       </h1>
@@ -160,11 +199,7 @@ export default function StepTwo() {
         <div className="flex items-center gap-4">
           <div className="relative h-16 w-16 rounded-xl overflow-hidden border border-purple-700">
             <Image
-              src={
-                product?.subcategory?.image_url ||
-                product?.image_url ||
-                "/placeholder.png"
-              }
+              src={productImage}
               fill
               alt={product?.name}
               className="object-cover"
@@ -213,34 +248,6 @@ export default function StepTwo() {
           </div>
         </div>
       </div>
-
-      {/* ================= VOUCHER ================= */}
-      {/* <div className="rounded-2xl border border-purple-800 bg-black p-6 mb-6">
-        <div className="flex justify-between mb-3">
-          <p className="text-sm text-gray-300">
-            Kode Voucher / Promo
-          </p>
-          <span className="text-xs text-gray-500">Optional</span>
-        </div>
-
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={voucher}
-            onChange={(e) => setVoucher(e.target.value)}
-            placeholder="Contoh: PROMO5K"
-            className="flex-1 rounded-xl bg-black border border-purple-700 px-4 py-2 text-sm"
-          />
-
-          <button
-            onClick={applyVoucher}
-            disabled={applyingVoucher}
-            className="px-4 rounded-xl bg-purple-700 hover:bg-purple-600 text-sm"
-          >
-            {applyingVoucher ? "..." : "Gunakan"}
-          </button>
-        </div>
-      </div> */}
 
       {/* ================= SALDO ================= */}
       <div className="rounded-2xl border border-purple-800 bg-black p-6 mb-8 flex justify-between items-center">
