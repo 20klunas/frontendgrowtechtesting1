@@ -36,7 +36,7 @@ function ProcessContent() {
         setPayment(json.data.payment);
 
         // ✅ AUTO REDIRECT IF SUCCESS
-        if (json.data.payment.status === "success") {
+        if (json.data.payment.status === "paid") {
           router.replace(
             `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
           );
@@ -60,7 +60,7 @@ function ProcessContent() {
       color: "text-yellow-400",
       button: null,
     },
-    success: {
+    paid: {
       icon: <CheckCircle className="text-green-400" size={48} />,
       title: "Pembayaran Berhasil",
       color: "text-green-400",
