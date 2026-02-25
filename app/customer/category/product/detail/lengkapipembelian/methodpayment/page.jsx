@@ -11,6 +11,7 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 export default function PaymentPageWrapper() {
   return (
@@ -33,11 +34,23 @@ function PaymentPage() {
   const total = checkout?.summary?.total ?? 0;
   const discount = checkout?.summary?.discount_total ?? 0;
   const item = checkout?.items?.[0];
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     fetchCheckout();
     fetchWallet();
   }, []);
+
+  useEffect(() => {
+    const orderFromMidtrans = searchParams.get("order_id");
+    const statusFromMidtrans = searchParams.get("transaction_status");
+
+    if (orderFromMidtrans && statusFromMidtrans) {
+      router.replace(
+        `/customer/category/product/detail/lengkapipembelian/methodpayment/process?order=${orderFromMidtrans}&gateway=midtrans`
+      );
+    }
+  }, [searchParams]);
 
   const fetchCheckout = async () => {
     try {
