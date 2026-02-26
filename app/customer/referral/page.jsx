@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Copy,
   Search,
   Calendar,
   CheckCircle,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 import {
   LineChart,
@@ -17,73 +19,154 @@ import {
   BarChart,
   Bar,
 } from "recharts"
+import { motion, AnimatePresence } from "framer-motion"
+import { authFetch } from "@/lib/authFetch"
 
-/* ================= DUMMY DATA ================= */
+/* ================= ANIMATION ================= */
 
-const STATS = [
-  { label: "Kode Referral", value: "REF-USER123" },
-  { label: "Total Referral", value: "8 User" },
-  { label: "Total Omzet", value: "Rp 400.000" },
-  { label: "Omzet Rate", value: "10%" },
-]
+const fadeUp = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0 }
+}
 
-const OMZET_HARIAN = [
-  { date: "11/12", value: 180 },
-  { date: "12/12", value: 140 },
-  { date: "13/12", value: 200 },
-  { date: "14/12", value: 300 },
-  { date: "15/12", value: 170 },
-  { date: "16/12", value: 120 },
-  { date: "17/12", value: 190 },
-]
-
-const OMZET_BULANAN = [
-  { month: "Jan", value: 80 },
-  { month: "Feb", value: 320 },
-  { month: "Mar", value: 350 },
-  { month: "Apr", value: 90 },
-  { month: "Mei", value: 320 },
-  { month: "Jun", value: 350 },
-  { month: "Jul", value: 90 },
-  { month: "Agu", value: 320 },
-  { month: "Sep", value: 350 },
-  { month: "Okt", value: 90 },
-  { month: "Nov", value: 320 },
-  { month: "Des", value: 350 },
-]
-
-const REFERRAL_HISTORY = [
-  { user: "User 1", email: "user1@gmail.com", status: "Pending", komisi: "Rp 100.000", tanggal: "20-12-2025" },
-  { user: "User 2", email: "user2@gmail.com", status: "Valid", komisi: "Rp 100.000", tanggal: "20-12-2025" },
-  { user: "User 3", email: "user3@gmail.com", status: "Valid", komisi: "Rp 50.000", tanggal: "20-12-2025" },
-  { user: "User 4", email: "user4@gmail.com", status: "Valid", komisi: "Rp 50.000", tanggal: "20-12-2025" },
-  { user: "User 5", email: "user5@gmail.com", status: "Valid", komisi: "Rp 80.000", tanggal: "20-12-2025" },
-  { user: "User 6", email: "user6@gmail.com", status: "Valid", komisi: "Rp 20.000", tanggal: "20-12-2025" },
-  { user: "User 7", email: "user7@gmail.com", status: "Valid", komisi: "Rp 40.000", tanggal: "20-12-2025" },
-  { user: "User 8", email: "user8@gmail.com", status: "Valid", komisi: "Rp 60.000", tanggal: "20-12-2025" },
-]
+const API = process.env.NEXT_PUBLIC_API_URL;
 
 /* ================= PAGE ================= */
 
 export default function ReferralPage() {
   const [tab, setTab] = useState("harian")
+  const [dashboard, setDashboard] = useState(null)
+  const [history, setHistory] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const [attachCode, setAttachCode] = useState("")
+  const [attachLoading, setAttachLoading] = useState(false)
+  const [attachMessage, setAttachMessage] = useState(null)
+
+  const [previewAmount, setPreviewAmount] = useState(100000)
+  const [preview, setPreview] = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+
+  /* ================= FETCH DASHBOARD ================= */
+
+  useEffect(() => {
+    fetchDashboard()
+  }, [])
+
+  async function fetchDashboard() {
+    try {
+      setLoading(true)
+
+      const res = await authFetch(`${API}/api/v1/referral`)
+      const json = await res.json()
+
+      if (!res.ok) throw new Error(json.message)
+
+      setDashboard(json.data)
+      // history dummy sementara (backend belum ada endpoint history)
+      setHistory([])
+    } catch (err) {
+      console.error("Dashboard error:", err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /* ================= ATTACH REFERRAL ================= */
+
+  async function handleAttach() {
+    if (!attachCode) return
+
+    try {
+      setAttachLoading(true)
+      setAttachMessage(null)
+
+      const res = await authFetch(`${API}/api/v1/referral/attach`, {
+        method: "POST",
+        body: JSON.stringify({ code: attachCode }),
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) throw new Error(json.message)
+
+      setAttachMessage({
+        type: "success",
+        text: json.data.message
+      })
+
+      fetchDashboard()
+      setAttachCode("")
+    } catch (err) {
+      setAttachMessage({
+        type: "error",
+        text: err.message
+      })
+    } finally {
+      setAttachLoading(false)
+    }
+  }
+
+  /* ================= PREVIEW DISCOUNT ================= */
+
+  async function handlePreview() {
+    try {
+      setPreviewLoading(true)
+
+      const res = await authFetch(`${API}/api/v1/referral/preview-discount`, {
+        method: "POST",
+        body: JSON.stringify({ amount: previewAmount }),
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) throw new Error(json.message)
+
+      setPreview(json.data)
+    } catch (err) {
+      console.error(err.message)
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  /* ================= COPY ================= */
+
+  function copy(text) {
+    navigator.clipboard.writeText(text)
+    setAttachMessage({
+      type: "success",
+      text: "Berhasil disalin!"
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-white">
+        <Loader2 className="animate-spin" />
+      </div>
+    )
+  }
+
+  const referralCode = dashboard?.my_referral_code
+  const relation = dashboard?.relation?.referrer
 
   return (
-    <section className="max-w-7xl mx-auto px-8 py-10 text-white">
-
+    <motion.section
+      initial="hidden"
+      animate="show"
+      variants={fadeUp}
+      transition={{ duration: 0.4 }}
+      className="max-w-7xl mx-auto px-8 py-10 text-white"
+    >
       <h1 className="text-3xl font-bold mb-8">Referral</h1>
 
       {/* ================= STATS ================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {STATS.map((s) => (
-          <div
-            key={s.label}
-            className="rounded-xl border border-purple-700 bg-black p-4"
-          >
-            <p className="text-sm text-gray-400">{s.label}</p>
-            <p className="text-lg font-semibold">{s.value}</p>
-          </div>
-        ))}
+        <StatCard label="Kode Referral" value={referralCode} />
+        <StatCard label="Total Referral" value="—" />
+        <StatCard label="Total Omzet" value="—" />
+        <StatCard label="Omzet Rate" value="—" />
       </div>
 
       {/* ================= KODE REFERRAL ================= */}
@@ -94,13 +177,13 @@ export default function ReferralPage() {
         <div className="flex gap-2 mb-4">
           <input
             readOnly
-            value="REF-USER123"
+            value={referralCode || ""}
             className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
-          <button className="rounded-lg bg-purple-700 px-4">
-            Update
-          </button>
-          <button className="rounded-lg border border-purple-700 px-3">
+          <button
+            onClick={() => copy(referralCode)}
+            className="rounded-lg border border-purple-700 px-3 hover:bg-purple-700 transition"
+          >
             <Copy size={16} />
           </button>
         </div>
@@ -109,10 +192,13 @@ export default function ReferralPage() {
         <div className="flex gap-2">
           <input
             readOnly
-            value="https://growtechcentral.site?ref=REF-USER123"
+            value={`https://growtechcentral.site?ref=${referralCode}`}
             className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
-          <button className="rounded-lg border border-purple-700 px-3">
+          <button
+            onClick={() => copy(`https://growtechcentral.site?ref=${referralCode}`)}
+            className="rounded-lg border border-purple-700 px-3 hover:bg-purple-700 transition"
+          >
             <Copy size={16} />
           </button>
         </div>
@@ -127,158 +213,146 @@ export default function ReferralPage() {
 
         <div className="flex gap-2 mb-3">
           <input
+            value={attachCode}
+            onChange={(e) => setAttachCode(e.target.value)}
             placeholder="Contoh: REF-TEMAN123"
             className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
-          <button className="rounded-lg bg-purple-700 px-4">
-            Gunakan Kode
+          <button
+            onClick={handleAttach}
+            disabled={attachLoading}
+            className="rounded-lg bg-purple-700 px-4 hover:bg-purple-600 transition disabled:opacity-50"
+          >
+            {attachLoading ? <Loader2 className="animate-spin" size={16} /> : "Gunakan Kode"}
           </button>
         </div>
 
-        <div className="text-sm text-gray-400 flex gap-6">
-          <span>Kode Digunakan: <b>REF-FAREL123</b></span>
-          <span>Bonus Diterima: <b>Rp 10.000</b></span>
-          <span>Email Pemilik: <b>frel013@gmail.com</b></span>
+        <AnimatePresence>
+          {attachMessage && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={`text-sm flex items-center gap-2 ${
+                attachMessage.type === "success"
+                  ? "text-green-400"
+                  : "text-red-400"
+              }`}
+            >
+              {attachMessage.type === "success"
+                ? <CheckCircle size={16} />
+                : <AlertCircle size={16} />}
+              {attachMessage.text}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {relation && (
+          <div className="text-sm text-gray-400 mt-3">
+            Terhubung dengan: <b>{relation.name}</b> ({relation.email})
+          </div>
+        )}
+      </Card>
+
+      {/* ================= PREVIEW DISCOUNT ================= */}
+      <Card className="mt-6">
+        <h3 className="font-semibold mb-3">Preview Diskon Referral</h3>
+
+        <div className="flex gap-2 mb-3">
+          <input
+            type="number"
+            value={previewAmount}
+            onChange={(e) => setPreviewAmount(Number(e.target.value))}
+            className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
+          />
+          <button
+            onClick={handlePreview}
+            disabled={previewLoading}
+            className="rounded-lg bg-purple-700 px-4 hover:bg-purple-600 transition"
+          >
+            {previewLoading ? <Loader2 className="animate-spin" size={16} /> : "Hitung"}
+          </button>
         </div>
+
+        {preview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-sm space-y-1"
+          >
+            <p>Status: <b className={preview.eligible ? "text-green-400" : "text-red-400"}>
+              {preview.eligible ? "Eligible" : "Tidak Eligible"}
+            </b></p>
+            <p>Diskon: <b>Rp {preview.discount_amount?.toLocaleString()}</b></p>
+            <p>Total Bayar: <b>Rp {preview.final_amount?.toLocaleString()}</b></p>
+            {preview.reason && <p className="text-red-400">{preview.reason}</p>}
+          </motion.div>
+        )}
       </Card>
 
       {/* ================= OMZET ================= */}
       <div className="flex gap-3 mt-10 mb-4">
-        <button
-          onClick={() => setTab("harian")}
-          className={`px-4 py-2 rounded-lg border ${
-            tab === "harian"
-              ? "bg-purple-700 border-purple-700"
-              : "border-purple-700"
-          }`}
-        >
+        <TabButton active={tab === "harian"} onClick={() => setTab("harian")}>
           Omzet Harian
-        </button>
-        <button
-          onClick={() => setTab("bulanan")}
-          className={`px-4 py-2 rounded-lg border ${
-            tab === "bulanan"
-              ? "bg-purple-700 border-purple-700"
-              : "border-purple-700"
-          }`}
-        >
+        </TabButton>
+        <TabButton active={tab === "bulanan"} onClick={() => setTab("bulanan")}>
           Omzet Bulanan
-        </button>
+        </TabButton>
       </div>
 
       <Card>
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            {tab === "harian" ? (
-              <LineChart data={OMZET_HARIAN}>
-                <XAxis dataKey="date" stroke="#aaa" />
-                <YAxis stroke="#aaa" />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#ffffff"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                />
-              </LineChart>
-            ) : (
-              <BarChart data={OMZET_BULANAN}>
-                <XAxis dataKey="month" stroke="#aaa" />
-                <YAxis stroke="#aaa" />
-                <Tooltip />
-                <Bar dataKey="value" fill="#ffffff" />
-              </BarChart>
-            )}
-          </ResponsiveContainer>
+        <div className="h-[300px] flex items-center justify-center text-gray-500">
+          Grafik omzet (API belum tersedia)
         </div>
       </Card>
 
-      {/* ================= TABEL BULANAN ================= */}
-      <Card className="mt-6">
-        <table className="w-full text-sm">
-          <thead className="border-b border-purple-700 text-gray-400">
-            <tr>
-              <th className="py-3 text-left">Bulan</th>
-              <th className="text-left">Omzet</th>
-              <th className="text-left">Pesanan</th>
-            </tr>
-          </thead>
-          <tbody>
-            {OMZET_BULANAN.map((b) => (
-              <tr key={b.month} className="border-b border-purple-800/40">
-                <td className="py-3">{b.month}</td>
-                <td>Rp 100.000</td>
-                <td>2</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-
-      {/* ================= RIWAYAT REFERRAL ================= */}
+      {/* ================= HISTORY ================= */}
       <Card className="mt-10">
-        <h3 className="font-semibold mb-4">Riwayat Referral Kode Anda</h3>
-
-        <div className="flex gap-3 mb-4">
-          <button className="flex items-center gap-2 border border-purple-700 px-3 py-1 rounded-lg">
-            Status
-          </button>
-          <div className="flex items-center gap-2 border border-purple-700 px-3 py-1 rounded-lg flex-1">
-            <Search size={16} />
-            <input
-              placeholder="Cari..."
-              className="bg-transparent outline-none w-full"
-            />
-          </div>
-          <button className="flex items-center gap-2 border border-purple-700 px-3 py-1 rounded-lg">
-            <Calendar size={16} />
-            HH/BB/TTTT
-          </button>
+        <h3 className="font-semibold mb-4">Riwayat Referral</h3>
+        <div className="text-sm text-gray-500">
+          Endpoint history belum tersedia
         </div>
-
-        <table className="w-full text-sm">
-          <thead className="border-b border-purple-700 text-gray-400">
-            <tr>
-              <th className="py-3 text-left">Pengguna</th>
-              <th>Email</th>
-              <th>Status</th>
-              <th>Komisi</th>
-              <th>Tanggal</th>
-            </tr>
-          </thead>
-          <tbody>
-            {REFERRAL_HISTORY.map((r, i) => (
-              <tr key={i} className="border-b border-purple-800/40">
-                <td className="py-3">{r.user}</td>
-                <td>{r.email}</td>
-                <td
-                  className={
-                    r.status === "Pending"
-                      ? "text-yellow-400"
-                      : "text-green-400"
-                  }
-                >
-                  {r.status}
-                </td>
-                <td>{r.komisi}</td>
-                <td>{r.tanggal}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </Card>
-
-    </section>
+    </motion.section>
   )
 }
 
-/* ================= COMPONENT ================= */
+/* ================= COMPONENTS ================= */
 
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-2xl border border-purple-700 bg-black p-6 ${className}`}>
+    <motion.div
+      whileHover={{ scale: 1.01 }}
+      className={`rounded-2xl border border-purple-700 bg-black p-6 transition ${className}`}
+    >
       {children}
-    </div>
+    </motion.div>
+  )
+}
+
+function StatCard({ label, value }) {
+  return (
+    <motion.div
+      whileHover={{ y: -3 }}
+      className="rounded-xl border border-purple-700 bg-black p-4"
+    >
+      <p className="text-sm text-gray-400">{label}</p>
+      <p className="text-lg font-semibold">{value || "—"}</p>
+    </motion.div>
+  )
+}
+
+function TabButton({ children, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-lg border transition ${
+        active
+          ? "bg-purple-700 border-purple-700"
+          : "border-purple-700 hover:bg-purple-900/40"
+      }`}
+    >
+      {children}
+    </button>
   )
 }
