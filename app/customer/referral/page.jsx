@@ -29,7 +29,6 @@ const fadeUp = {
   show: { opacity: 1, y: 0 }
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL;
 
 /* ================= PAGE ================= */
 
@@ -57,7 +56,7 @@ export default function ReferralPage() {
     try {
       setLoading(true)
 
-      const res = await authFetch(`${API}/api/v1/referral`)
+      const res = await authFetch(`/api/v1/referral`)
       const json = await res.json()
 
       if (!res.ok) throw new Error(json.message)
@@ -81,7 +80,7 @@ export default function ReferralPage() {
       setAttachLoading(true)
       setAttachMessage(null)
 
-      const res = await authFetch(`${API}/api/v1/referral/attach`, {
+      const res = await authFetch(`/api/v1/referral/attach`, {
         method: "POST",
         body: JSON.stringify({ code: attachCode }),
       })
@@ -113,7 +112,7 @@ export default function ReferralPage() {
     try {
       setPreviewLoading(true)
 
-      const res = await authFetch(`${API}/api/v1/referral/preview-discount`, {
+      const res = await authFetch(`/api/v1/referral/preview-discount`, {
         method: "POST",
         body: JSON.stringify({ amount: previewAmount }),
       })
