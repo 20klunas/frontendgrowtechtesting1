@@ -32,6 +32,7 @@ export default function Footer() {
       bg-black
       text-white
       mt-16
+      overflow-hidden
     ">
       <div className="
         footer-inner
@@ -68,6 +69,7 @@ export default function Footer() {
           grid grid-cols-1 sm:grid-cols-2
           gap-6
           text-center sm:text-left
+          w-full
         ">
 
           {/* INFO */}

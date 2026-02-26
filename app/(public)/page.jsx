@@ -36,7 +36,7 @@ export default function HomePage() {
   }, [API])
 
   return (
-    <main className="home-wrapper text-white">
+    <main className="home-wrapper text-white overflow-x-hidden">
 
       {/* ================= HERO ================= */}
       <section className="
