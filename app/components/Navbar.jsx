@@ -6,6 +6,7 @@ import Image from "next/image"
 import Script from "next/script"
 import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { Menu, X } from "lucide-react"
 import { useAuth } from "../../app/hooks/useAuth"
 import { cn } from "../lib/utils"
 
@@ -24,8 +25,8 @@ function Breadcrumb() {
   if (!segments.length) return null
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-2 text-xs text-zinc-500 dark:text-zinc-400">
-      <div className="flex items-center gap-2">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
         <Link href="/" className="hover:text-purple-500">Home</Link>
         {segments.map((seg, i) => {
           const href = "/" + segments.slice(0, i + 1).join("/")
@@ -53,6 +54,7 @@ export default function Navbar() {
   const [brand, setBrand] = useState({})
   const [scrolled, setScrolled] = useState(false)
   const [active, setActive] = useState(pathname)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   /* fetch brand */
   useEffect(() => {
@@ -73,6 +75,7 @@ export default function Navbar() {
 
   useEffect(() => {
     setActive(pathname)
+    setMobileOpen(false) // auto close menu saat pindah halaman
   }, [pathname])
 
   const navItems = [
@@ -120,19 +123,24 @@ export default function Navbar() {
           scrolled ? "py-2 shadow-lg" : "py-4"
         )}
       >
-        <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 flex items-center justify-between">
 
           {/* LEFT */}
-          <div className="flex items-center gap-3">
-            <Image src="/logoherosection.png" alt="Growtech" width={36} height={36} />
-            <span className="font-semibold text-white text-lg">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Image
+              src="/logoherosection.png"
+              alt="Growtech"
+              width={36}
+              height={36}
+              className="w-8 h-8 sm:w-9 sm:h-9"
+            />
+            <span className="font-semibold text-white text-sm sm:text-lg">
               {brand.site_name || "Growtech Central"}
             </span>
           </div>
 
-          {/* RIGHT MENU (HOME – PRODUCT – LOGIN BERDEKATAN) */}
-          <div className="flex items-center gap-6 relative">
-
+          {/* DESKTOP MENU */}
+          <div className="hidden md:flex items-center gap-6 relative">
             {navItems.map(item => (
               <Link
                 key={item.href}
@@ -171,25 +179,62 @@ export default function Navbar() {
               </motion.button>
             )}
           </div>
+
+          {/* MOBILE BUTTON */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden text-white"
+          >
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
 
-        {/* MOBILE INDICATOR */}
-        {/* <div className="md:hidden flex justify-center gap-8 pt-2">
-          {navItems.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "text-xs font-medium",
-                isActive(item.href)
-                  ? "text-purple-400"
-                  : "text-white/50"
-              )}
+        {/* MOBILE MENU */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden px-4 sm:px-6 pb-4"
             >
-              {item.label}
-            </Link>
-          ))}
-        </div> */}
+              <div className="flex flex-col gap-2 mt-3">
+
+                {navItems.map(item => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "text-sm py-2 px-3 rounded-lg transition",
+                      isActive(item.href)
+                        ? "bg-purple-700 text-white"
+                        : "text-white/70 hover:bg-purple-900/40"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+
+                {!user ? (
+                  <Link
+                    href="/login"
+                    className="text-sm py-2 px-3 rounded-lg bg-purple-700 text-white text-center"
+                  >
+                    Login
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => router.push("/customer")}
+                    className="text-sm py-2 px-3 rounded-lg bg-purple-700 text-white"
+                  >
+                    Dashboard
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </motion.nav>
 
       {/* BREADCRUMB UI */}

@@ -647,3 +647,11 @@ table tbody tr:hover {
 .action-btn {
   @apply px-3 py-2 rounded-lg transition shadow-md text-white;
 }
+
+.footer-link {
+  color: rgba(255,255,255,0.7);
+  transition: 0.2s;
+}
+.footer-link:hover {
+  color: #a855f7;
+}

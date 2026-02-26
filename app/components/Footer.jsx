@@ -27,42 +27,87 @@ export default function Footer() {
   }, [API])
 
   return (
-    <footer className="footer">
-      <div className="footer-inner">
+    <footer className="
+      border-t border-purple-800/40
+      bg-black
+      text-white
+      mt-16
+    ">
+      <div className="
+        footer-inner
+        max-w-7xl mx-auto
+        px-4 sm:px-6 lg:px-8
+        py-10
+        grid grid-cols-1 md:grid-cols-3
+        gap-8
+      ">
 
-        {/* LEFT */}
-        <div className="footer-left">
-          <h3>{brand.site_name || "Growtech Central"}</h3>
+        {/* ================= LEFT ================= */}
+        <div className="footer-left text-center md:text-left">
+          <h3 className="text-lg font-semibold">
+            {brand.site_name || "Growtech Central"}
+          </h3>
 
-          {footer.footer_desc && <p>{footer.footer_desc}</p>}
-          {brand.version && <p>{brand.version}</p>}
+          {footer.footer_desc && (
+            <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+              {footer.footer_desc}
+            </p>
+          )}
+
+          {brand.version && (
+            <p className="text-xs text-gray-500 mt-2">
+              {brand.version}
+            </p>
+          )}
         </div>
 
-        {/* RIGHT */}
-        <div className="footer-links">
-          <div>
-            <h4>Informasi Kami</h4>
-            <Link href="/faq">FAQ</Link>
-            <Link href="/contact">Contact Us</Link>
-            <Link href="/terms">Ketentuan Layanan</Link>
-            <Link href="/privacy">Kebijakan Privasi</Link>
+        {/* ================= LINKS ================= */}
+        <div className="
+          footer-links
+          col-span-1 md:col-span-2
+          grid grid-cols-1 sm:grid-cols-2
+          gap-6
+          text-center sm:text-left
+        ">
+
+          {/* INFO */}
+          <div className="flex flex-col gap-2">
+            <h4 className="font-semibold text-purple-400">
+              Informasi Kami
+            </h4>
+
+            <Link href="/faq" className="footer-link">FAQ</Link>
+            <Link href="/contact" className="footer-link">Contact Us</Link>
+            <Link href="/terms" className="footer-link">Ketentuan Layanan</Link>
+            <Link href="/privacy" className="footer-link">Kebijakan Privasi</Link>
           </div>
 
-          <div>
-            <h4>Kontak</h4>
+          {/* KONTAK */}
+          <div className="flex flex-col gap-2">
+            <h4 className="font-semibold text-purple-400">
+              Kontak
+            </h4>
 
             {brand.phone && (
-              <a href={brand.phone} target="_blank">
+              <a
+                href={brand.phone}
+                target="_blank"
+                className="footer-link"
+              >
                 {brand.phone}
               </a>
             )}
 
             {brand.email && (
-              <a href={`mailto:${brand.email}`}>
+              <a
+                href={`mailto:${brand.email}`}
+                className="footer-link"
+              >
                 {brand.email}
               </a>
             )}
           </div>
+
         </div>
 
       </div>
