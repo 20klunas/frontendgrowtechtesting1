@@ -56,15 +56,11 @@ export default function ReferralPage() {
     try {
       setLoading(true)
 
-      const res = await authFetch(`/api/v1/referral`)
-      console.log("RES:", res)
-      const json = res?.data ? res : await res.json()
-
-      if (!json.success) throw new Error(json.message)
+      const json = await authFetch(`/api/v1/referral`)
 
       setDashboard(json.data)
-      // history dummy sementara (backend belum ada endpoint history)
       setHistory([])
+
     } catch (err) {
       console.error("Dashboard error:", err.message)
     } finally {
@@ -81,22 +77,19 @@ export default function ReferralPage() {
       setAttachLoading(true)
       setAttachMessage(null)
 
-      const res = await authFetch(`/api/v1/referral/attach`, {
+      const json = await authFetch(`/api/v1/referral/attach`, {
         method: "POST",
         body: JSON.stringify({ code: attachCode }),
       })
 
-      const json = res?.data ? res : await res.json()
-
-      if (!json.success) throw new Error(json.message)
-
       setAttachMessage({
         type: "success",
-        text: json.data.message
+        text: json.message || "Referral berhasil dipasang"
       })
 
       fetchDashboard()
       setAttachCode("")
+
     } catch (err) {
       setAttachMessage({
         type: "error",
@@ -113,18 +106,15 @@ export default function ReferralPage() {
     try {
       setPreviewLoading(true)
 
-      const res = await authFetch(`/api/v1/referral/preview-discount`, {
+      const json = await authFetch(`/api/v1/referral/preview-discount`, {
         method: "POST",
         body: JSON.stringify({ amount: previewAmount }),
       })
 
-      const json = res?.data ? res : await res.json()
-
-      if (!json.success) throw new Error(json.message)
-
       setPreview(json.data)
+
     } catch (err) {
-      console.error(err.message)
+      console.error("Preview error:", err.message)
     } finally {
       setPreviewLoading(false)
     }
@@ -133,11 +123,22 @@ export default function ReferralPage() {
   /* ================= COPY ================= */
 
   function copy(text) {
+    if (!text) return
+
     navigator.clipboard.writeText(text)
+
     setAttachMessage({
       type: "success",
       text: "Berhasil disalin!"
     })
+  }
+
+  if (!res.ok) {
+    throw new Error(
+      data?.message ||
+      data?.error?.message ||
+      `HTTP ${res.status}`
+    );
   }
 
   if (loading) {
