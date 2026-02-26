@@ -263,11 +263,7 @@ export default function CartPage() {
                       <button
                         onClick={() => updateQty(item.id, qty - 1)}
                         disabled={qty <= 1}
-                        className="
-                          w-7 h-7 rounded
-                          bg-purple-700/40 hover:bg-purple-600
-                          disabled:opacity-40
-                        "
+                        className="w-7 h-7 rounded bg-purple-700/40 hover:bg-purple-600 disabled:opacity-40"
                       >
                         −
                       </button>
@@ -281,11 +277,7 @@ export default function CartPage() {
                       <button
                         onClick={() => updateQty(item.id, qty + 1)}
                         disabled={qty >= stock}
-                        className="
-                          w-7 h-7 rounded
-                          bg-purple-700/40 hover:bg-purple-600
-                          disabled:opacity-40
-                        "
+                        className="w-7 h-7 rounded bg-purple-700/40 hover:bg-purple-600 disabled:opacity-40"
                       >
                         +
                       </button>
@@ -298,14 +290,7 @@ export default function CartPage() {
 
                   {/* RIGHT SECTION */}
                   <div
-                    className="
-                      flex sm:flex-col
-                      items-center sm:items-end
-                      justify-between sm:justify-center
-                      gap-3 sm:gap-2
-                      pt-2 sm:pt-0
-                      border-t sm:border-none border-white/5
-                    "
+                    className=" flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 sm:gap-2 pt-2 sm:pt-0 border-t sm:border-none border-white/5"
                   >
                     <p className="font-semibold text-sm sm:text-base">
                       Rp {lineSubtotal.toLocaleString()}
