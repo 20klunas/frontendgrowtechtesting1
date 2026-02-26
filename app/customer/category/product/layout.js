@@ -26,24 +26,37 @@ export default function CheckoutLayout({ children }) {
     "Pembayaran",
   ];
 
+  const progressPercent = ((step - 1) / (steps.length - 1)) * 100;
+
   return (
     <main className="min-h-screen bg-black text-white">
 
-      {/* ================= STEPPER ================= */}
-      <div className="mb-6 sm:mb-10">
+      {/* ================= STICKY STEPPER ================= */}
+      <div className="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-white/5">
+
+        {/* PROGRESS BAR */}
+        <div className="h-[3px] bg-white/10">
+          <motion.div
+            className="h-full bg-green-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${progressPercent}%` }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+          />
+        </div>
+
+        {/* STEPS */}
         <div
           className="
             max-w-7xl mx-auto
-            px-4 sm:px-6 lg:px-8
-            py-6 sm:py-8
+            px-3 sm:px-6 lg:px-8
+            py-4 sm:py-6
 
-            flex flex-col
-            sm:flex-row
+            flex
+            items-center
+            gap-6 sm:gap-10
 
-            items-start sm:items-center
-            justify-start sm:justify-center
-
-            gap-6 sm:gap-10 lg:gap-12
+            overflow-x-auto
+            scrollbar-hide
           "
         >
           {steps.map((label, i) => {
@@ -54,67 +67,41 @@ export default function CheckoutLayout({ children }) {
               <div
                 key={i}
                 className="
-                  flex
-                  sm:items-center
-                  gap-3 sm:gap-6
+                  flex items-center
+                  gap-3 sm:gap-4
+                  min-w-fit
                 "
               >
-                {/* MOBILE → STACK VERTICAL */}
-                <div className="flex sm:flex-row flex-col items-center sm:items-center">
-
-                  {/* CIRCLE */}
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0.5 }}
-                    animate={{
-                      scale: active ? 1.05 : 1,
-                      opacity: 1
-                    }}
-                    transition={{ duration: 0.25 }}
-                    className={`
-                      flex items-center justify-center
-                      w-10 h-10 sm:w-12 sm:h-12
-                      rounded-full
-                      text-sm sm:text-lg font-bold
-                      transition
-                      ${
-                        active || done
-                          ? "bg-green-500 text-black"
-                          : "border-2 border-white text-white"
-                      }
-                    `}
-                  >
-                    {i + 1}
-                  </motion.div>
-
-                  {/* LINE */}
-                  {i < steps.length - 1 && (
-                    <motion.div
-                      initial={{ scaleY: 0.6, opacity: 0.5 }}
-                      animate={{
-                        scaleY: step > i + 1 ? 1 : 0.6,
-                        opacity: 1
-                      }}
-                      transition={{ duration: 0.3 }}
-                      className={`
-                        sm:hidden
-                        my-2
-                        w-[2px] h-6
-                        ${
-                          step > i + 1
-                            ? "bg-green-500"
-                            : "bg-white/40"
-                        }
-                      `}
-                    />
-                  )}
-                </div>
+                {/* CIRCLE */}
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0.5 }}
+                  animate={{
+                    scale: active ? 1.08 : 1,
+                    opacity: 1
+                  }}
+                  transition={{ duration: 0.25 }}
+                  className={`
+                    flex items-center justify-center
+                    w-9 h-9 sm:w-11 sm:h-11
+                    rounded-full
+                    text-sm sm:text-base font-bold
+                    transition
+                    ${
+                      active || done
+                        ? "bg-green-500 text-black"
+                        : "border-2 border-white text-white"
+                    }
+                  `}
+                >
+                  {i + 1}
+                </motion.div>
 
                 {/* LABEL */}
-                <div className="leading-tight">
+                <div className="leading-tight whitespace-nowrap">
                   <div
                     className={`
-                      text-xs sm:text-sm
-                      ${active || done ? "text-green-400" : "text-gray-400"}
+                      text-[10px] sm:text-xs
+                      ${active || done ? "text-green-400" : "text-gray-500"}
                     `}
                   >
                     Langkah {i + 1}
@@ -122,7 +109,7 @@ export default function CheckoutLayout({ children }) {
 
                   <div
                     className={`
-                      text-sm sm:text-lg font-semibold
+                      text-xs sm:text-sm font-semibold
                       ${active ? "text-white" : "text-gray-400"}
                     `}
                   >
@@ -130,23 +117,23 @@ export default function CheckoutLayout({ children }) {
                   </div>
                 </div>
 
-                {/* DESKTOP LINE */}
+                {/* CONNECTOR LINE */}
                 {i < steps.length - 1 && (
                   <motion.div
-                    initial={{ scaleX: 0.6, opacity: 0.5 }}
+                    initial={{ scaleX: 0.5, opacity: 0.3 }}
                     animate={{
-                      scaleX: step > i + 1 ? 1 : 0.6,
+                      scaleX: step > i + 1 ? 1 : 0.5,
                       opacity: 1
                     }}
                     transition={{ duration: 0.3 }}
                     className={`
-                      hidden sm:block
-                      mx-4
-                      h-[2px] w-12 lg:w-16
+                      h-[2px]
+                      w-6 sm:w-10 lg:w-14
+                      origin-left
                       ${
                         step > i + 1
                           ? "bg-green-500"
-                          : "bg-white/40"
+                          : "bg-white/20"
                       }
                     `}
                   />
@@ -158,7 +145,7 @@ export default function CheckoutLayout({ children }) {
       </div>
 
       {/* ================= PAGE CONTENT ================= */}
-      <div className="px-4 sm:px-6 lg:px-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
         {children}
       </div>
     </main>
