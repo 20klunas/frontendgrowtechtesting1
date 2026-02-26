@@ -313,6 +313,29 @@ body {
   cursor: default;
 }
 
+/* ================= CATEGORY BUTTON ================= */
+
+.category-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  color: rgba(255,255,255,0.7);
+  transition: 0.2s;
+}
+
+.category-btn:hover {
+  background: rgba(168, 85, 247, 0.2);
+  color: white;
+}
+
+.category-btn.active {
+  background: #7e22ce;
+  border-color: #a855f7;
+  color: white;
+}
+
 /* ================= PRODUCT PAGE ================= */
 
 .product-wrapper {
