@@ -57,9 +57,10 @@ export default function ReferralPage() {
       setLoading(true)
 
       const res = await authFetch(`/api/v1/referral`)
-      const json = await res.json()
+      console.log("RES:", res)
+      const json = res?.data ? res : await res.json()
 
-      if (!res.ok) throw new Error(json.message)
+      if (!json.success) throw new Error(json.message)
 
       setDashboard(json.data)
       // history dummy sementara (backend belum ada endpoint history)
@@ -85,9 +86,9 @@ export default function ReferralPage() {
         body: JSON.stringify({ code: attachCode }),
       })
 
-      const json = await res.json()
+      const json = res?.data ? res : await res.json()
 
-      if (!res.ok) throw new Error(json.message)
+      if (!json.success) throw new Error(json.message)
 
       setAttachMessage({
         type: "success",
@@ -117,9 +118,9 @@ export default function ReferralPage() {
         body: JSON.stringify({ amount: previewAmount }),
       })
 
-      const json = await res.json()
+      const json = res?.data ? res : await res.json()
 
-      if (!res.ok) throw new Error(json.message)
+      if (!json.success) throw new Error(json.message)
 
       setPreview(json.data)
     } catch (err) {
