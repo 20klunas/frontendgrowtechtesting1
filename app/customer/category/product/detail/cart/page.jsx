@@ -221,8 +221,7 @@ export default function CartPage() {
               return (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-purple-700 p-4 sm:p-6  flex flex-col sm:flex-row  sm:items-center gap-4 sm:gap-6 transition-all duration-300 hover:border-purple-500 hover:shadow-[0_0_25px_rgba(168,85,247,0.25)] hover:scale-[1.01]
-                  "
+                  className="rounded-2xl border border-purple-700 p-4 sm:p-6  flex flex-col sm:flex-row  sm:items-center gap-4 sm:gap-6 transition-all duration-300 hover:border-purple-500 hover:shadow-[0_0_25px_rgba(168,85,247,0.25)] hover:scale-[1.01]"
                 >
                   {/* IMAGE */}
                   <div className="flex items-center gap-4 sm:block">
