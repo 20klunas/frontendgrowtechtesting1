@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 export default function MonitoringReferralPage() {
   const commissionType = 'percent' // atau 'fixed'
-  const commissionValue = 5 // 5% atau Rp
+  const commissionValue = 5 
 
   const users = [
     { name: 'Ravi Kusuma', code: 'REF-RAVI123', total: 8, valid: 7, pending: 1, invalid: 0, totalBelanja: 800000 }
