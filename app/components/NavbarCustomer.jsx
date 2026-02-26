@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { usePathname } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { useAuth } from "../../app/hooks/useAuth"
 import { cn } from "../lib/utils"
 import Cookies from "js-cookie"
+import { useRouter } from "next/navigation";
+import { useRef } from "react";
 
 /* ================= UTIL ================= */
 const normalizeSettings = (rows = []) =>
@@ -20,26 +22,21 @@ const normalizeSettings = (rows = []) =>
 export default function NavbarCustomer() {
   const API = process.env.NEXT_PUBLIC_API_URL
   const pathname = usePathname()
-  const router = useRouter()
   const { user, logout, loading } = useAuth()
   const token = Cookies.get("token")
-
   const [brand, setBrand] = useState({})
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [cartCount, setCartCount] = useState(0)
   const [cartItems, setCartItems] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
+  const router = useRouter();
+  const searchRef = useRef(null);
 
-  const searchRef = useRef(null)
-
-  const [search, setSearch] = useState("")
-  const [subcategories, setSubcategories] = useState([])
-  const [filteredSubs, setFilteredSubs] = useState([])
-  const [searchOpen, setSearchOpen] = useState(false)
-
-  /* ✅ NEW STATE MOBILE MENU */
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [search, setSearch] = useState("");
+  const [subcategories, setSubcategories] = useState([]);
+  const [filteredSubs, setFilteredSubs] = useState([]);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const avatarSrc = user?.avatar_url || user?.avatar || null
 
@@ -54,51 +51,51 @@ export default function NavbarCustomer() {
       .catch(console.error)
   }, [API])
 
-  /* ================= CLICK OUTSIDE SEARCH ================= */
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setSearchOpen(false)
+        setSearchOpen(false);
       }
-    }
+    };
 
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   /* ================= FETCH SUBCATEGORIES ================= */
   useEffect(() => {
-    fetchSubcategories()
-  }, [])
+    fetchSubcategories();
+  }, []);
 
   const fetchSubcategories = async () => {
     try {
-      const res = await fetch(`${API}/api/v1/subcategories`)
-      const json = await res.json()
+      const res = await fetch(`${API}/api/v1/subcategories`);
+      const json = await res.json();
 
       if (json.success) {
-        setSubcategories(json.data)
+        setSubcategories(json.data);
       }
     } catch (err) {
-      console.error("Failed fetch subcategories:", err)
+      console.error("Failed fetch subcategories:", err);
     }
-  }
+  };
 
   /* ================= SEARCH FILTER ================= */
   useEffect(() => {
     if (!search.trim()) {
-      setFilteredSubs([])
-      return
+      setFilteredSubs([]);
+      return;
     }
 
-    const keyword = search.toLowerCase()
+    const keyword = search.toLowerCase();
 
     const filtered = subcategories.filter(sub =>
       sub.name.toLowerCase().includes(keyword)
-    )
+    );
 
-    setFilteredSubs(filtered)
-  }, [search, subcategories])
+    setFilteredSubs(filtered);
+  }, [search, subcategories]);
 
   /* ================= SCROLL SHRINK ================= */
   useEffect(() => {
@@ -107,9 +104,10 @@ export default function NavbarCustomer() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  /* ================= FETCH CART ================= */
+  /* ================= FETCH CART COUNT ================= */
   useEffect(() => {
     if (!user) return
+
     fetchCart()
   }, [user])
 
@@ -118,16 +116,29 @@ export default function NavbarCustomer() {
       const token = Cookies.get("token")
 
       if (!token) {
+        console.warn("No token found")
         setCartCount(0)
         return
       }
 
       const res = await fetch(`${API}/api/v1/cart`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
 
       if (!res.ok) {
+        const text = await res.text()
+        console.error("Cart error:", res.status, text)
         setCartCount(0)
+        return
+      }
+
+      const contentType = res.headers.get("content-type")
+
+      if (!contentType?.includes("application/json")) {
+        const text = await res.text()
+        console.error("Non JSON response:", text)
         return
       }
 
@@ -140,10 +151,12 @@ export default function NavbarCustomer() {
         setCartCount(total)
       }
     } catch (err) {
-      console.error(err)
+      console.error("Failed fetch cart:", err)
       setCartCount(0)
     }
   }
+
+
 
   if (loading) return null
 
@@ -156,12 +169,13 @@ export default function NavbarCustomer() {
   const isActive = (href) =>
     pathname === href || pathname.startsWith(`${href}/`)
 
+  /* ================= HANDLERS ================= */
   const handleSelectSub = (subId) => {
-    setSearch("")
-    setSearchOpen(false)
-    setMobileMenuOpen(false)
-    router.push(`/customer/category/product?subcategory=${subId}`)
-  }
+    setSearch("");
+    setSearchOpen(false);
+
+    router.push(`/customer/category/product?subcategory=${subId}`);
+  };
 
   return (
     <motion.nav
@@ -174,19 +188,24 @@ export default function NavbarCustomer() {
         scrolled ? "py-2 shadow-xl" : "py-4"
       )}
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 flex items-center justify-between gap-4">
+      <div className="mx-auto max-w-7xl px-6 flex items-center justify-between gap-6">
 
         {/* ================= LEFT ================= */}
         <div className="flex items-center gap-3">
           <div className="relative w-9 h-9">
-            <Image src="/logoherosection.png" alt="Growtech" fill priority />
+            <Image
+              src="/logoherosection.png"
+              alt="Growtech"
+              fill
+              priority
+            />
           </div>
-          <span className="text-white font-semibold text-sm sm:text-lg">
+          <span className="text-white font-semibold text-lg">
             {brand.site_name || "Growtech Central"}
           </span>
         </div>
 
-        {/* ================= DESKTOP ================= */}
+        {/* ================= CENTER (DESKTOP) ================= */}
         <div className="hidden lg:flex items-center gap-8 relative">
 
           {navItems.map(item => (
@@ -201,136 +220,314 @@ export default function NavbarCustomer() {
               )}
             >
               {item.label}
+
+              {isActive(item.href) && (
+                <motion.span
+                  layoutId="customer-nav-underline"
+                  className="absolute -bottom-2 left-0 right-0 h-[2px] rounded-full bg-purple-500"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
             </Link>
           ))}
 
-          {/* SEARCH DESKTOP */}
-          <div ref={searchRef} className="relative ml-6 w-[320px]">
+          {/* ================= SEARCH ================= */}
+          <div ref={searchRef} className="relative ml-6 w-[320px] group">
+
+            {/* ICON */}
+            <span
+              className="
+                pointer-events-none
+                absolute left-4 top-1/2 -translate-y-1/2
+                transition
+                text-purple-400/80
+                group-focus-within:text-purple-500
+              "
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 48 48"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinejoin="round"
+              >
+                <path d="M21 38c9.389 0 17-7.611 17-17S30.389 4 21 4S4 11.611 4 21s7.611 17 17 17Z" />
+                <path
+                  strokeLinecap="round"
+                  d="M26.657 14.343A7.98 7.98 0 0 0 21 12a7.98 7.98 0 0 0-5.657 2.343m17.879 18.879l8.485 8.485"
+                />
+              </svg>
+            </span>
+
+            {/* INPUT */}
             <input
               type="text"
               placeholder="Cari produk..."
               value={search}
               onChange={(e) => {
-                setSearch(e.target.value)
-                setSearchOpen(true)
+                setSearch(e.target.value);
+                setSearchOpen(true);
               }}
               onFocus={() => setSearchOpen(true)}
-              className="w-full rounded-full bg-white py-2 pl-4 pr-4 text-sm"
+              className="
+                w-full rounded-full
+                bg-white/95
+                py-2.5 pl-11 pr-4
+                text-sm text-zinc-900
+                placeholder:text-zinc-400
+
+                border border-purple-300/40
+                focus:border-purple-500
+                focus:ring-2 focus:ring-purple-500/30
+                focus:outline-none
+
+                shadow-sm
+                transition-all duration-300
+                hover:shadow-md
+              "
             />
 
-            <AnimatePresence>
-              {searchOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  className="absolute top-12 left-0 w-full rounded-xl bg-[#14002a] border border-purple-700/50 shadow-xl"
-                >
-                  {filteredSubs.map(sub => (
+            {/* GLOW */}
+            <div
+              className="
+                pointer-events-none
+                absolute inset-0 rounded-full
+                opacity-0 group-hover:opacity-100
+                transition
+                bg-gradient-to-r from-purple-500/10 to-indigo-500/10
+              "
+            />
+
+            {/* DROPDOWN RESULT */}
+            {searchOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="
+                  absolute top-12 left-0 w-full
+                  rounded-xl
+                  bg-[#14002a]
+                  border border-purple-700/50
+                  shadow-2xl
+                  overflow-hidden
+                  z-50
+                "
+              >
+
+                {search && filteredSubs.length > 0 && (
+                  filteredSubs.map(sub => (
                     <button
                       key={sub.id}
                       onClick={() => handleSelectSub(sub.id)}
-                      className="w-full text-left px-4 py-2 text-sm text-white hover:bg-purple-700/30"
+                      className="
+                        w-full text-left px-4 py-2.5
+                        text-sm text-white/80
+                        hover:bg-purple-700/30
+                        hover:text-white
+                        transition
+                      "
                     >
                       {sub.name}
                     </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  ))
+                )}
+
+                {/* EMPTY STATE */}
+                {search && filteredSubs.length === 0 && (
+                  <div className="px-4 py-3 text-sm text-white/50">
+                    Tidak ada subkategori
+                  </div>
+                )}
+
+                {/* HINT STATE */}
+                {!search && (
+                  <div className="px-4 py-3 text-xs text-white/40">
+                    Ketik nama produk ...
+                  </div>
+                )}
+
+              </motion.div>
+            )}
           </div>
+
+        </div>
+
+        {/* MOBILE MENU */}
+        <div className="lg:hidden flex items-center gap-4">
+          {navItems.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "text-sm font-medium",
+                isActive(item.href)
+                  ? "text-purple-300"
+                  : "text-white/80"
+              )}
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
 
         {/* ================= RIGHT ================= */}
-        <div className="flex items-center gap-3 sm:gap-5">
-
-          {/* ✅ MOBILE SEARCH BUTTON */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden text-white text-2xl"
-          >
-            ☰
-          </button>
+        <div className="relative flex items-center gap-5">
 
           {/* CART */}
-          <Link href="/customer/category/product/detail/cart" className="relative text-white">
+          <Link
+            href="/customer/category/product/detail/cart"
+            className="relative text-white transition"
+            onMouseEnter={() => setCartOpen(true)}
+            onMouseLeave={() => setCartOpen(false)}
+          >
             🛒
             {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-red-600 text-xs flex items-center justify-center">
+              <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold">
                 {cartCount}
               </span>
             )}
           </Link>
+          {cartOpen && (
+            <motion.div
+              onMouseEnter={() => setCartOpen(true)}
+              onMouseLeave={() => setCartOpen(false)}
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="
+                absolute right-0 top-10 w-80
+                rounded-xl border border-purple-700/50
+                bg-[#14002a] shadow-2xl
+                p-4 z-50
+              "
+            >
+              <h3 className="text-sm font-semibold text-white mb-3">
+                Keranjang
+              </h3>
 
-          {/* USER */}
-          <button onClick={() => setOpen(!open)}>
-            <div className="relative h-9 w-9 rounded-full overflow-hidden bg-purple-600">
-              {avatarSrc ? (
-                <Image src={avatarSrc} alt="Avatar" fill className="object-cover" />
+              {cartItems.length === 0 ? (
+                <p className="text-sm text-white/60">
+                  Cart kosong
+                </p>
               ) : (
-                <div className="h-full w-full flex items-center justify-center text-white">👤</div>
-              )}
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* ================= MOBILE MENU ================= */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-[#14002a] border-t border-purple-800/40 px-4 py-4 space-y-4"
-          >
-            {/* NAV ITEMS */}
-            {navItems.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "block text-sm",
-                  isActive(item.href)
-                    ? "text-purple-300"
-                    : "text-white/80"
-                )}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
-
-            {/* SEARCH MOBILE */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Cari produk..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value)
-                  setSearchOpen(true)
-                }}
-                className="w-full rounded-full bg-white py-2 px-4 text-sm"
-              />
-
-              {search && filteredSubs.length > 0 && (
-                <div className="mt-2 rounded-xl bg-[#1b0038] border border-purple-700/50">
-                  {filteredSubs.map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => handleSelectSub(sub.id)}
-                      className="w-full text-left px-4 py-2 text-sm text-white hover:bg-purple-700/30"
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {cartItems.map(item => (
+                    <div
+                      key={item.id}
+                      className="flex gap-3 items-center"
                     >
-                      {sub.name}
-                    </button>
+                      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-purple-900/30">
+                        <Image
+                          src={item.product?.thumbnail || "/no-image.png"}
+                          alt={item.product?.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+
+                      <div className="flex-1">
+                        <p className="text-sm text-white line-clamp-1">
+                          {item.product?.name}
+                        </p>
+                        <p className="text-xs text-purple-300">
+                          Qty: {item.qty}
+                        </p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
+
+              <Link
+                href="/customer/category/product/detail/cart"
+                className="
+                  mt-4 block text-center text-sm font-medium
+                  bg-purple-600 hover:bg-purple-500
+                  text-white py-2 rounded-lg transition
+                "
+              >
+                Lihat Keranjang
+              </Link>
+            </motion.div>
+          )}
+
+
+
+          {/* USER BUTTON */}
+          <button
+            onClick={() => setOpen(!open)}
+            className="flex items-center gap-2"
+          >
+            <div className="text-right leading-tight hidden sm:block">
+              <div className="text-sm font-semibold text-white">
+                {user?.name}
+              </div>
+              <div className="text-xs text-purple-300">
+                {user?.role}
+              </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            <div className="relative h-9 w-9 rounded-full overflow-hidden bg-purple-600">
+              {avatarSrc ? (
+                <Image
+                  src={avatarSrc}
+                  alt="Avatar"
+                  fill
+                  sizes="36px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-white text-sm">
+                  👤
+                </div>
+              )}
+            </div>
+          </button>
+
+          {/* ================= DROPDOWN ================= */}
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="
+                absolute right-0 top-14 w-48
+                rounded-xl border border-purple-700/60
+                bg-[#14002a] shadow-xl overflow-hidden
+              "
+            >
+              {[
+                ['👤', 'Profile', '/customer/profile'],
+                ['🎯', 'Referral', '/customer/referral'],
+                ['💰', 'Top Up', '/customer/topup'],
+              ].map(([icon, label, href]) => (
+                <Link
+                  key={label}
+                  href={href}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 text-sm transition",
+                    isActive(href)
+                      ? "bg-purple-700/40 text-white"
+                      : "text-white/80 hover:bg-purple-700/30"
+                  )}
+                >
+                  <span>{icon}</span>
+                  {label}
+                </Link>
+              ))}
+
+              <button
+                onClick={logout}
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10"
+              >
+                ⎋ Log Out
+              </button>
+            </motion.div>
+          )}
+        </div>
+      </div>
     </motion.nav>
   )
 }
