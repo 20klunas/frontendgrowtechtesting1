@@ -45,11 +45,16 @@ export default function ReferralPage() {
   const [previewAmount, setPreviewAmount] = useState(100000)
   const [preview, setPreview] = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   /* ================= FETCH DASHBOARD ================= */
 
   useEffect(() => {
     fetchDashboard()
+  }, [])
+
+  useEffect(() => {
+    setMounted(true)
   }, [])
 
   async function fetchDashboard() {
@@ -131,14 +136,6 @@ export default function ReferralPage() {
       type: "success",
       text: "Berhasil disalin!"
     })
-  }
-
-  if (!res.ok) {
-    throw new Error(
-      data?.message ||
-      data?.error?.message ||
-      `HTTP ${res.status}`
-    );
   }
 
   if (loading) {
