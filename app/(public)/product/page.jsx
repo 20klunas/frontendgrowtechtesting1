@@ -107,7 +107,7 @@ export default function ProductPage() {
             ))}
 
             {filteredSubcategories.length === 0 && (
-              <p className="text-white/60">Subkategori tidak ditemukan</p>
+              <p className="text-white/60">Produk tidak ditemukan</p>
             )}
           </div>
         </section>
