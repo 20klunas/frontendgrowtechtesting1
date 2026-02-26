@@ -196,12 +196,12 @@ export default function ReferralPage() {
             value={`https://growtechcentral.site?ref=${referralCode}`}
             className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
-          <button
+          {/* <button
             onClick={() => copy(`https://growtechcentral.site?ref=${referralCode}`)}
             className="rounded-lg border border-purple-700 px-3 hover:bg-purple-700 transition"
           >
             <Copy size={16} />
-          </button>
+          </button> */}
         </div>
       </Card>
 
@@ -216,7 +216,7 @@ export default function ReferralPage() {
           <input
             value={attachCode}
             onChange={(e) => setAttachCode(e.target.value)}
-            placeholder="Contoh: REF-TEMAN123"
+            placeholder="Contoh: ABCDEFGH"
             className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
           <button
