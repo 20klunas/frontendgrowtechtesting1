@@ -20,7 +20,7 @@ import {
   Bar,
 } from "recharts"
 import { motion, AnimatePresence } from "framer-motion"
-import { authFetch } from "@/lib/authFetch"
+import { authFetch } from "../../lib/authFetch"
 
 /* ================= ANIMATION ================= */
 
