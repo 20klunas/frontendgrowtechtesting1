@@ -6,7 +6,7 @@ import FilterBar from '../components/FilterBar'
 import Link from 'next/link'
 
 export default function MonitoringReferralPage() {
-  const commissionType = 'percent' // atau 'fixed'
+  const commissionType = 'percent'
   const commissionValue = 5 
 
   const users = [
