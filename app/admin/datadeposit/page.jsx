@@ -218,7 +218,6 @@ export default function DataDepositPage() {
       {/* ================= USER TOPUPS ================= */}
       {activeTab === 'topups' && (
         <div className="border rounded-xl p-4">
-
           <div className="flex gap-3 mb-4">
             <select
               className="input"
@@ -271,32 +270,97 @@ export default function DataDepositPage() {
         </div>
       )}
 
-      {/* ================= LEDGER ================= */}
+      {/* ================= LEDGER (UPDATED) ================= */}
       {activeTab === 'ledger' && (
-        <div className="border rounded-xl p-4">
+        <div className="border rounded-xl p-4 overflow-x-auto">
 
-          <table className="w-full text-left">
+          <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b">
                 <th>ID</th>
+                <th>Wallet</th>
                 <th>User ID</th>
-                <th>Type</th>
+                <th>Direction</th>
                 <th>Amount</th>
+                <th>Before</th>
+                <th>After</th>
+                <th>TX Type</th>
+                <th>Status</th>
+                <th>Note</th>
                 <th>Created</th>
               </tr>
             </thead>
+
             <tbody>
               {ledger.map(item => (
                 <tr key={item.id} className="border-b">
+
                   <td>{item.id}</td>
-                  <td>{item.wallet?.user_id}</td>
-                  <td>{item.type}</td>
+
+                  <td>
+                    {item.wallet?.code ?? `Wallet #${item.wallet_id}`}
+                  </td>
+
+                  <td>
+                    {item.wallet?.user_id ?? '-'}
+                  </td>
+
+                  <td>
+                    <span className={
+                      item.direction === 'CREDIT'
+                        ? 'text-green-500 font-semibold'
+                        : 'text-red-500 font-semibold'
+                    }>
+                      {item.direction}
+                    </span>
+                  </td>
+
                   <td>Rp {formatRupiah(item.amount)}</td>
-                  <td>{new Date(item.created_at).toLocaleString()}</td>
+
+                  <td>Rp {formatRupiah(item.balance_before)}</td>
+
+                  <td>Rp {formatRupiah(item.balance_after)}</td>
+
+                  <td>{item.transaction?.type}</td>
+
+                  <td>{item.transaction?.status}</td>
+
+                  <td>
+                    {item.transaction?.note ?? '-'}
+                  </td>
+
+                  <td>
+                    {new Date(item.created_at).toLocaleString("id-ID")}
+                  </td>
+
                 </tr>
               ))}
             </tbody>
           </table>
+
+          {/* Pagination Ledger */}
+          {ledgerPagination && (
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                disabled={!ledgerPagination.prev_page_url}
+                onClick={() => fetchLedger(ledgerPagination.current_page - 1)}
+                className="btn-outline">
+                Prev
+              </button>
+
+              <span>
+                Page {ledgerPagination.current_page} / {ledgerPagination.last_page}
+              </span>
+
+              <button
+                disabled={!ledgerPagination.next_page_url}
+                onClick={() => fetchLedger(ledgerPagination.current_page + 1)}
+                className="btn-outline">
+                Next
+              </button>
+            </div>
+          )}
+
         </div>
       )}
 
