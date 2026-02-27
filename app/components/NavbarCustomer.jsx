@@ -10,6 +10,7 @@ import { cn } from "../lib/utils"
 import Cookies from "js-cookie"
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
+import { Heart } from "lucide-react";
 
 /* ================= UTIL ================= */
 const normalizeSettings = (rows = []) =>
@@ -374,6 +375,14 @@ export default function NavbarCustomer() {
 
         {/* ================= RIGHT ================= */}
         <div className="relative flex items-center gap-5">
+
+          {/* FAVORITES */}
+          <Link
+            href="/customer/favorites"
+            className="relative text-white hover:text-pink-400 transition"
+          >
+            <Heart size={22} />
+          </Link>
 
           {/* CART */}
           <Link
