@@ -9,6 +9,7 @@ export default function ReferralTabs() {
     { name: 'Pengaturan', href: '/admin/referral' },
     { name: 'Monitoring', href: '/admin/referral/monitoring' },
     { name: 'Approval WD', href: '/admin/referral/approval-wd' },
+    { name: 'Relations', href: '/admin/referral/relations' },
   ]
 
   return (
