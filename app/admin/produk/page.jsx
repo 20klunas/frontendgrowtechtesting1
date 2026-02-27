@@ -353,10 +353,11 @@ export default function ProdukPage() {
         />
       </div>
 
+      {/* TABLE */}
       {/* ================= DESKTOP TABLE ================= */}
       <div className="hidden md:block rounded-2xl border border-purple-600/60 bg-black p-6 mt-4">
         <div className="w-full overflow-x-auto">
-          <table className="min-w-[900px] w-full text-sm text-gray-300">
+          <table className="min-w-[1000px] w-full text-sm text-gray-300">
             <thead>
               <tr className="border-b border-white/10">
                 <th className="py-3 text-center">Nama</th>
@@ -365,57 +366,274 @@ export default function ProdukPage() {
                 <th className="py-3 text-center">Harga Reseller</th>
                 <th className="py-3 text-center">Harga VIP</th>
                 <th className="py-3 text-center">Status</th>
-                <th className="py-3 text-center">Publish</th>
+                <th className="py-3 text-center">Terlisensi</th>
                 <th className="py-3 text-center">Aksi</th>
               </tr>
             </thead>
 
             <tbody>
-              {products.map((p) => (
-                <tr key={p.id} className="border-b border-white/5 hover:bg-purple-500/5 transition">
-                  <td className="py-3 text-center text-white">{p.name}</td>
-                  <td className="py-3 text-center">{p.duration_days} hari</td>
-                  <td className="py-3 text-center">
-                    Rp {formatRupiah(p.tier_pricing?.member)}
-                  </td>
-                  <td className="py-3 text-center">
-                    Rp {formatRupiah(p.tier_pricing?.reseller)}
-                  </td>
-                  <td className="py-3 text-center">
-                    Rp {formatRupiah(p.tier_pricing?.vip)}
-                  </td>
-
-                  <td className="py-3 text-center">
-                    <button
-                      onClick={() => toggleActive(p.id, p.is_active)}
-                      className={p.is_active ? "badge-ready" : "badge-danger"}
-                    >
-                      {p.is_active ? "Aktif" : "Nonaktif"}
-                    </button>
-                  </td>
-
-                  <td className="py-3 text-center">
-                    <button
-                      onClick={() => togglePublish(p.id, p.is_published)}
-                      className={p.is_published ? "badge-info" : "badge-warning"}
-                    >
-                      {p.is_published ? "Licensed" : "Draft"}
-                    </button>
-                  </td>
-
-                  <td className="py-3 text-center space-x-2">
-                    <button onClick={() => openEditModal(p)} className="btn-edit-sm">
-                      Edit
-                    </button>
-                    <button onClick={() => openDeleteModal(p)} className="btn-delete-sm">
-                      Hapus
-                    </button>
+              {loading ? (
+                <>
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                </>
+              ) : products.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="text-center py-6 text-purple-300">
+                    Data kosong
                   </td>
                 </tr>
-              ))}
+              ) : (
+                <AnimatePresence>
+                  {products.map((p, i) => (
+                    <motion.tr
+                      key={p.id}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: -30 }}
+                      transition={{ delay: i * 0.03 }}
+                      whileHover={{
+                        backgroundColor: "rgba(168,85,247,0.08)"
+                      }}
+                      className="border-b border-white/5"
+                    >
+                      <td className="py-3 text-white text-center">{p.name}</td>
+                      <td className="py-3 text-center">{p.duration_days} hari</td>
+
+                      <td className="py-3 text-center">
+                        Rp {p.tier_pricing?.member
+                          ? formatRupiah(p.tier_pricing.member)
+                          : "-"}
+                      </td>
+
+                      <td className="py-3 text-center">
+                        Rp {p.tier_pricing?.reseller
+                          ? formatRupiah(p.tier_pricing.reseller)
+                          : "-"}
+                      </td>
+
+                      <td className="py-3 text-center">
+                        Rp {p.tier_pricing?.vip
+                          ? formatRupiah(p.tier_pricing.vip)
+                          : "-"}
+                      </td>
+
+                      {/* STATUS */}
+                      <td className="py-3 text-center">
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          whileHover={{ scale: 1.05 }}
+                          disabled={processingId === p.id}
+                          onClick={() => toggleActive(p.id, p.is_active)}
+                          className={`${
+                            p.is_active ? "badge-ready" : "badge-danger"
+                          } ${processingId === p.id ? "opacity-50" : ""}`}
+                        >
+                          {p.is_active ? "Aktif" : "Nonaktif"}
+                        </motion.button>
+                      </td>
+
+                      {/* PUBLISH */}
+                      <td className="py-3 text-center">
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          whileHover={{ scale: 1.05 }}
+                          disabled={processingId === p.id}
+                          onClick={() => togglePublish(p.id, p.is_published)}
+                          className={
+                            p.is_published ? "badge-info" : "badge-warning"
+                          }
+                        >
+                          {p.is_published ? "Licensed" : "Draft"}
+                        </motion.button>
+                      </td>
+
+                      {/* AKSI */}
+                      <td className="py-3 text-center space-x-2">
+                        <button
+                          onClick={() => openEditModal(p)}
+                          className="btn-edit-sm"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() => openDeleteModal(p)}
+                          className="btn-delete-sm"
+                        >
+                          Hapus
+                        </button>
+
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          transition={{ type: "spring", stiffness: 260, damping: 18 }}
+                          onClick={() =>
+                            router.push(`/admin/produk/${p.id}/licenses`)
+                          }
+                          className="btn-purple-solid"
+                        >
+                          Data Key
+                        </motion.button>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* PAGINATION DESKTOP */}
+        {!loading && meta?.last_page && (
+          <div className="flex justify-end gap-2 mt-6">
+            {Array.from({ length: meta.last_page }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                className={`w-8 h-8 rounded ${
+                  page === i + 1
+                    ? "bg-purple-600 text-white"
+                    : "bg-purple-900/40 text-gray-300"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ================= MOBILE CARD VIEW ================= */}
+      <div className="md:hidden space-y-4 mt-4">
+        {loading ? (
+          <>
+            <div className="h-28 rounded-xl bg-purple-900/20 animate-pulse" />
+            <div className="h-28 rounded-xl bg-purple-900/20 animate-pulse" />
+          </>
+        ) : products.length === 0 ? (
+          <div className="text-center text-purple-300 py-6">
+            Data kosong
+          </div>
+        ) : (
+          <>
+            {products.map((p) => (
+              <motion.div
+                key={p.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-purple-600/40 bg-gradient-to-b from-purple-950/40 to-black p-4 shadow-[0_0_20px_rgba(168,85,247,0.15)]"
+              >
+                {/* HEADER */}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-white font-semibold text-base">
+                      {p.name}
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      {p.duration_days} hari
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => toggleActive(p.id, p.is_active)}
+                    className={`text-xs px-3 py-1 rounded-full ${
+                      p.is_active
+                        ? "bg-green-500/20 text-green-400"
+                        : "bg-red-500/20 text-red-400"
+                    }`}
+                  >
+                    {p.is_active ? "Aktif" : "Nonaktif"}
+                  </button>
+                </div>
+
+                {/* PRICE */}
+                <div className="grid grid-cols-3 gap-2 mt-4 text-xs">
+                  <div className="bg-purple-900/30 p-2 rounded-lg text-center">
+                    <p className="text-gray-400">Member</p>
+                    <p className="text-white font-semibold">
+                      Rp {formatRupiah(p.tier_pricing?.member)}
+                    </p>
+                  </div>
+
+                  <div className="bg-purple-900/30 p-2 rounded-lg text-center">
+                    <p className="text-gray-400">Reseller</p>
+                    <p className="text-white font-semibold">
+                      Rp {formatRupiah(p.tier_pricing?.reseller)}
+                    </p>
+                  </div>
+
+                  <div className="bg-purple-900/30 p-2 rounded-lg text-center">
+                    <p className="text-gray-400">VIP</p>
+                    <p className="text-white font-semibold">
+                      Rp {formatRupiah(p.tier_pricing?.vip)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* ACTIONS */}
+                <div className="mt-4 space-y-3">
+                  <button
+                    onClick={() =>
+                      router.push(`/admin/produk/${p.id}/licenses`)
+                    }
+                    className="w-full text-xs py-2 rounded-lg bg-purple-600 text-white font-medium"
+                  >
+                    Data Key
+                  </button>
+
+                  <div className="flex justify-between gap-2">
+                    <button
+                      onClick={() => openEditModal(p)}
+                      className="flex-1 text-xs py-2 rounded-lg bg-purple-600/20 text-purple-300"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={() => openDeleteModal(p)}
+                      className="flex-1 text-xs py-2 rounded-lg bg-red-600/20 text-red-400"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => togglePublish(p.id, p.is_published)}
+                    className={`w-full text-xs py-2 rounded-lg ${
+                      p.is_published
+                        ? "bg-blue-500/20 text-blue-400"
+                        : "bg-yellow-500/20 text-yellow-400"
+                    }`}
+                  >
+                    {p.is_published ? "Licensed" : "Draft"}
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+
+            {/* PAGINATION MOBILE */}
+            {!loading && meta?.last_page && (
+              <div className="flex justify-center gap-2 pt-4">
+                {Array.from({ length: meta.last_page }, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPage(i + 1)}
+                    className={`w-8 h-8 text-xs rounded ${
+                      page === i + 1
+                        ? "bg-purple-600 text-white"
+                        : "bg-purple-900/40 text-gray-300"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* ================= MOBILE CARD VIEW ================= */}
