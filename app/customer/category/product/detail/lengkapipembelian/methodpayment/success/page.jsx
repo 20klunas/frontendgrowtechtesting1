@@ -1,18 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import {
-  CheckCircle,
-  Eye,
-  Lock,
-  FileText,
-  Download,
-  Copy,
-} from "lucide-react";
+import { Suspense, useEffect, useRef, useState, useMemo } from "react";
+import { CheckCircle, Eye, Lock, FileText, Download, Copy } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { authFetch } from "../../../../../../../lib/authFetch";
-import { cn } from "../../../../../../../lib/utils";
 import confetti from "canvas-confetti";
 
 const VIEW_DURATION = 10; // detik one-time view
@@ -23,7 +15,13 @@ function SuccessContent() {
   const timerRef = useRef(null);
 
   const [delivery, setDelivery] = useState(null);
+
+  // order detail (GET /orders/{id})
   const [order, setOrder] = useState(null);
+
+  // payment status (GET /orders/{id}/payments)
+  const [paymentInfo, setPaymentInfo] = useState(null);
+
   const [revealedData, setRevealedData] = useState(null);
 
   const [loading, setLoading] = useState(true);
@@ -43,11 +41,7 @@ function SuccessContent() {
 
   /* ================= CONFETTI ================= */
   const triggerConfetti = () => {
-    confetti({
-      particleCount: 120,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
+    confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
   };
 
   useEffect(() => {
@@ -62,13 +56,25 @@ function SuccessContent() {
     try {
       setLoading(true);
 
-      const [deliveryJson, orderJson] = await Promise.all([
+      const [deliveryJson, orderJson, paymentJson] = await Promise.all([
         authFetch(`/api/v1/orders/${orderId}/delivery`),
         authFetch(`/api/v1/orders/${orderId}`),
+        authFetch(`/api/v1/orders/${orderId}/payments`), // ✅ tambahan
       ]);
 
       if (deliveryJson?.success) setDelivery(deliveryJson.data);
-      if (orderJson?.success) setOrder(orderJson.data.order);
+
+      // show order detail
+      if (orderJson?.success) {
+        // bisa dua bentuk: {order: {...}} atau langsung {...}
+        setOrder(orderJson.data?.order ?? orderJson.data);
+      }
+
+      // payment status
+      if (paymentJson?.success) {
+        // biasanya paymentStatus return langsung data
+        setPaymentInfo(paymentJson.data);
+      }
     } catch (err) {
       console.error("Fetch error:", err);
       showToast("Gagal memuat data", "error");
@@ -86,6 +92,15 @@ function SuccessContent() {
     }
   };
 
+  const fetchPaymentStatus = async () => {
+    try {
+      const json = await authFetch(`/api/v1/orders/${orderId}/payments`);
+      if (json?.success) setPaymentInfo(json.data);
+    } catch (err) {
+      console.error("Payment status refresh error:", err);
+    }
+  };
+
   /* ================= TOAST ================= */
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -94,7 +109,6 @@ function SuccessContent() {
 
   /* ================= COUNTDOWN ================= */
   const startCountdown = () => {
-    // penting: stop interval sebelumnya biar gak dobel
     if (timerRef.current) clearInterval(timerRef.current);
 
     let timeLeft = VIEW_DURATION;
@@ -126,9 +140,10 @@ function SuccessContent() {
     try {
       setRevealing(true);
 
-      const json = await authFetch(`/api/v1/orders/${orderId}/delivery/reveal`, {
-        method: "POST",
-      });
+      const json = await authFetch(
+        `/api/v1/orders/${orderId}/delivery/reveal`,
+        { method: "POST" }
+      );
 
       if (json?.success) {
         setRevealedData(json.data.data);
@@ -196,9 +211,35 @@ function SuccessContent() {
     }
   };
 
-  /* ================= RATING (wajib pernah buy) ================= */
+  /* ================= AMBIL PRODUCT_ID UNTUK RATING ================= */
+  const rateProductId = useMemo(() => {
+    // 1) kalau order punya product_id (legacy)
+    if (order?.product_id) return order.product_id;
+
+    // 2) kalau order items (cart flow)
+    const firstItem = paymentInfo?.items?.[0];
+    if (!firstItem) return null;
+
+    // biasanya order_items punya product_id
+    if (firstItem.product_id) return firstItem.product_id;
+
+    // atau bisa nested product
+    if (firstItem.product?.id) return firstItem.product.id;
+
+    return null;
+  }, [order, paymentInfo]);
+
+  const invoiceNumber = useMemo(() => {
+    return (
+      paymentInfo?.invoice_number ||
+      order?.invoice_number ||
+      "-"
+    );
+  }, [paymentInfo, order]);
+
+  /* ================= RATING (WAJIB BUY) ================= */
   const handleSubmitRating = async () => {
-    if (!order?.product_id || rating === 0) return;
+    if (!rateProductId || rating === 0) return;
 
     try {
       setSubmittingRating(true);
@@ -206,7 +247,7 @@ function SuccessContent() {
       const res = await authFetch(`/api/v1/favorites`, {
         method: "POST",
         body: JSON.stringify({
-          product_id: order.product_id,
+          product_id: rateProductId,
           rating: rating,
         }),
       });
@@ -257,16 +298,14 @@ function SuccessContent() {
 
           <p className="text-gray-300 text-lg mb-3">
             Invoice :{" "}
-            <span className="text-white font-semibold">
-              {order?.invoice_number}
-            </span>
+            <span className="text-white font-semibold">{invoiceNumber}</span>
           </p>
 
-          <StatusBadge status={order?.status} />
+          <StatusBadge status={paymentInfo?.order_status || order?.status} />
         </div>
 
-        {/* RATING SECTION (wajib buy, rating submit ke /favorites) */}
-        {!ratingSubmitted && order?.product_id && (
+        {/* RATING SECTION */}
+        {!ratingSubmitted && rateProductId && (
           <div className="mt-8 rounded-2xl border border-yellow-500/40 p-6 bg-yellow-500/5">
             <h2 className="text-lg font-semibold mb-4 text-center">
               Beri Rating Produk
@@ -314,8 +353,8 @@ function SuccessContent() {
               Detail Pengiriman
             </h2>
 
-            <InfoRow label="Order ID" value={delivery?.order_id || "-"} />
-            <InfoRow label="Invoice" value={order?.invoice_number || "-"} />
+            <InfoRow label="Order ID" value={paymentInfo?.order_id || delivery?.order_id || "-"} />
+            <InfoRow label="Invoice" value={invoiceNumber} />
             <InfoRow label="Qty" value={delivery?.total_qty || "-"} />
             <InfoRow label="Mode" value={delivery?.delivery_mode || "-"} />
             <InfoRow
@@ -340,6 +379,13 @@ function SuccessContent() {
               <Download size={16} />
               Download Invoice PDF
             </button>
+
+            <button
+              onClick={fetchPaymentStatus}
+              className="mt-3 w-full rounded-xl border border-purple-500 py-2 text-sm font-semibold"
+            >
+              Refresh Payment Status
+            </button>
           </div>
 
           {/* DIGITAL ACCESS */}
@@ -350,12 +396,12 @@ function SuccessContent() {
               <button
                 onClick={handleReveal}
                 disabled={!delivery?.can_reveal || revealing}
-                className={cn(
-                  "w-full rounded-xl py-3 font-semibold flex items-center justify-center gap-2",
-                  delivery?.can_reveal
-                    ? "bg-green-500 text-black"
-                    : "bg-gray-800 text-gray-500"
-                )}
+                className={`w-full rounded-xl py-3 font-semibold flex items-center justify-center gap-2
+                  ${
+                    delivery?.can_reveal
+                      ? "bg-green-500 text-black"
+                      : "bg-gray-800 text-gray-500"
+                  }`}
               >
                 <Eye size={18} />
                 {revealing ? "Membuka..." : "One Time View"}
@@ -363,17 +409,13 @@ function SuccessContent() {
             ) : (
               <div className="border border-green-500/40 rounded-xl p-4">
                 <p className="text-sm text-gray-400">Produk</p>
-                <p className="font-semibold mb-3">
-                  {revealedData?.product_name}
-                </p>
+                <p className="font-semibold mb-3">{revealedData?.product_name}</p>
 
                 <p className="text-sm text-gray-400">License Key</p>
 
                 <div
-                  className={cn(
-                    "rounded-lg p-3 font-mono text-green-400 bg-green-500/10 border border-green-500 relative",
-                    blurred ? "blur-sm select-none" : ""
-                  )}
+                  className={`rounded-lg p-3 font-mono text-green-400 bg-green-500/10 border border-green-500 relative
+                    ${blurred ? "blur-sm select-none" : ""}`}
                 >
                   {revealedData?.license_key}
                 </div>
@@ -450,7 +492,6 @@ function SuccessContent() {
         </div>
       </div>
 
-      {/* TOAST */}
       {toast && <Toast {...toast} />}
     </main>
   );
@@ -476,18 +517,19 @@ function InfoRow({ label, value }) {
 }
 
 function StatusBadge({ status }) {
-  const isPaid = status === "paid" || status === "completed";
+  const s = typeof status === "string" ? status : status?.value;
+  const isPaid = s === "paid" || s === "completed";
 
   return (
     <div
-      className={cn(
-        "inline-block px-4 py-1 rounded-full text-sm font-semibold border",
-        isPaid
-          ? "bg-green-500/10 text-green-400 border-green-500/40"
-          : "bg-yellow-500/10 text-yellow-400 border-yellow-500/40"
-      )}
+      className={`inline-block px-4 py-1 rounded-full text-sm font-semibold
+        ${
+          isPaid
+            ? "bg-green-500/10 text-green-400 border border-green-500/40"
+            : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/40"
+        }`}
     >
-      {isPaid ? "Paid / Completed" : status || "-"}
+      {isPaid ? "Paid / Completed" : s || "-"}
     </div>
   );
 }
@@ -495,14 +537,14 @@ function StatusBadge({ status }) {
 function Toast({ message, type }) {
   return (
     <div
-      className={cn(
-        "fixed bottom-6 right-6 px-4 py-2 rounded-lg text-sm shadow-lg",
-        type === "error"
-          ? "bg-red-500 text-white"
-          : type === "info"
-          ? "bg-blue-500 text-white"
-          : "bg-green-500 text-black"
-      )}
+      className={`fixed bottom-6 right-6 px-4 py-2 rounded-lg text-sm shadow-lg
+        ${
+          type === "error"
+            ? "bg-red-500 text-white"
+            : type === "info"
+            ? "bg-blue-500 text-white"
+            : "bg-green-500 text-black"
+        }`}
     >
       {message}
     </div>
