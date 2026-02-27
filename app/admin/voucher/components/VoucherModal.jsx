@@ -234,27 +234,14 @@ export default function VoucherModal({ open, onClose, onSaved, selected }) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="
-                    px-4 py-2 rounded-xl
-                    border border-gray-600
-                    text-gray-300
-                    hover:bg-gray-800
-                    transition
-                  "
+                  className="px-4 py-2 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-800 transition"
                 >
                   Batal
                 </button>
 
                 <button
                   disabled={loading}
-                  className="
-                    px-5 py-2 rounded-xl
-                    bg-gradient-to-r from-purple-600 to-purple-500
-                    hover:from-purple-500 hover:to-purple-400
-                    shadow-[0_0_20px_rgba(168,85,247,0.4)]
-                    transition-all
-                    disabled:opacity-50
-                  "
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all disabled:opacity-50"
                 >
                   {loading ? 'Menyimpan...' : 'Simpan'}
                 </button>
