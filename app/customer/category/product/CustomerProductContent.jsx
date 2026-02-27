@@ -98,8 +98,12 @@ export default function CustomerProductContent() {
       if (!res.ok) return;
 
       const json = await res.json();
-      if (json.success) {
-        const ids = new Set((json.data || []).map((f) => f.product_id));
+      if (json?.success) {
+        const favoritesArray = Array.isArray(json?.data?.data)
+          ? json.data.data
+          : [];
+
+        const ids = new Set(favoritesArray.map((f) => f.product_id));
         setFavoriteIds(ids);
       }
     } catch (e) {
