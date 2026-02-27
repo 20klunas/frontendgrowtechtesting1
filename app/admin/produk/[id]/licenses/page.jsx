@@ -254,13 +254,7 @@ export default function LicensesPage() {
 
   return (
     <motion.div
-      className="
-        rounded-2xl
-        border border-purple-600/60
-         bg-black
-        p-6
-        shadow-[0_0_25px_rgba(168,85,247,0.15)]
-      "
+      className="rounded-2xl border border-purple-600/60 bg-black p-4 md:p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
@@ -284,13 +278,13 @@ export default function LicensesPage() {
       </AnimatePresence>
 
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold text-white">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+        <h1 className="text-xl md:text-3xl font-bold text-white">
           Licenses Produk {productName}
         </h1>
 
-        <div className="flex gap-2">
-          <button onClick={() => setShowSingleModal(true)} className="btn-add">
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setShowSingleModal(true)} className="btn-add w-full md:w-auto">
             + Tambah License
           </button>
 
@@ -298,7 +292,7 @@ export default function LicensesPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowBulkModal(true)}
-            className="btn-purple"
+            className="btn-purple w-full md:w-auto"
           >
             Bulk Upload
           </motion.button>
@@ -307,7 +301,7 @@ export default function LicensesPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowDuplicateModal(true)}
-            className="btn-purple"
+            className="btn-purple w-full md:w-auto"
           >
             Check Duplicate
           </motion.button>
@@ -315,7 +309,7 @@ export default function LicensesPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowProofModal(true)}
-            className="btn-purple"
+            className="btn-purple w-full md:w-auto"
           >
             Stock Proofs
           </motion.button>
@@ -325,7 +319,7 @@ export default function LicensesPage() {
 
       {/* SUMMARY */}
       {summary && (
-        <div className="grid grid-cols-6 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
           {Object.entries(summary).map(([key, val]) => (
             <div key={key} className="rounded-lg bg-purple-900/30 p-3 text-center">
               <p className="text-xs text-gray-400 capitalize">{key}</p>
@@ -336,13 +330,13 @@ export default function LicensesPage() {
       )}
 
       {/* TAKE STOCK */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6">
         <input
           type="number"
           min="1"
           value={qty}
           onChange={(e) => setQty(Number(e.target.value))}
-          className="w-24 h-10 rounded-lg bg-purple-900/40 px-3 text-white"
+          className="w-full md:w-28 h-10 rounded-lg bg-purple-900/40 px-3 text-white"
         />
 
         <motion.button
@@ -373,7 +367,7 @@ export default function LicensesPage() {
       </div>
 
       {/* TABLE */}
-      <div className="rounded-xl border border-purple-600/40">
+      <div className="hidden md:block rounded-xl border border-purple-600/40 overflow-hidden">
         <table className="w-full text-sm text-gray-300">
           <thead>
             <tr className="border-b border-white/10">
@@ -390,7 +384,7 @@ export default function LicensesPage() {
               </>
             ) : licenses.length === 0 ? (
               <tr>
-                <td colSpan="3" className="py-10 text-center">
+                <td colSpan="3" className="py-10 text-center text-gray-500">
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -416,7 +410,7 @@ export default function LicensesPage() {
                     whileHover={{
                       backgroundColor: "rgba(168,85,247,0.08)",
                     }}
-                    className="border-b border-white/5"
+                    className="border-b border-white/5 hover:bg-purple-500/5 transition-colors cursor-pointer"
                   >
                     <td className="py-4 text-white text-center font-medium">
                       {l.license_key}
@@ -435,6 +429,39 @@ export default function LicensesPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* ================= MOBILE CARD VIEW ================= */}
+      <div className="md:hidden space-y-4">
+        {loading ? (
+          <>
+            <div className="h-24 rounded-xl bg-purple-900/20 animate-pulse" />
+            <div className="h-24 rounded-xl bg-purple-900/20 animate-pulse" />
+          </>
+        ) : licenses.length === 0 ? (
+          <div className="text-center text-gray-500 py-6">
+            Tidak ada license
+          </div>
+        ) : (
+          paginatedLicenses.map((l) => (
+            <div
+              key={l.id}
+              className="rounded-xl border border-purple-600/40 bg-gradient-to-b from-purple-950/40 to-black p-4"
+            >
+              <p className="text-white font-semibold break-all">
+                {l.license_key}
+              </p>
+
+              <div className="mt-2">
+                <StatusBadge status={l.status} />
+              </div>
+
+              <p className="text-xs text-gray-400 mt-2">
+                {l.note || "Tidak ada note"}
+              </p>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="flex justify-center items-center gap-2 py-6">
