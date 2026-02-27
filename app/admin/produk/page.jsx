@@ -353,172 +353,158 @@ export default function ProdukPage() {
         />
       </div>
 
-      {/* TABLE */}
-      <div className="rounded-2xl border border-purple-600/60 bg-black p-6 mt-4">
-        <table className="w-full text-sm text-gray-300">
-          <thead>
-            <tr className="border-b border-white/10">
-              <th className="py-3 text-center">Nama</th>
-              <th className="py-3 text-center">Durasi</th>
-              {/* <th className="py-3 text-center">Stock</th> */}
-              <th className="py-3 text-center">Harga Member</th>
-              <th className="py-3 text-center">Harga Reseller</th>
-              <th className="py-3 text-center">Harga VIP</th>
-              <th className="py-3 text-center">Status</th>
-              <th className="py-3 text-center">Terlisensi</th>
-              <th className="py-3 text-center">Aksi</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {loading ? (
-              <>
-                <SkeletonRow />
-                <SkeletonRow />
-                <SkeletonRow />
-              </>
-            ) : products.length === 0 ? (
-              <tr>
-                <td colSpan="8" className="text-center py-6 text-purple-300">
-                  Data kosong
-                </td>
+      {/* ================= DESKTOP TABLE ================= */}
+      <div className="hidden md:block rounded-2xl border border-purple-600/60 bg-black p-6 mt-4">
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-[900px] w-full text-sm text-gray-300">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="py-3 text-center">Nama</th>
+                <th className="py-3 text-center">Durasi</th>
+                <th className="py-3 text-center">Harga Member</th>
+                <th className="py-3 text-center">Harga Reseller</th>
+                <th className="py-3 text-center">Harga VIP</th>
+                <th className="py-3 text-center">Status</th>
+                <th className="py-3 text-center">Publish</th>
+                <th className="py-3 text-center">Aksi</th>
               </tr>
-            ) : (
-              <AnimatePresence>
-                {products.map((p, i) => (
-                  <motion.tr
-                    key={p.id}
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -30 }}
-                    transition={{ delay: i * 0.03 }}
-                    whileHover={{
-                      backgroundColor: "rgba(168,85,247,0.08)"
-                    }}
-                    className="border-b border-white/5"
-                  >
-                    <td className="py-3 text-white text-center">{p.name}</td>
-                    <td className="py-3 text-center">{p.duration_days} hari</td>
-                    {/* <td className="py-3 text-center">
-                      {licenseSummary[p.id] ? (
-                        <div className="flex flex-col items-center leading-tight">
+            </thead>
 
-                          <span className="px-3 py-1 rounded-lg bg-purple-900/40 text-purple-300 border border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.35)] text-xs font-semibold">
-                            Total: {licenseSummary[p.id].total}
-                          </span>
+            <tbody>
+              {products.map((p) => (
+                <tr key={p.id} className="border-b border-white/5 hover:bg-purple-500/5 transition">
+                  <td className="py-3 text-center text-white">{p.name}</td>
+                  <td className="py-3 text-center">{p.duration_days} hari</td>
+                  <td className="py-3 text-center">
+                    Rp {formatRupiah(p.tier_pricing?.member)}
+                  </td>
+                  <td className="py-3 text-center">
+                    Rp {formatRupiah(p.tier_pricing?.reseller)}
+                  </td>
+                  <td className="py-3 text-center">
+                    Rp {formatRupiah(p.tier_pricing?.vip)}
+                  </td>
 
-                          <span className="text-xs text-green-400 mt-1">
-                            Available: {licenseSummary[p.id].available ?? 0}
-                          </span>
+                  <td className="py-3 text-center">
+                    <button
+                      onClick={() => toggleActive(p.id, p.is_active)}
+                      className={p.is_active ? "badge-ready" : "badge-danger"}
+                    >
+                      {p.is_active ? "Aktif" : "Nonaktif"}
+                    </button>
+                  </td>
 
-                          <span className="text-xs text-yellow-400">
-                            Taken: {licenseSummary[p.id].taken ?? 0}
-                          </span>
+                  <td className="py-3 text-center">
+                    <button
+                      onClick={() => togglePublish(p.id, p.is_published)}
+                      className={p.is_published ? "badge-info" : "badge-warning"}
+                    >
+                      {p.is_published ? "Licensed" : "Draft"}
+                    </button>
+                  </td>
 
-                          <span className="text-xs text-blue-400">
-                            Delivered: {licenseSummary[p.id].delivered ?? 0}
-                          </span>
+                  <td className="py-3 text-center space-x-2">
+                    <button onClick={() => openEditModal(p)} className="btn-edit-sm">
+                      Edit
+                    </button>
+                    <button onClick={() => openDeleteModal(p)} className="btn-delete-sm">
+                      Hapus
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-                        </div>
-                      ) : "-"}
-                    </td> */}
-                    <td className="py-3 text-center">
-                      Rp {p.tier_pricing?.member
-                        ? formatRupiah(p.tier_pricing.member)
-                        : "-"}
-                    </td>
-                    <td className="py-3 text-center">
-                      Rp {p.tier_pricing?.reseller
-                        ? formatRupiah(p.tier_pricing.reseller)
-                        : "-"}
-                    </td>
-                    <td className="py-3 text-center">
-                      Rp {p.tier_pricing?.vip
-                        ? formatRupiah(p.tier_pricing.vip)
-                        : "-"}
-                    </td>
+      {/* ================= MOBILE CARD VIEW ================= */}
+      <div className="md:hidden space-y-4 mt-4">
+        {products.map((p) => (
+          <motion.div
+            key={p.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-purple-600/40 bg-gradient-to-b from-purple-950/40 to-black p-4 shadow-[0_0_20px_rgba(168,85,247,0.15)]"
+          >
+            {/* HEADER */}
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-white font-semibold text-base">
+                  {p.name}
+                </h3>
+                <p className="text-xs text-gray-400">
+                  {p.duration_days} hari
+                </p>
+              </div>
 
-                    {/* STATUS */}
-                    <td className="py-3 text-center">
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        whileHover={{ scale: 1.05 }}
-                        disabled={processingId === p.id}
-                        onClick={() => toggleActive(p.id, p.is_active)}
-                        className={`${
-                          p.is_active ? "badge-ready" : "badge-danger"
-                        } ${processingId === p.id ? "opacity-50" : ""}`}
-                      >
-                        {p.is_active ? "Aktif" : "Nonaktif"}
-                      </motion.button>
-                    </td>
-
-                    {/* PUBLISH */}
-                    <td className="py-3 text-center">
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        whileHover={{ scale: 1.05 }}
-                        onClick={() => togglePublish(p.id, p.is_published)}
-                        disabled={processingId === p.id}
-                        className={
-                          p.is_published ? "badge-info" : "badge-warning"
-                        }
-                      >
-                        {p.is_published ? "Licensed" : "Draft"}
-                      </motion.button>
-                    </td>
-
-                    {/* AKSI */}
-                    <td className="py-3 text-center space-x-2">
-                      <button
-                        onClick={() => openEditModal(p)}
-                        className="btn-edit-sm"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        onClick={() => openDeleteModal(p)}
-                        className="btn-delete-sm"
-                      >
-                        Hapus
-                      </button>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ type: "spring", stiffness: 260, damping: 18 }}
-                        onClick={() => router.push(`/admin/produk/${p.id}/licenses`)}
-                        className="btn-purple-solid"
-                      >
-                        Data Key
-                      </motion.button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            )}
-          </tbody>
-        </table>
-
-        {/* PAGINATION */}
-        {!loading && meta?.last_page && (
-          <div className="flex justify-end gap-2 mt-6">
-            {Array.from({ length: meta.last_page }, (_, i) => (
               <button
-                key={i}
-                onClick={() => setPage(i + 1)}
-                className={`w-8 h-8 rounded ${
-                  page === i + 1
-                    ? "bg-purple-600 text-white"
-                    : "bg-purple-900/40 text-gray-300"
+                onClick={() => toggleActive(p.id, p.is_active)}
+                className={`text-xs px-3 py-1 rounded-full ${
+                  p.is_active
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-red-500/20 text-red-400"
                 }`}
               >
-                {i + 1}
+                {p.is_active ? "Aktif" : "Nonaktif"}
               </button>
-            ))}
-          </div>
-        )}
+            </div>
+
+            {/* PRICE SECTION */}
+            <div className="grid grid-cols-3 gap-2 mt-4 text-xs">
+              <div className="bg-purple-900/30 p-2 rounded-lg text-center">
+                <p className="text-gray-400">Member</p>
+                <p className="text-white font-semibold">
+                  Rp {formatRupiah(p.tier_pricing?.member)}
+                </p>
+              </div>
+
+              <div className="bg-purple-900/30 p-2 rounded-lg text-center">
+                <p className="text-gray-400">Reseller</p>
+                <p className="text-white font-semibold">
+                  Rp {formatRupiah(p.tier_pricing?.reseller)}
+                </p>
+              </div>
+
+              <div className="bg-purple-900/30 p-2 rounded-lg text-center">
+                <p className="text-gray-400">VIP</p>
+                <p className="text-white font-semibold">
+                  Rp {formatRupiah(p.tier_pricing?.vip)}
+                </p>
+              </div>
+            </div>
+
+            {/* PUBLISH */}
+            <div className="mt-4 flex justify-between items-center">
+              <button
+                onClick={() => togglePublish(p.id, p.is_published)}
+                className={`text-xs px-3 py-1 rounded-full ${
+                  p.is_published
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "bg-yellow-500/20 text-yellow-400"
+                }`}
+              >
+                {p.is_published ? "Licensed" : "Draft"}
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openEditModal(p)}
+                  className="text-xs px-3 py-1 rounded-lg bg-purple-600/20 text-purple-300"
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() => openDeleteModal(p)}
+                  className="text-xs px-3 py-1 rounded-lg bg-red-600/20 text-red-400"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ))}
       </div>
 
       {/* DELETE CONFIRMATION MODAL */}
