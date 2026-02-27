@@ -15,6 +15,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { authFetch } from "../../../../../../../lib/authFetch";
 import confetti from "canvas-confetti";
+import { useRef } from "react";
+
+const timerRef = useRef(null);
 
 const VIEW_DURATION = 10; // detik one-time view
 
@@ -117,17 +120,23 @@ function SuccessContent() {
   const startCountdown = () => {
     let timeLeft = VIEW_DURATION;
 
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       timeLeft -= 1;
       setCountdown(timeLeft);
 
       if (timeLeft <= 0) {
-        clearInterval(timer);
+        clearInterval(timerRef.current);
         setBlurred(true);
         showToast("One-time view habis", "info");
       }
     }, 1000);
   };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   /* ================= COPY ================= */
   const copyLicense = async () => {
@@ -218,7 +227,7 @@ function SuccessContent() {
 
             <InfoRow label="Order ID" value={delivery.order_id} />
             <InfoRow label="Invoice" value={order?.invoice_number} />
-            <InfoRow label="Qty" value={delivery.qty} />
+            <InfoRow label="Qty" value={delivery.total_qty} />
             <InfoRow label="Mode" value={delivery.delivery_mode} />
             <InfoRow label="Total Delivery" value={delivery.deliveries_count} />
             <InfoRow
