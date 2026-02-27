@@ -17,13 +17,12 @@ import { authFetch } from "../../../../../../../lib/authFetch";
 import confetti from "canvas-confetti";
 import { useRef } from "react";
 
-const timerRef = useRef(null);
-
 const VIEW_DURATION = 10; // detik one-time view
 
 function SuccessContent() {
   const params = useSearchParams();
   const orderId = params.get("order");
+  const timerRef = useRef(null);
 
   const [delivery, setDelivery] = useState(null);
   const [order, setOrder] = useState(null);
@@ -52,6 +51,12 @@ function SuccessContent() {
       origin: { y: 0.6 },
     });
   };
+
+  useEffect(() => {
+    if (!orderId) return;
+    fetchAll();
+    triggerConfetti();
+  }, [orderId]);
 
   /* ================= FETCH ================= */
   const fetchAll = async () => {
