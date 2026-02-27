@@ -38,6 +38,11 @@ function SuccessContent() {
 
   const [toast, setToast] = useState(null);
 
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
   useEffect(() => {
     fetchAll();
     triggerConfetti();
@@ -180,6 +185,33 @@ function SuccessContent() {
     }
   };
 
+  const handleSubmitRating = async () => {
+    if (!order?.product_id || rating === 0) return;
+
+    try {
+      setSubmittingRating(true);
+
+      const res = await authFetch(`/api/v1/favorites`, {
+        method: "POST",
+        body: JSON.stringify({
+          product_id: order.product_id,
+          rating: rating,
+        }),
+      });
+
+      if (res.success) {
+        showToast("Terima kasih atas rating kamu ⭐");
+        setRatingSubmitted(true);
+      } else {
+        showToast(res.error?.message || "Gagal memberi rating", "error");
+      }
+    } catch (err) {
+      showToast("Terjadi kesalahan", "error");
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
   const downloadInvoice = () => {
     window.open(`./invoice/${orderId}?print=pdf`, "_blank");
   };
@@ -220,6 +252,47 @@ function SuccessContent() {
 
           <StatusBadge status={order?.status} />
         </div>
+
+        {/* RATING SECTION */}
+        {!ratingSubmitted && order?.product_id && (
+          <div className="mt-8 rounded-2xl border border-yellow-500/40 p-6 bg-yellow-500/5">
+            <h2 className="text-lg font-semibold mb-4 text-center">
+              Beri Rating Produk
+            </h2>
+
+            <div className="flex justify-center gap-2 mb-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHover(star)}
+                  onMouseLeave={() => setHover(0)}
+                  className="text-3xl transition"
+                >
+                  <span
+                    className={
+                      star <= (hover || rating)
+                        ? "text-yellow-400"
+                        : "text-gray-600"
+                    }
+                  >
+                    ★
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="text-center">
+              <button
+                onClick={handleSubmitRating}
+                disabled={rating === 0 || submittingRating}
+                className="px-6 py-2 rounded-xl bg-yellow-500 text-black font-semibold disabled:opacity-50"
+              >
+                {submittingRating ? "Mengirim..." : "Kirim Rating"}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-6 md:grid-cols-2">
 
