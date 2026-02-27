@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { authFetch } from "../../../../../../../lib/authFetch";
+import { cn } from "../../../../../../../lib/utils";
 import confetti from "canvas-confetti";
 
 const VIEW_DURATION = 10; // detik one-time view
