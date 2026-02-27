@@ -1,11 +1,9 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import {
   CheckCircle,
   Eye,
-  Mail,
-  RefreshCw,
   Lock,
   FileText,
   Download,
@@ -15,7 +13,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { authFetch } from "../../../../../../../lib/authFetch";
 import confetti from "canvas-confetti";
-import { useRef } from "react";
 
 const VIEW_DURATION = 10; // detik one-time view
 
@@ -43,11 +40,6 @@ function SuccessContent() {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
-  useEffect(() => {
-    fetchAll();
-    triggerConfetti();
-  }, []);
-
   /* ================= CONFETTI ================= */
   const triggerConfetti = () => {
     confetti({
@@ -61,6 +53,7 @@ function SuccessContent() {
     if (!orderId) return;
     fetchAll();
     triggerConfetti();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   /* ================= FETCH ================= */
@@ -73,8 +66,8 @@ function SuccessContent() {
         authFetch(`/api/v1/orders/${orderId}`),
       ]);
 
-      if (deliveryJson.success) setDelivery(deliveryJson.data);
-      if (orderJson.success) setOrder(orderJson.data.order);
+      if (deliveryJson?.success) setDelivery(deliveryJson.data);
+      if (orderJson?.success) setOrder(orderJson.data.order);
     } catch (err) {
       console.error("Fetch error:", err);
       showToast("Gagal memuat data", "error");
@@ -86,7 +79,7 @@ function SuccessContent() {
   const fetchDelivery = async () => {
     try {
       const json = await authFetch(`/api/v1/orders/${orderId}/delivery`);
-      if (json.success) setDelivery(json.data);
+      if (json?.success) setDelivery(json.data);
     } catch (err) {
       console.error("Refresh error:", err);
     }
@@ -98,37 +91,13 @@ function SuccessContent() {
     setTimeout(() => setToast(null), 2500);
   };
 
-  /* ================= REVEAL ================= */
-  const handleReveal = async () => {
-    if (!delivery?.can_reveal) return;
-
-    try {
-      setRevealing(true);
-
-      const json = await authFetch(
-        `/api/v1/orders/${orderId}/delivery/reveal`,
-        { method: "POST" }
-      );
-
-      if (json.success) {
-        setRevealedData(json.data.data);
-        setCountdown(VIEW_DURATION);
-        setBlurred(false);
-        startCountdown();
-        fetchDelivery();
-        showToast("Kode berhasil ditampilkan");
-      }
-    } catch (err) {
-      console.error("Reveal error:", err);
-      showToast("Reveal gagal", "error");
-    } finally {
-      setRevealing(false);
-    }
-  };
-
   /* ================= COUNTDOWN ================= */
   const startCountdown = () => {
+    // penting: stop interval sebelumnya biar gak dobel
+    if (timerRef.current) clearInterval(timerRef.current);
+
     let timeLeft = VIEW_DURATION;
+    setCountdown(timeLeft);
 
     timerRef.current = setInterval(() => {
       timeLeft -= 1;
@@ -136,6 +105,7 @@ function SuccessContent() {
 
       if (timeLeft <= 0) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
         setBlurred(true);
         showToast("One-time view habis", "info");
       }
@@ -148,10 +118,38 @@ function SuccessContent() {
     };
   }, []);
 
+  /* ================= REVEAL ================= */
+  const handleReveal = async () => {
+    if (!delivery?.can_reveal) return;
+
+    try {
+      setRevealing(true);
+
+      const json = await authFetch(`/api/v1/orders/${orderId}/delivery/reveal`, {
+        method: "POST",
+      });
+
+      if (json?.success) {
+        setRevealedData(json.data.data);
+        setBlurred(false);
+        startCountdown();
+        fetchDelivery();
+        showToast("Kode berhasil ditampilkan");
+      } else {
+        showToast(json?.error?.message || "Reveal gagal", "error");
+      }
+    } catch (err) {
+      console.error("Reveal error:", err);
+      showToast("Reveal gagal", "error");
+    } finally {
+      setRevealing(false);
+    }
+  };
+
   /* ================= COPY ================= */
   const copyLicense = async () => {
     try {
-      await navigator.clipboard.writeText(revealedData.license_key);
+      await navigator.clipboard.writeText(revealedData?.license_key || "");
       showToast("License key disalin");
     } catch {
       showToast("Gagal menyalin", "error");
@@ -162,9 +160,15 @@ function SuccessContent() {
   const handleResend = async () => {
     try {
       setResending(true);
-      await authFetch(`/api/v1/orders/${orderId}/delivery/resend`, {
+      const json = await authFetch(`/api/v1/orders/${orderId}/delivery/resend`, {
         method: "POST",
       });
+
+      if (!json?.success) {
+        showToast(json?.error?.message || "Gagal resend email", "error");
+        return;
+      }
+
       fetchDelivery();
       showToast("Email dikirim ulang");
     } finally {
@@ -175,9 +179,15 @@ function SuccessContent() {
   const handleClose = async () => {
     try {
       setClosing(true);
-      await authFetch(`/api/v1/orders/${orderId}/delivery/close`, {
+      const json = await authFetch(`/api/v1/orders/${orderId}/delivery/close`, {
         method: "POST",
       });
+
+      if (!json?.success) {
+        showToast(json?.error?.message || "Gagal close delivery", "error");
+        return;
+      }
+
       fetchDelivery();
       showToast("Delivery ditutup");
     } finally {
@@ -185,6 +195,7 @@ function SuccessContent() {
     }
   };
 
+  /* ================= RATING (wajib pernah buy) ================= */
   const handleSubmitRating = async () => {
     if (!order?.product_id || rating === 0) return;
 
@@ -199,13 +210,14 @@ function SuccessContent() {
         }),
       });
 
-      if (res.success) {
+      if (res?.success) {
         showToast("Terima kasih atas rating kamu ⭐");
         setRatingSubmitted(true);
       } else {
-        showToast(res.error?.message || "Gagal memberi rating", "error");
+        showToast(res?.error?.message || "Gagal memberi rating", "error");
       }
     } catch (err) {
+      console.error(err);
       showToast("Terjadi kesalahan", "error");
     } finally {
       setSubmittingRating(false);
@@ -216,7 +228,7 @@ function SuccessContent() {
     window.open(`./invoice/${orderId}?print=pdf`, "_blank");
   };
 
-  /* ================= LOADING SKELETON ================= */
+  /* ================= LOADING ================= */
   if (loading) {
     return (
       <main className="min-h-screen bg-black px-4 py-16">
@@ -234,7 +246,6 @@ function SuccessContent() {
   return (
     <main className="min-h-screen bg-black px-4 py-16 text-white">
       <div className="mx-auto max-w-5xl">
-
         {/* HEADER */}
         <div className="rounded-3xl border border-purple-500/40 p-10 text-center mb-10 bg-gradient-to-b from-purple-900/20 to-black">
           <CheckCircle className="mx-auto mb-4 text-green-400" size={64} />
@@ -253,7 +264,7 @@ function SuccessContent() {
           <StatusBadge status={order?.status} />
         </div>
 
-        {/* RATING SECTION */}
+        {/* RATING SECTION (wajib buy, rating submit ke /favorites) */}
         {!ratingSubmitted && order?.product_id && (
           <div className="mt-8 rounded-2xl border border-yellow-500/40 p-6 bg-yellow-500/5">
             <h2 className="text-lg font-semibold mb-4 text-center">
@@ -295,7 +306,6 @@ function SuccessContent() {
         )}
 
         <div className="grid gap-6 md:grid-cols-2">
-
           {/* DETAIL */}
           <div className="rounded-2xl border border-purple-500/40 p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -303,15 +313,18 @@ function SuccessContent() {
               Detail Pengiriman
             </h2>
 
-            <InfoRow label="Order ID" value={delivery.order_id} />
-            <InfoRow label="Invoice" value={order?.invoice_number} />
-            <InfoRow label="Qty" value={delivery.total_qty} />
-            <InfoRow label="Mode" value={delivery.delivery_mode} />
-            <InfoRow label="Total Delivery" value={delivery.deliveries_count} />
+            <InfoRow label="Order ID" value={delivery?.order_id || "-"} />
+            <InfoRow label="Invoice" value={order?.invoice_number || "-"} />
+            <InfoRow label="Qty" value={delivery?.total_qty || "-"} />
+            <InfoRow label="Mode" value={delivery?.delivery_mode || "-"} />
+            <InfoRow
+              label="Total Delivery"
+              value={delivery?.deliveries_count ?? "-"}
+            />
             <InfoRow
               label="Status Email"
               value={
-                delivery.emailed ? (
+                delivery?.emailed ? (
                   <span className="text-green-400">Terkirim</span>
                 ) : (
                   <span className="text-yellow-400">Belum</span>
@@ -330,40 +343,38 @@ function SuccessContent() {
 
           {/* DIGITAL ACCESS */}
           <div className="rounded-2xl border border-purple-500/40 p-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Akses Produk Digital
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">Akses Produk Digital</h2>
 
             {!revealedData ? (
-              <>
-                <button
-                  onClick={handleReveal}
-                  disabled={!delivery.can_reveal || revealing}
-                  className={`w-full rounded-xl py-3 font-semibold flex items-center justify-center gap-2
-                    ${
-                      delivery.can_reveal
-                        ? "bg-green-500 text-black"
-                        : "bg-gray-800 text-gray-500"
-                    }`}
-                >
-                  <Eye size={18} />
-                  {revealing ? "Membuka..." : "One Time View"}
-                </button>
-              </>
+              <button
+                onClick={handleReveal}
+                disabled={!delivery?.can_reveal || revealing}
+                className={cn(
+                  "w-full rounded-xl py-3 font-semibold flex items-center justify-center gap-2",
+                  delivery?.can_reveal
+                    ? "bg-green-500 text-black"
+                    : "bg-gray-800 text-gray-500"
+                )}
+              >
+                <Eye size={18} />
+                {revealing ? "Membuka..." : "One Time View"}
+              </button>
             ) : (
               <div className="border border-green-500/40 rounded-xl p-4">
                 <p className="text-sm text-gray-400">Produk</p>
                 <p className="font-semibold mb-3">
-                  {revealedData.product_name}
+                  {revealedData?.product_name}
                 </p>
 
                 <p className="text-sm text-gray-400">License Key</p>
 
                 <div
-                  className={`rounded-lg p-3 font-mono text-green-400 bg-green-500/10 border border-green-500 relative
-                    ${blurred ? "blur-sm select-none" : ""}`}
+                  className={cn(
+                    "rounded-lg p-3 font-mono text-green-400 bg-green-500/10 border border-green-500 relative",
+                    blurred ? "blur-sm select-none" : ""
+                  )}
                 >
-                  {revealedData.license_key}
+                  {revealedData?.license_key}
                 </div>
 
                 {!blurred && (
@@ -468,14 +479,14 @@ function StatusBadge({ status }) {
 
   return (
     <div
-      className={`inline-block px-4 py-1 rounded-full text-sm font-semibold
-        ${
-          isPaid
-            ? "bg-green-500/10 text-green-400 border border-green-500/40"
-            : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/40"
-        }`}
+      className={cn(
+        "inline-block px-4 py-1 rounded-full text-sm font-semibold border",
+        isPaid
+          ? "bg-green-500/10 text-green-400 border-green-500/40"
+          : "bg-yellow-500/10 text-yellow-400 border-yellow-500/40"
+      )}
     >
-      {isPaid ? "Paid / Completed" : status}
+      {isPaid ? "Paid / Completed" : status || "-"}
     </div>
   );
 }
@@ -483,14 +494,14 @@ function StatusBadge({ status }) {
 function Toast({ message, type }) {
   return (
     <div
-      className={`fixed bottom-6 right-6 px-4 py-2 rounded-lg text-sm shadow-lg
-        ${
-          type === "error"
-            ? "bg-red-500 text-white"
-            : type === "info"
-            ? "bg-blue-500 text-white"
-            : "bg-green-500 text-black"
-        }`}
+      className={cn(
+        "fixed bottom-6 right-6 px-4 py-2 rounded-lg text-sm shadow-lg",
+        type === "error"
+          ? "bg-red-500 text-white"
+          : type === "info"
+          ? "bg-blue-500 text-white"
+          : "bg-green-500 text-black"
+      )}
     >
       {message}
     </div>

@@ -1,9 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import { cn } from "../../../lib/utils";
 import { motion } from "framer-motion";
@@ -17,25 +16,37 @@ export default function CustomerProductContent() {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [addingId, setAddingId] = useState(null); //
+
+  const [addingId, setAddingId] = useState(null);
   const [checkoutLoadingId, setCheckoutLoadingId] = useState(null);
+
+  // ===== FAVORITES =====
+  const [favoriteIds, setFavoriteIds] = useState(new Set());
+  const [favoriteLoadingId, setFavoriteLoadingId] = useState(null);
+
+  // ===== PAGINATION =====
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
-  const totalPages = Math.ceil(products.length / itemsPerPage);
 
-  const paginatedProducts = products.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = useMemo(() => {
+    return Math.ceil((products?.length || 0) / itemsPerPage);
+  }, [products]);
+
+  const paginatedProducts = useMemo(() => {
+    return (products || []).slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [products, currentPage]);
 
   useEffect(() => {
     fetchProducts();
-  }, [subcategoryId]);
-
-  useEffect(() => {
+    fetchFavorites();
     setCurrentPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subcategoryId]);
 
+  /* ================= FETCH PRODUCTS ================= */
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -57,6 +68,8 @@ export default function CustomerProductContent() {
 
       if (json.success) {
         setProducts(json?.data?.data || []);
+      } else {
+        setProducts([]);
       }
     } catch (err) {
       console.error("Failed fetch products:", err);
@@ -66,31 +79,104 @@ export default function CustomerProductContent() {
     }
   };
 
-  // ================= CHECKOUT =================
-  const handleCheckout = async () => {
+  /* ================= FETCH FAVORITES ================= */
+  const fetchFavorites = async () => {
     try {
-      setCheckoutLoading(true);
+      const token = Cookies.get("token");
+      if (!token) {
+        setFavoriteIds(new Set());
+        return;
+      }
 
-      await authFetch("/api/v1/cart/checkout", {
-        method: "POST",
-        body: JSON.stringify({
-          voucher_code: voucher || null,
-        }),
+      const res = await fetch(`${API}/api/v1/favorites`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
       });
 
-      router.push("/customer/category/product/detail/lengkapipembelian");
-    } catch (err) {
-      console.error("Checkout error:", err.message);
-      alert(err.message || "Checkout gagal");
-    } finally {
-      setCheckoutLoading(false);
+      if (!res.ok) return;
+
+      const json = await res.json();
+      if (json.success) {
+        const ids = new Set((json.data || []).map((f) => f.product_id));
+        setFavoriteIds(ids);
+      }
+    } catch (e) {
+      console.error("fetchFavorites error:", e);
     }
   };
 
+  /* ================= FAVORITE TOGGLE (hanya product_id) ================= */
+  const toggleFavorite = async (productId) => {
+    try {
+      const token = Cookies.get("token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      setFavoriteLoadingId(productId);
+
+      const isFav = favoriteIds.has(productId);
+
+      if (!isFav) {
+        // ADD favorite (tanpa rating)
+        const res = await fetch(`${API}/api/v1/favorites`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ product_id: productId }),
+        });
+
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) {
+          alert(json?.error?.message || "Gagal menambahkan favorite");
+          return;
+        }
+
+        setFavoriteIds((prev) => {
+          const next = new Set(prev);
+          next.add(productId);
+          return next;
+        });
+      } else {
+        // REMOVE favorite
+        const res = await fetch(`${API}/api/v1/favorites/${productId}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) {
+          alert(json?.error?.message || "Gagal menghapus favorite");
+          return;
+        }
+
+        setFavoriteIds((prev) => {
+          const next = new Set(prev);
+          next.delete(productId);
+          return next;
+        });
+      }
+    } catch (e) {
+      console.error("toggleFavorite error:", e);
+      alert("Terjadi kesalahan");
+    } finally {
+      setFavoriteLoadingId(null);
+    }
+  };
+
+  /* ================= BUY NOW ================= */
   const handleBuyNow = async (productId) => {
     try {
       const token = Cookies.get("token");
-
       if (!token) {
         router.push("/login");
         return;
@@ -98,7 +184,7 @@ export default function CustomerProductContent() {
 
       setCheckoutLoadingId(productId);
 
-      // Add ke cart qty 1
+      // 1) Add ke cart qty 1
       const addRes = await fetch(`${API}/api/v1/cart/items`, {
         method: "POST",
         headers: {
@@ -112,11 +198,13 @@ export default function CustomerProductContent() {
       });
 
       if (!addRes.ok) {
+        const text = await addRes.text();
+        console.error("Add to cart failed:", addRes.status, text);
         alert("Gagal menambahkan produk");
         return;
       }
 
-      // 2️⃣ Checkout
+      // 2) Checkout
       const checkoutRes = await fetch(`${API}/api/v1/cart/checkout`, {
         method: "POST",
         headers: {
@@ -129,14 +217,14 @@ export default function CustomerProductContent() {
       });
 
       if (!checkoutRes.ok) {
+        const text = await checkoutRes.text();
+        console.error("Checkout failed:", checkoutRes.status, text);
         alert("Checkout gagal");
         return;
       }
 
-      // 3️⃣ Redirect
+      // 3) Redirect
       router.push("/customer/category/product/detail/lengkapipembelian");
-
-      // update badge navbar
       window.dispatchEvent(new Event("cart-updated"));
     } catch (err) {
       console.error("Buy now error:", err);
@@ -146,13 +234,11 @@ export default function CustomerProductContent() {
     }
   };
 
-  // ================= ADD TO CART =================
+  /* ================= ADD TO CART ================= */
   const addToCart = async (productId) => {
     try {
       const token = Cookies.get("token");
-
       if (!token) {
-        console.warn("User belum login");
         router.push("/login");
         return;
       }
@@ -179,15 +265,12 @@ export default function CustomerProductContent() {
       }
 
       const json = await res.json();
-
       if (json.success) {
-        console.log("Produk masuk keranjang");
-
-        // Trigger event biar navbar update badge realtime
         window.dispatchEvent(new Event("cart-updated"));
       }
     } catch (err) {
       console.error("Add to cart failed:", err);
+      alert("Terjadi kesalahan");
     } finally {
       setAddingId(null);
     }
@@ -197,7 +280,6 @@ export default function CustomerProductContent() {
 
   return (
     <section className="max-w-6xl mx-auto px-8 py-10 text-white">
-      
       {/* ================= HEADER ================= */}
       <div className="mb-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         <div className="rounded-xl overflow-hidden border border-purple-700">
@@ -252,12 +334,16 @@ export default function CustomerProductContent() {
             const isAdding = addingId === product.id;
             const isOutOfStock = (product.available_stock ?? 0) <= 0;
 
+            const isFav = favoriteIds.has(product.id);
+            const favLoading = favoriteLoadingId === product.id;
+
             return (
               <div
                 key={product.id}
                 className="rounded-2xl border border-purple-700 bg-black overflow-hidden"
               >
-                <div className="h-[160px] bg-white">
+                {/* IMAGE + FAVORITE */}
+                <div className="relative h-[160px] bg-white">
                   <Image
                     src={product?.subcategory?.image_url || "/placeholder.png"}
                     width={300}
@@ -265,23 +351,37 @@ export default function CustomerProductContent() {
                     alt={product.name}
                     className="w-full h-full object-cover"
                   />
+
+                  {/* FAVORITE BUTTON (hanya product_id) */}
+                  <button
+                    onClick={() => toggleFavorite(product.id)}
+                    disabled={favLoading}
+                    className={cn(
+                      "absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center border transition select-none",
+                      isFav
+                        ? "bg-pink-500/20 border-pink-400 text-pink-400"
+                        : "bg-black/40 border-white/20 text-white",
+                      "disabled:opacity-60"
+                    )}
+                    title={isFav ? "Hapus dari Favorite" : "Tambah ke Favorite"}
+                  >
+                    {favLoading ? "⏳" : isFav ? "♥" : "♡"}
+                  </button>
                 </div>
 
                 <div className="p-4">
-                  <h3 className="font-semibold mb-1">
-                    {product.name}
-                  </h3>
+                  <h3 className="font-semibold mb-1">{product.name}</h3>
 
                   <p className="text-xs text-gray-400 mb-1">
                     Stok Tersedia {product.available_stock ?? 0}
                   </p>
 
-                  {product.track_stock && product.available_stock <= product.stock_min_alert && (
-                    <p className="text-xs text-red-400">
-                      ⚠ Stok hampir habis
-                    </p>
-                  )}
+                  {product.track_stock &&
+                    product.available_stock <= product.stock_min_alert && (
+                      <p className="text-xs text-red-400">⚠ Stok hampir habis</p>
+                    )}
 
+                  {/* RATING DISPLAY */}
                   <div className="flex items-center text-yellow-400 text-sm mb-2">
                     <span className="mr-1">
                       {"★".repeat(Math.round(product.rating || 0))}
@@ -289,7 +389,8 @@ export default function CustomerProductContent() {
                     </span>
 
                     <span className="text-xs text-gray-400">
-                      {product.rating?.toFixed(1) || "0.0"} ({product.rating_count || 0})
+                      {product.rating?.toFixed(1) || "0.0"} (
+                      {product.rating_count || 0})
                     </span>
                   </div>
 
@@ -315,22 +416,22 @@ export default function CustomerProductContent() {
                         "disabled:opacity-70"
                       )}
                     >
-                      {checkoutLoadingId === product.id ? (
-                        "Memproses..."
-                      ) : isOutOfStock ? (
-                        <span className="flex items-center justify-center gap-2">
-                          🔒 Stok Habis
-                        </span>
-                      ) : (
-                        "Beli Sekarang"
-                      )}
+                      {checkoutLoadingId === product.id
+                        ? "Memproses..."
+                        : isOutOfStock
+                        ? "🔒 Stok Habis"
+                        : "Beli Sekarang"}
                     </button>
 
                     {/* ADD TO CART */}
                     <button
                       onClick={() => addToCart(product.id)}
-                      disabled={isAdding}
-                      className="w-10 h-10 flex items-center justify-center rounded-lg border border-purple-600 hover:bg-purple-600/20 transition disabled:opacity-50"
+                      disabled={isAdding || isOutOfStock}
+                      className={cn(
+                        "w-10 h-10 flex items-center justify-center rounded-lg border border-purple-600 hover:bg-purple-600/20 transition disabled:opacity-50",
+                        isOutOfStock && "cursor-not-allowed opacity-50"
+                      )}
+                      title={isOutOfStock ? "Stok habis" : "Tambah ke keranjang"}
                     >
                       {isAdding ? "⏳" : "🛒"}
                     </button>
@@ -341,19 +442,18 @@ export default function CustomerProductContent() {
           })
         )}
       </motion.div>
+
+      {/* ================= PAGINATION ================= */}
       {totalPages > 1 && (
         <div className="flex justify-center mt-10 gap-2">
-
-          {/* PREV */}
           <button
-            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
             disabled={currentPage === 1}
             className="px-4 py-2 rounded-lg border border-purple-700 text-purple-300 hover:bg-purple-700/30 disabled:opacity-40 transition"
           >
             ←
           </button>
 
-          {/* PAGE NUMBERS */}
           {Array.from({ length: totalPages }).map((_, i) => {
             const page = i + 1;
             const isActive = page === currentPage;
@@ -374,11 +474,8 @@ export default function CustomerProductContent() {
             );
           })}
 
-          {/* NEXT */}
           <button
-            onClick={() =>
-              setCurrentPage(p => Math.min(p + 1, totalPages))
-            }
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
             disabled={currentPage === totalPages}
             className="px-4 py-2 rounded-lg border border-purple-700 text-purple-300 hover:bg-purple-700/30 disabled:opacity-40 transition"
           >
@@ -389,6 +486,8 @@ export default function CustomerProductContent() {
     </section>
   );
 }
+
+/* ================= UI COMPONENTS ================= */
 
 function SkeletonVariant() {
   return (
