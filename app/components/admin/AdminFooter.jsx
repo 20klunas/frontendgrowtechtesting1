@@ -7,7 +7,7 @@ export default function AdminFooter() {
       <div className="mx-auto max-w-7xl">
         {/* Copyright */}
           <p className="text-sm text-muted-foreground text-center">
-            Copyright 2026 GrowTech. All rights reserved. Made by Bebas
+            Copyright 2026 GrowTech. All rights reserved. Made by Skyborne.
           </p>
       </div>
     </footer>

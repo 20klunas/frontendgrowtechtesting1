@@ -100,7 +100,7 @@ export default function VoucherPage() {
               Manajemen Voucher
             </h1>
             <p className="text-sm text-gray-400 mt-1">
-              Kelola semua voucher promo dalam satu dashboard modern.
+              Kelola semua voucher dan diskon.
             </p>
           </div>
 

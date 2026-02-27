@@ -167,7 +167,7 @@ export default function AddDiscountPage() {
             setForm({ ...form, discount_value: Number(v) })} />
 
         <Select label="Discount Type *"
-          options={['percent', 'amount']}
+          options={['percent', 'fixed']}
           onChange={v =>
             setForm({ ...form, discount_type: v })} />
 
