@@ -278,7 +278,7 @@ export default function ReferralSettingsPage() {
               type="text bg-white text-black"
               value={minWithdrawal}
               onChange={(e) => setMinWithdrawal(formatRupiah(e.target.value))}
-              className="flex-1 text-black px-3 py-2 rounded-r-lg"
+              className="flex-1 bg-white text-black px-3 py-2 rounded-r-lg"
             />
           </div>
 
