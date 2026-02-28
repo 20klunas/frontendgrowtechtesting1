@@ -22,11 +22,31 @@ export default function DataDepositPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [userIdFilter, setUserIdFilter] = useState('')
 
+  const REASONS = [
+    { value: "RESCUE_WEBHOOK", label: "Rescue topup (webhook gagal)" },
+    { value: "RESCUE_PAID_NOT_POSTED", label: "Rescue topup (paid tapi saldo belum masuk)" },
+    { value: "COMPENSATION", label: "Kompensasi" },
+    { value: "BONUS", label: "Bonus / goodwill" },
+    { value: "BUG_FIX", label: "Koreksi bug" },
+    { value: "MANUAL_TRANSFER", label: "Manual topup (bukti transfer)" },
+    { value: "OTHER", label: "Lainnya" },
+  ];
+
   const [manualTopup, setManualTopup] = useState({
     user_id: '',
     amount: '',
-    note: ''
+    reason: 'RESCUE_PAID_NOT_POSTED',
+    reference: '',
+    detail: ''
   })
+
+  const buildNote = (reason, reference, detail) => {
+    const parts = []
+    if (reason) parts.push(reason)
+    if (reference?.trim()) parts.push(reference.trim())
+    if (detail?.trim()) parts.push(detail.trim())
+    return parts.join(' - ')
+  }
 
   const [adjustForm, setAdjustForm] = useState({
     user_id: '',
@@ -130,8 +150,13 @@ export default function DataDepositPage() {
             Authorization: `Bearer ${token}`
           },
           body: JSON.stringify({
-            ...manualTopup,
-            amount: Number(manualTopup.amount)
+            user_id: Number(manualTopup.user_id),
+            amount: Number(manualTopup.amount),
+            note: buildNote(
+              manualTopup.reason,
+              manualTopup.reference,
+              manualTopup.detail
+            )
           })
         }
       )
@@ -140,7 +165,13 @@ export default function DataDepositPage() {
 
       if (result.success) {
         alert("Manual topup berhasil")
-        setManualTopup({ user_id: '', amount: '', note: '' })
+        setManualTopup({
+          user_id: '',
+          amount: '',
+          reason: 'RESCUE_PAID_NOT_POSTED',
+          reference: '',
+          detail: ''
+        })
         fetchLedger()
       }
 
@@ -367,28 +398,76 @@ export default function DataDepositPage() {
       {/* ================= MANUAL TOPUP ================= */}
       {activeTab === 'manual' && (
         <form onSubmit={handleManualTopup} className="border rounded-xl p-4 space-y-4">
+
           <input
             className="input w-full"
             placeholder="User ID"
             value={manualTopup.user_id}
-            onChange={(e) => setManualTopup({...manualTopup, user_id: e.target.value})}
+            onChange={(e) =>
+              setManualTopup({ ...manualTopup, user_id: e.target.value })
+            }
             required
           />
+
           <input
             className="input w-full"
-            placeholder="Amount"
             type="number"
+            placeholder="Amount"
             value={manualTopup.amount}
-            onChange={(e) => setManualTopup({...manualTopup, amount: e.target.value})}
+            onChange={(e) =>
+              setManualTopup({ ...manualTopup, amount: e.target.value })
+            }
             required
           />
+
+          <select
+            className="input w-full"
+            value={manualTopup.reason}
+            onChange={(e) =>
+              setManualTopup({ ...manualTopup, reason: e.target.value })
+            }
+          >
+            {REASONS.map(r => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+
+          <input
+            className="input w-full"
+            placeholder="Reference (optional) contoh: topup_id=4 / order_id=TOPUP-123"
+            value={manualTopup.reference}
+            onChange={(e) =>
+              setManualTopup({ ...manualTopup, reference: e.target.value })
+            }
+          />
+
           <textarea
             className="input w-full"
-            placeholder="Note"
-            value={manualTopup.note}
-            onChange={(e) => setManualTopup({...manualTopup, note: e.target.value})}
+            placeholder="Detail tambahan (optional)"
+            rows={3}
+            value={manualTopup.detail}
+            onChange={(e) =>
+              setManualTopup({ ...manualTopup, detail: e.target.value })
+            }
           />
-          <button className="btn-primary w-full">Submit Manual Topup</button>
+
+          {/* Preview Note */}
+          <div className="text-sm bg-gray-50 p-3 rounded">
+            <div className="font-semibold">Preview note:</div>
+            <div className="font-mono text-gray-700">
+              {buildNote(
+                manualTopup.reason,
+                manualTopup.reference,
+                manualTopup.detail
+              ) || '-'}
+            </div>
+          </div>
+
+          <button className="btn-primary w-full">
+            Submit Manual Topup
+          </button>
         </form>
       )}
 
