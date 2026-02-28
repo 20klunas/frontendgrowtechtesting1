@@ -346,7 +346,7 @@ export default function DataDepositPage() {
               <tr className="border-b">
                 <th>ID</th>
                 <th>Wallet</th>
-                <th>User ID</th>
+                <th>Email</th>
                 <th>Direction</th>
                 <th>Amount</th>
                 <th>Before</th>
@@ -369,7 +369,7 @@ export default function DataDepositPage() {
                   </td>
 
                   <td>
-                    {item.wallet?.user_id ?? '-'}
+                    {item.wallet?.user?.email ?? '-'}
                   </td>
 
                   <td>
