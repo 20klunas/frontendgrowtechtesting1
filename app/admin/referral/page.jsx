@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
 import ReferralTabs from './components/ReferralTabs'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -25,12 +25,10 @@ export default function ReferralSettingsPage() {
 
   useEffect(() => {
     const token = Cookies.get('token')
-
     if (!token) {
       router.replace('/login')
       return
     }
-
     fetchSettings(token)
   }, [])
 
@@ -44,10 +42,7 @@ export default function ReferralSettingsPage() {
     return new Intl.NumberFormat('id-ID').format(number)
   }
 
-
-  const unformatRupiah = (value) => {
-    return value.replace(/\./g, '')
-  }
+  const unformatRupiah = (value) => value.replace(/\./g, '')
 
   const fetchSettings = async (token) => {
     try {
@@ -69,13 +64,11 @@ export default function ReferralSettingsPage() {
       if (json.success) {
         const data = json.data
         setSettings(data)
-
         setCommissionType(data.commission_type)
         setCommissionValue(String(data.commission_value))
         setMinWithdrawal(formatRupiah(String(data.min_withdrawal)))
       }
     } catch (err) {
-      console.error(err)
       showToast('Gagal memuat referral settings', 'error')
     } finally {
       setLoading(false)
@@ -101,12 +94,6 @@ export default function ReferralSettingsPage() {
         }),
       })
 
-      if (res.status === 401) {
-        Cookies.remove('token')
-        router.replace('/login')
-        return
-      }
-
       const json = await res.json()
 
       if (json.success) {
@@ -115,8 +102,7 @@ export default function ReferralSettingsPage() {
       } else {
         showToast('Gagal menyimpan komisi', 'error')
       }
-    } catch (err) {
-      console.error(err)
+    } catch {
       showToast('Terjadi kesalahan server', 'error')
     } finally {
       setSavingCommission(false)
@@ -141,12 +127,6 @@ export default function ReferralSettingsPage() {
         }),
       })
 
-      if (res.status === 401) {
-        Cookies.remove('token')
-        router.replace('/login')
-        return
-      }
-
       const json = await res.json()
 
       if (json.success) {
@@ -155,8 +135,7 @@ export default function ReferralSettingsPage() {
       } else {
         showToast('Gagal menyimpan minimum withdrawal', 'error')
       }
-    } catch (err) {
-      console.error(err)
+    } catch {
       showToast('Terjadi kesalahan server', 'error')
     } finally {
       setSavingWithdrawal(false)
@@ -168,138 +147,152 @@ export default function ReferralSettingsPage() {
       <div className="p-8 text-white">
         <h1 className="text-4xl font-bold mb-2">Admin Referral</h1>
         <ReferralTabs />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="rounded-2xl border border-purple-600/60 bg-black p-6 animate-pulse"
-            >
-              <div className="h-6 bg-gray-700 rounded w-1/2 mb-6" />
-              <div className="h-4 bg-gray-700 rounded w-1/3 mb-4" />
-              <div className="h-10 bg-gray-700 rounded mb-4" />
-              <div className="h-16 bg-gray-700 rounded mb-4" />
-              <div className="h-10 bg-gray-700 rounded" />
-            </div>
-          ))}
-        </div>
+        <div className="mt-10 text-gray-400">Memuat pengaturan...</div>
       </div>
     )
   }
 
   return (
-    <div className="p-8 text-white">
-      {toast && (
-        <div
-          className={`fixed top-5 right-5 px-4 py-3 rounded-lg shadow-lg text-sm z-50
-            ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}
-          `}
-        >
-          {toast.message}
-        </div>
-      )}
+    <div className="p-8 text-white relative">
 
-      <h1 className="text-4xl font-bold mb-2">Admin Referral</h1>
+      {/* Animated Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -40 }}
+            className={`fixed top-5 right-5 px-6 py-3 rounded-xl shadow-2xl text-sm z-50
+              ${toast.type === 'error'
+                ? 'bg-red-600 shadow-red-500/40'
+                : 'bg-green-600 shadow-green-500/40'
+              }`}
+          >
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <h1 className="text-4xl font-bold mb-2 tracking-tight">
+        Admin Referral Settings
+      </h1>
+
       <ReferralTabs />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Komisi */}
-        <motion.div
-          className="rounded-2xl border border-purple-600/60 bg-black p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <h2 className="text-xl font-semibold mb-4">Persentase Komisi Referral</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
 
-          <div className="flex gap-6 mb-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="tipe"
-                checked={commissionType === 'percent'}
-                onChange={() => setCommissionType('percent')}
-              />
-              Persentase (%)
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="tipe"
-                checked={commissionType === 'fixed'}
-                onChange={() => setCommissionType('fixed')}
-              />
-              Rupiah (Rp)
-            </label>
+        {/* ================= KOMISI ================= */}
+        <motion.div
+          whileHover={{ y: -6 }}
+          transition={{ type: 'spring', stiffness: 200 }}
+          className="rounded-2xl border border-purple-600/60 bg-gradient-to-br from-black to-purple-900/20 p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)] backdrop-blur-md"
+        >
+          <h2 className="text-xl font-semibold mb-5">
+            Persentase Komisi Referral
+          </h2>
+
+          {/* Toggle Premium */}
+          <div className="flex gap-4 mb-6">
+            {['percent', 'fixed'].map((type) => (
+              <motion.button
+                key={type}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setCommissionType(type)}
+                className={`px-4 py-2 rounded-lg border transition-all duration-300
+                  ${commissionType === type
+                    ? 'bg-purple-700 border-purple-500 shadow-lg'
+                    : 'border-gray-600 hover:border-purple-500'
+                  }`}
+              >
+                {type === 'percent' ? 'Persentase (%)' : 'Rupiah (Rp)'}
+              </motion.button>
+            ))}
           </div>
 
-          <input
+          <motion.input
+            whileFocus={{ scale: 1.02 }}
             type="text"
             value={commissionValue}
-            onChange={(e) => setCommissionValue(e.target.value.replace(/\D/g, ''))}
-            className="w-full bg-white text-black rounded-lg px-4 py-2 mb-3"
+            onChange={(e) =>
+              setCommissionValue(e.target.value.replace(/\D/g, ''))
+            }
+            className="w-full bg-white text-black rounded-xl px-4 py-3 mb-4 focus:ring-2 focus:ring-purple-500 outline-none transition"
           />
 
-          <p className="text-sm text-gray-300 mb-3">
-            Komisi akan diterapkan untuk semua produk. Nilai saat ini:{' '}
-            {commissionType === 'percent'
-              ? `${commissionValue}%`
-              : `Rp ${Number(commissionValue || 0).toLocaleString('id-ID')}`}
-          </p>
+          <motion.div
+            key={commissionValue + commissionType}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white text-black p-4 rounded-xl text-sm mb-6 shadow-md"
+          >
+            <b>Simulasi Perhitungan</b>
+            <div className="mt-2">
+              Jika pembelian Rp 100.000 → Komisi:
+              <div className="font-semibold mt-1">
+                {commissionType === 'percent'
+                  ? `Rp ${(100000 * (commissionValue || 0) / 100).toLocaleString('id-ID')}`
+                  : `Rp ${Number(commissionValue || 0).toLocaleString('id-ID')}`}
+              </div>
+            </div>
+          </motion.div>
 
-          <div className="bg-white text-black p-3 rounded-lg text-sm mb-4">
-            <b>Contoh Perhitungan:</b><br />
-            Jika pembelian Rp 100.000 dengan komisi {commissionValue}
-            {commissionType === 'percent' ? '%' : ' (Rp)'} ={' '}
-            {commissionType === 'percent'
-              ? `Rp ${(100000 * (commissionValue || 0) / 100).toLocaleString('id-ID')}`
-              : `Rp ${Number(commissionValue || 0).toLocaleString('id-ID')}`}
-          </div>
-
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={handleSaveCommission}
             disabled={savingCommission}
-            className="w-full bg-purple-700 hover:bg-purple-600 py-2 rounded-lg disabled:opacity-50"
+            className="w-full bg-purple-700 hover:bg-purple-600 py-3 rounded-xl font-semibold transition disabled:opacity-50 shadow-lg"
           >
             {savingCommission ? 'Menyimpan...' : 'Simpan Perubahan'}
-          </button>
+          </motion.button>
         </motion.div>
 
-        {/* Minimum WD */}
+        {/* ================= MIN WITHDRAW ================= */}
         <motion.div
-          className="rounded-2xl border border-purple-600/60 bg-black p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          whileHover={{ y: -6 }}
+          transition={{ type: 'spring', stiffness: 200 }}
+          className="rounded-2xl border border-purple-600/60 bg-gradient-to-br from-black to-purple-900/20 p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)] backdrop-blur-md"
         >
-          <h2 className="text-xl font-semibold mb-4">Minimum Saldo Withdrawal</h2>
+          <h2 className="text-xl font-semibold mb-5">
+            Minimum Saldo Withdrawal
+          </h2>
 
-          <div className="flex mb-3">
-            <span className="bg-purple-800 px-3 py-2 rounded-l-lg">Rp</span>
-            <input
+          <div className="flex mb-4 overflow-hidden rounded-xl">
+            <span className="bg-purple-800 px-4 py-3 flex items-center font-semibold">
+              Rp
+            </span>
+            <motion.input
+              whileFocus={{ scale: 1.02 }}
               type="text"
               value={minWithdrawal}
-              onChange={(e) => setMinWithdrawal(formatRupiah(e.target.value))}
-              className="flex-1 text-black px-3 py-2 rounded-r-lg"
+              onChange={(e) =>
+                setMinWithdrawal(formatRupiah(e.target.value))
+              }
+              className="flex-1 text-black px-4 py-3 outline-none"
             />
           </div>
 
-          <p className="text-sm text-gray-300 mb-3">
-            User hanya bisa withdraw jika saldo komisi lebih dari nilai ini.
-          </p>
+          <motion.div
+            key={minWithdrawal}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white text-black p-4 rounded-xl text-sm mb-6 shadow-md"
+          >
+            User bisa withdraw jika saldo ≥ Rp{' '}
+            {Number(unformatRupiah(minWithdrawal || '0')).toLocaleString('id-ID')}
+          </motion.div>
 
-          <div className="bg-white text-black p-3 rounded-lg text-sm mb-4">
-            <b>Informasi:</b><br />
-            User dengan saldo komisi lebih dari Rp{' '}
-            {Number(unformatRupiah(minWithdrawal || '0')).toLocaleString('id-ID')} dapat melakukan withdraw.
-          </div>
-
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={handleSaveWithdrawal}
             disabled={savingWithdrawal}
-            className="w-full bg-purple-700 hover:bg-purple-600 py-2 rounded-lg disabled:opacity-50"
+            className="w-full bg-purple-700 hover:bg-purple-600 py-3 rounded-xl font-semibold transition disabled:opacity-50 shadow-lg"
           >
             {savingWithdrawal ? 'Menyimpan...' : 'Simpan Perubahan'}
-          </button>
+          </motion.button>
         </motion.div>
+
       </div>
     </div>
   )
