@@ -37,7 +37,7 @@ export default function ReferralTabs() {
                     stiffness: 400,
                     damping: 30
                   }}
-                  className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.6)]"
+                  className="absolute inset-0 bg-gradient-to-r from-purple-500 to-purple-800 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.6)]"
                 />
               )}
 
