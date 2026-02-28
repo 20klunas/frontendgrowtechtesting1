@@ -85,11 +85,10 @@ export default function ManajemenPenggunaPage() {
         ? res.data.data
         : []
 
-      const filteredUsers = users.filter(user =>
-        tab === "admin"
-          ? user.role === "admin"
-          : user.role === "user"
-      )
+      const filteredUsers = users.filter(user => {
+        if (tab === "admin") return user.role === "admin"
+        return user.role === "user"
+      })
 
       setData(filteredUsers)
       setFilteredData(filteredUsers)
@@ -235,6 +234,7 @@ export default function ManajemenPenggunaPage() {
                   <th className="py-3 text-center">Email</th>
                   <th className="py-3 text-center">Nama Lengkap</th>
                   <th className="py-3 text-center">Alamat</th>
+                  <th className="py-3 text-center">Tier</th>
                   <th className="py-3 text-center">Aksi</th>
                 </tr>
               </thead>
@@ -256,7 +256,19 @@ export default function ManajemenPenggunaPage() {
                     <td className="text-center">{row.email}</td>
                     <td className="text-center">{row.full_name ?? "-"}</td>
                     <td className="text-center">{row.address ?? "-"}</td>
-
+                    <td className="text-center">
+                      {row.role === "user" ? (
+                        <span className={`px-2 py-1 rounded text-xs font-semibold
+                          ${row.tier === "vip"
+                            ? "bg-yellow-500 text-black"
+                            : row.tier === "reseller"
+                            ? "bg-green-500"
+                            : "bg-blue-600"}
+                        `}>
+                          {row.tier}
+                        </span>
+                      ) : "-"}
+                    </td>
                     <td className="text-right space-x-2">
                       {/* <motion.button
                         onClick={(e) => {

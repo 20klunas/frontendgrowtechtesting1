@@ -14,6 +14,7 @@ export default function TambahUserPage() {
     address: "",
     email: "",
     role: "user",
+    tier: "member",
     password: "",
   })
 
@@ -40,6 +41,12 @@ export default function TambahUserPage() {
       if (!token) {
         setError("Session login habis, silakan login ulang")
         return
+      }
+
+      const payload = { ...form }
+
+      if (payload.role === "admin") {
+        delete payload.tier
       }
 
       const res = await fetch(`${API}/api/v1/admin/users`, {
@@ -91,9 +98,20 @@ export default function TambahUserPage() {
             <label className="block text-sm text-gray-400 mb-2">Role</label>
             <select name="role" value={form.role} onChange={handleChange} className="input">
               <option value="user">User</option>
-              <option value="reseller">Reseller</option>
+              <option value="admin">Admin</option>
             </select>
           </div>
+
+          {form.role === "user" && (
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Tier</label>
+              <select name="tier" value={form.tier} onChange={handleChange} className="input">
+                <option value="member">Member</option>
+                <option value="reseller">Reseller</option>
+                <option value="vip">VIP</option>
+              </select>
+            </div>
+          )}
 
           <div className="md:col-span-2">
             <label className="block text-sm text-gray-400 mb-2">Password</label>

@@ -51,6 +51,12 @@ export default function EditUserPage() {
       const token = Cookies.get("token")
       if (!token) throw new Error("Token tidak ditemukan")
 
+      const payload = { ...form }
+
+      if (payload.role === "admin") {
+        delete payload.tier
+      }
+
       const res = await fetch(`${API}/api/v1/admin/users/${id}`, {
         method: "PATCH",
         headers: {
@@ -88,10 +94,28 @@ export default function EditUserPage() {
           <input className="input" name="name" value={form.name || ""} onChange={handleChange} />
           <input className="input" name="address" value={form.address || ""} onChange={handleChange} />
 
-          <select className="input" name="role" value={form.role || "user"} onChange={handleChange}>
+          <select
+            className="input"
+            name="role"
+            value={form.role || "user"}
+            onChange={handleChange}
+          >
             <option value="user">User</option>
-            <option value="reseller">Reseller</option>
+            <option value="admin">Admin</option>
           </select>
+
+          {form.role === "user" && (
+            <select
+              className="input"
+              name="tier"
+              value={form.tier || "member"}
+              onChange={handleChange}
+            >
+              <option value="member">Member</option>
+              <option value="reseller">Reseller</option>
+              <option value="vip">VIP</option>
+            </select>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 mt-8">
