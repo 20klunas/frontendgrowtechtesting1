@@ -258,7 +258,7 @@ export default function ManajemenPenggunaPage() {
                     <td className="text-center">{row.address ?? "-"}</td>
 
                     <td className="text-right space-x-2">
-                      <motion.button
+                      {/* <motion.button
                         onClick={(e) => {
                           e.stopPropagation()
                           setSelectedRow(row)
@@ -271,7 +271,7 @@ export default function ManajemenPenggunaPage() {
                       >
                         <Wallet size={16} />
                         Add Saldo
-                      </motion.button>
+                      </motion.button> */}
                       {/* EDIT */}
                       <button
                         onClick={(e) => {
@@ -328,12 +328,12 @@ export default function ManajemenPenggunaPage() {
                 <p className="text-sm text-gray-400">{row.email}</p>
                 <p className="text-sm text-gray-500">{row.address ?? "-"}</p>
 
-                <button
+                {/* <button
                   onClick={() => setModal("saldo")}
                   className="mt-3 w-full bg-purple-700 rounded-lg py-2"
                 >
                   Add Saldo
-                </button>
+                </button> */}
               </div>
             ))}
           </div>
