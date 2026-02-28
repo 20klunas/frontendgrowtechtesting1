@@ -22,6 +22,10 @@ export default function DataDepositPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [userIdFilter, setUserIdFilter] = useState('')
 
+  const [users, setUsers] = useState([])
+  const [userSearch, setUserSearch] = useState('')
+  const [userPage, setUserPage] = useState(1)
+
   const REASONS = [
     { value: "RESCUE_WEBHOOK", label: "Rescue topup (webhook gagal)" },
     { value: "RESCUE_PAID_NOT_POSTED", label: "Rescue topup (paid tapi saldo belum masuk)" },
@@ -179,6 +183,38 @@ export default function DataDepositPage() {
       console.error(err)
     }
   }
+
+  /* =========================
+     FETCH USERS (FOR SELECT)
+  ========================== */
+  const fetchUsers = async (search = '', page = 1) => {
+    try {
+      const res = await fetch(
+        `${API}/api/v1/admin/users?page=${page}&limit=10&search=${search}`,
+        {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+
+      const result = await res.json()
+
+      if (result?.data?.data) {
+        setUsers(result.data.data)
+      }
+
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'manual') {
+      fetchUsers()
+    }
+  }, [activeTab])
 
   /* =========================
      ADJUST BALANCE
@@ -399,15 +435,36 @@ export default function DataDepositPage() {
       {activeTab === 'manual' && (
         <form onSubmit={handleManualTopup} className="border rounded-xl p-4 space-y-4">
 
-          <input
-            className="input w-full"
-            placeholder="User ID"
-            value={manualTopup.user_id}
-            onChange={(e) =>
-              setManualTopup({ ...manualTopup, user_id: e.target.value })
-            }
-            required
-          />
+          {/* USER SELECT WITH SEARCH */}
+          <div className="space-y-2">
+            <input
+              type="text"
+              placeholder="Cari email user..."
+              value={userSearch}
+              onChange={(e) => {
+                setUserSearch(e.target.value)
+                fetchUsers(e.target.value, 1)
+              }}
+              className="input w-full"
+            />
+
+            <select
+              className="input w-full"
+              value={manualTopup.user_id}
+              onChange={(e) =>
+                setManualTopup({ ...manualTopup, user_id: e.target.value })
+              }
+              required
+            >
+              <option value="">-- Pilih User --</option>
+
+              {users.map(user => (
+                <option key={user.id} value={user.id}>
+                  {user.email} ({user.name})
+                </option>
+              ))}
+            </select>
+          </div>
 
           <input
             className="input w-full"
