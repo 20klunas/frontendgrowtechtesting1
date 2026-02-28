@@ -502,7 +502,7 @@ export default function DataDepositPage() {
 
           <textarea
             className="input w-full"
-            placeholder="Detail tambahan (optional)"
+            placeholder="Detail tambahan"
             rows={3}
             value={manualTopup.detail}
             onChange={(e) =>
