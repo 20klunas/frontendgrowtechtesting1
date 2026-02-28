@@ -474,7 +474,7 @@ export default function NavbarCustomer() {
                 {user?.name}
               </div>
               <div className="text-xs text-purple-300">
-                {user?.role}
+                {user?.tier}
               </div>
             </div>
 
