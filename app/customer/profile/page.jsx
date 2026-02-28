@@ -22,6 +22,7 @@ export default function ProfilePage() {
     full_name: "",
     email: "",
     address: "",
+    tier: "member",
   });
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function ProfilePage() {
           full_name: data?.full_name || "",
           email: data?.email || "",
           address: data?.address || "",
+          tier: data?.tier || "member",
         };
 
         setForm(profileData);
@@ -242,6 +244,38 @@ export default function ProfilePage() {
                 filled={isFilled(form.address)}
                 changed={isChanged("address")}
               />
+              <div className="mt-6">
+                <label className="flex items-center gap-2 text-sm text-purple-300 mb-2">
+                  🎖 Tier Akun
+                </label>
+
+                <div className="flex items-center justify-between bg-purple-900/40 border border-purple-700 rounded-xl px-4 py-3">
+                  
+                  <span
+                    className={`px-3 py-1 rounded-lg text-sm font-semibold
+                      ${
+                        form.tier === "vip"
+                          ? "bg-yellow-500 text-black"
+                          : form.tier === "reseller"
+                          ? "bg-blue-500"
+                          : "bg-gray-600"
+                      }
+                    `}
+                  >
+                    {form.tier.toUpperCase()}
+                  </span>
+
+                  <a
+                    href="https://discord.gg/YOUR_SERVER_LINK"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                  >
+                    Request Upgrade via Discord
+                  </a>
+
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-4 mt-8">
