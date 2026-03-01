@@ -14,7 +14,7 @@ export default function PaymentPage() {
         const token = Cookies.get('token')
 
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/settings?group=payment&key=fee_percent`,
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/settings`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -25,9 +25,16 @@ export default function PaymentPage() {
 
         const json = await res.json()
 
-        if (json.success && json.data.length > 0) {
-          const value = json.data[0].value
-          setPercent(json.data.value.percent)
+        if (json.success && Array.isArray(json.data)) {
+          const setting = json.data.find(
+            (item) =>
+              item.group === 'payment' &&
+              item.key === 'fee_percent'
+          )
+
+          if (setting && setting.value) {
+            setPercent(setting.value.percent)
+          }
         }
       } catch (err) {
         console.error(err)
@@ -47,7 +54,7 @@ export default function PaymentPage() {
         <div className="space-y-2">
           <p className="text-gray-300">Fee Percent:</p>
           <p className="text-xl font-semibold text-white">
-            {percent ? `${percent}%` : 'Belum diset'}
+            {percent !== null ? `${percent}%` : 'Belum diset'}
           </p>
         </div>
       )}
