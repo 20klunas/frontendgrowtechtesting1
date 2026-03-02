@@ -286,6 +286,19 @@ export default function CustomerProductContent() {
 
   const header = products?.[0];
 
+  const getTierBadgeClass = (tier) => {
+    switch (tier) {
+      case "member":
+        return "bg-green-600 text-white";
+      case "reseller":
+        return "bg-blue-600 text-white";
+      case "vip":
+        return "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black";
+      default:
+        return "bg-purple-700 text-white";
+    }
+  };
+
   return (
     <section className="max-w-6xl mx-auto px-8 py-10 text-white">
       {/* ================= HEADER ================= */}
@@ -424,7 +437,7 @@ export default function CustomerProductContent() {
                   </div>
 
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex flex-col">
+                    <div className="flex flex-col gap-1">
                       {isDiscounted && (
                         <span className="text-xs text-gray-400 line-through">
                           Rp {originalPrice.toLocaleString("id-ID")}
@@ -438,8 +451,13 @@ export default function CustomerProductContent() {
                       >
                         Rp {finalPrice.toLocaleString("id-ID")}
                       </span>
+
                       {userTier !== "guest" && (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-purple-700 text-white uppercase">
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded uppercase w-fit font-semibold ${getTierBadgeClass(
+                            userTier
+                          )}`}
+                        >
                           {userTier}
                         </span>
                       )}
