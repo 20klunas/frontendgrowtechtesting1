@@ -36,21 +36,42 @@ function PaymentPage() {
   const item = checkout?.items?.[0];
   const searchParams = useSearchParams();
 
+  /* ================= MIDTRANS RETURN HANDLER ================= */
+  useEffect(() => {
+    const orderId = searchParams.get("order_id");
+    const status = searchParams.get("transaction_status");
+
+    if (!orderId || !status) return;
+
+    const successStatuses = ["settlement", "capture", "success", "paid"];
+    const failedStatuses = ["deny", "cancel", "expire", "failure", "refuse", "failed", "error"];
+
+    if (successStatuses.includes(status)) {
+      router.replace(
+        `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
+      );
+      return;
+    }
+
+    if (failedStatuses.includes(status)) {
+      router.replace(
+        `/customer/category/product/detail/lengkapipembelian/methodpayment/failed?order=${orderId}`
+      );
+      return;
+    }
+
+    // optional: pending
+    if (status === "pending") {
+      router.replace(
+        `/customer/category/product/detail/lengkapipembelian/methodpayment/process?order=${orderId}`
+      );
+    }
+  }, [searchParams, router]);
+
   useEffect(() => {
     fetchCheckout();
     fetchWallet();
   }, []);
-
-  useEffect(() => {
-    const orderFromMidtrans = searchParams.get("order_id");
-    const statusFromMidtrans = searchParams.get("transaction_status");
-
-    if (orderFromMidtrans && statusFromMidtrans) {
-      router.replace(
-        `/customer/category/product/detail/lengkapipembelian/methodpayment/process?order=${orderFromMidtrans}&gateway=midtrans`
-      );
-    }
-  }, [searchParams]);
 
   const fetchCheckout = async () => {
     try {

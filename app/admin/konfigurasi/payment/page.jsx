@@ -8,7 +8,7 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true)
   const [percent, setPercent] = useState(null)
 
-  // 🔥 tambahan state baru
+  // tambahan state baru
   const [editPercent, setEditPercent] = useState('')
   const [isPublic, setIsPublic] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -55,11 +55,11 @@ export default function PaymentPage() {
     fetchSetting()
   }, [])
 
-  // 🔥 POST upsert
+  // POST upsert
   const handleSave = async () => {
     setError(null)
 
-    // 🔥 validasi 0-100
+    // validasi 0-100
     const numericPercent = parseFloat(editPercent)
 
     if (isNaN(numericPercent) || numericPercent < 0 || numericPercent > 100) {
@@ -115,7 +115,7 @@ export default function PaymentPage() {
       ) : (
         <div className="space-y-6">
 
-          {/* 🔥 Current Value */}
+          {/* Current Value */}
           <div>
             <p className="text-gray-300">Fee Percent Saat Ini:</p>
             <p className="text-xl font-semibold text-white">
@@ -123,7 +123,7 @@ export default function PaymentPage() {
             </p>
           </div>
 
-          {/* 🔥 Form Edit */}
+          {/* Form Edit */}
           <div className="space-y-4">
 
             <div>
@@ -140,7 +140,7 @@ export default function PaymentPage() {
               />
             </div>
 
-            {/* 🔥 Toggle is_public */}
+            {/* Toggle is_public */}
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -153,12 +153,12 @@ export default function PaymentPage() {
               </span>
             </div>
 
-            {/* 🔥 Error */}
+            {/* Error */}
             {error && (
               <p className="text-red-400 text-sm">{error}</p>
             )}
 
-            {/* 🔥 Save Button */}
+            {/* Save Button */}
             <button
               onClick={handleSave}
               disabled={saving}
@@ -168,7 +168,7 @@ export default function PaymentPage() {
             </button>
           </div>
 
-          {/* 🔥 Success Toast */}
+          {/* Success Toast */}
           {toast && (
             <div className="fixed bottom-6 right-6 bg-green-600 text-white px-4 py-2 rounded shadow-lg">
               {toast}
