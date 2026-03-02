@@ -462,8 +462,6 @@ export default function NavbarCustomer() {
             </motion.div>
           )}
 
-
-
           {/* USER BUTTON */}
           <button
             onClick={() => setOpen(!open)}
