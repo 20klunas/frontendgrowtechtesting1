@@ -335,11 +335,28 @@ export default function CustomerProductContent() {
               ? product.tier_pricing[0]
               : product.tier_pricing;
 
+            const price = pricing?.member;
+
             const isAdding = addingId === product.id;
             const isOutOfStock = (product.available_stock ?? 0) <= 0;
 
             const isFav = favoriteIds.has(product.id);
             const favLoading = favoriteLoadingId === product.id;
+
+            const originalPrice = pricing?.member ?? 0;
+
+            // jika API punya discount_price langsung
+            const discountPrice = product.discount_price;
+
+            // jika pakai percent
+            const discountPercent = product.discount_percent;
+            const calculatedDiscountPrice = discountPercent
+              ? originalPrice - (originalPrice * discountPercent) / 100
+              : null;
+
+            const finalPrice = discountPrice ?? calculatedDiscountPrice ?? originalPrice;
+
+            const isDiscounted = finalPrice < originalPrice;
 
             return (
               <div
@@ -399,9 +416,21 @@ export default function CustomerProductContent() {
                   </div>
 
                   <div className="flex items-center justify-between mb-3">
-                    <span className="font-bold text-white">
-                      Rp {pricing?.member?.toLocaleString() || "-"}
-                    </span>
+                    <div className="flex flex-col">
+                      {isDiscounted && (
+                        <span className="text-xs text-gray-400 line-through">
+                          Rp {originalPrice.toLocaleString("id-ID")}
+                        </span>
+                      )}
+
+                      <span
+                        className={`font-bold ${
+                          isDiscounted ? "text-green-400" : "text-white"
+                        }`}
+                      >
+                        Rp {finalPrice.toLocaleString("id-ID")}
+                      </span>
+                    </div>
 
                     <span className="text-xs px-2 py-1 rounded bg-purple-800 text-purple-200">
                       {product.type || "Otomatis"}
