@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import { cn } from "../../../lib/utils";
 import { motion } from "framer-motion";
+import { useAuth } from "../../../../app/hooks/useAuth";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -38,6 +39,9 @@ export default function CustomerProductContent() {
       currentPage * itemsPerPage
     );
   }, [products, currentPage]);
+
+  const { user } = useAuth();
+  const userTier = user?.tier?.toLowerCase() || "guest";
 
   useEffect(() => {
     fetchProducts();
@@ -335,6 +339,12 @@ export default function CustomerProductContent() {
               ? product.tier_pricing[0]
               : product.tier_pricing;
 
+            const originalPrice =
+              pricing?.[userTier] ??
+              pricing?.member ??
+              pricing?.guest ??
+              0;
+
             const price = pricing?.member;
 
             const isAdding = addingId === product.id;
@@ -343,18 +353,16 @@ export default function CustomerProductContent() {
             const isFav = favoriteIds.has(product.id);
             const favLoading = favoriteLoadingId === product.id;
 
-            const originalPrice = pricing?.member ?? 0;
-
-            // jika API punya discount_price langsung
+            // ===== DISKON =====
             const discountPrice = product.discount_price;
-
-            // jika pakai percent
             const discountPercent = product.discount_percent;
+
             const calculatedDiscountPrice = discountPercent
               ? originalPrice - (originalPrice * discountPercent) / 100
               : null;
 
-            const finalPrice = discountPrice ?? calculatedDiscountPrice ?? originalPrice;
+            const finalPrice =
+              discountPrice ?? calculatedDiscountPrice ?? originalPrice;
 
             const isDiscounted = finalPrice < originalPrice;
 
@@ -430,6 +438,11 @@ export default function CustomerProductContent() {
                       >
                         Rp {finalPrice.toLocaleString("id-ID")}
                       </span>
+                      {userTier !== "guest" && (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-purple-700 text-white uppercase">
+                          {userTier}
+                        </span>
+                      )}
                     </div>
 
                     <span className="text-xs px-2 py-1 rounded bg-purple-800 text-purple-200">
