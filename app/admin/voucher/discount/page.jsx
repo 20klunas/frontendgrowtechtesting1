@@ -118,7 +118,7 @@ export default function DiscountPage() {
   }
 
   return (
-    <div className="p-10 text-white">
+    <div className="p-4 md:p-10 text-white max-w-[1600px] mx-auto">
       <motion.div
         className="flex justify-between items-center mb-6"
         initial={{ opacity: 0, y: -10 }}
@@ -149,146 +149,232 @@ export default function DiscountPage() {
         />
       </div>
 
-      {/* TABLE */}
-      <div className="rounded-2xl border border-purple-900/40 overflow-auto bg-gradient-to-b from-black to-purple-950/20 max-h-[520px]">
-        <table className="w-full text-sm">
-          <thead className="bg-purple-900/40 text-gray-300 sticky top-0 z-10 backdrop-blur">
-            <tr className="text-xs uppercase tracking-wider">
-              <SortableTh label="Nama" onClick={() => handleSort('nama_discount')} />
-              <SortableTh label="Nominal" align="right" onClick={() => handleSort('nominal')} />
-              <SortableTh label="Type" align="center" onClick={() => handleSort('discount_type')} />
-              <SortableTh label="Value" align="center" onClick={() => handleSort('discount_value')} />
-              <th className="text-center p-3">Min Order</th>
-              <th className="text-center p-3">Max Discount</th>
-              <th className="text-center p-3">Starts</th>
-              <th className="text-center p-3">Ends</th>
-              <SortableTh label="Priority" align="center" onClick={() => handleSort('priority')} />
-              <SortableTh label="Stack" align="center" onClick={() => handleSort('stack_policy')} />
-              <th className="text-center p-3">Usage</th>
-              <th className="text-center p-3">Per User</th>
-              <th className="text-center p-3">Status</th>
-              <th className="text-center p-3">Targets</th>
-              <th className="text-center p-3 pr-6">Aksi</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {loading ? (
-              <SkeletonRows />
-            ) : paginated.length === 0 ? (
-              <tr>
-                <td colSpan="15" className="p-8 text-center text-gray-500">
-                  Tidak ada discount
-                </td>
+      {/* ================= DESKTOP TABLE ================= */}
+      <div className="hidden md:block">
+        <div className="rounded-2xl border border-purple-900/40 overflow-x-auto bg-gradient-to-b from-black to-purple-950/20">
+          <table className="min-w-[1200px] w-full text-sm">
+            <thead className="bg-purple-900/40 text-gray-300 sticky top-0 z-10 backdrop-blur">
+              <tr className="text-xs uppercase tracking-wider">
+                <SortableTh label="Nama" onClick={() => handleSort('nama_discount')} />
+                <SortableTh label="Nominal" align="right" onClick={() => handleSort('nominal')} />
+                <SortableTh label="Type" align="center" onClick={() => handleSort('discount_type')} />
+                <SortableTh label="Value" align="center" onClick={() => handleSort('discount_value')} />
+                <th className="text-center p-3">Min Order</th>
+                <th className="text-center p-3">Max Discount</th>
+                <th className="text-center p-3">Starts</th>
+                <th className="text-center p-3">Ends</th>
+                <SortableTh label="Priority" align="center" onClick={() => handleSort('priority')} />
+                <SortableTh label="Stack" align="center" onClick={() => handleSort('stack_policy')} />
+                <th className="text-center p-3">Usage</th>
+                <th className="text-center p-3">Per User</th>
+                <th className="text-center p-3">Status</th>
+                <th className="text-center p-3">Targets</th>
+                <th className="text-center p-3 pr-6">Aksi</th>
               </tr>
-            ) : (
-              paginated.map((d, i) => (
-                <tr
-                  key={d.id}
-                  className={`
-                    border-t border-purple-900/30
-                    ${i % 2 === 0 ? 'bg-black/40' : 'bg-purple-950/10'}
-                    hover:bg-purple-900/20 transition
-                  `}
-                >
-                  <td className="p-4 font-medium whitespace-nowrap text-center">
-                    {d.nama_discount}
-                  </td>
+            </thead>
 
-                  <td className="text-center font-mono">
-                    {d.nominal}
-                  </td>
-
-                  <td className="text-center">
-                    <TypeBadge type={d.discount_type} />
-                  </td>
-
-                  <td className="text-center font-mono">
-                    {d.discount_value}
-                  </td>
-
-                  <td className="text-center">
-                    {d.min_order_amount ?? '-'}
-                  </td>
-
-                  <td className="text-center">
-                    {d.max_discount_amount ?? '-'}
-                  </td>
-
-                  <td className="text-center text-xs text-gray-400">
-                    {formatDate(d.starts_at)}
-                  </td>
-
-                  <td className="text-center text-xs text-gray-400">
-                    {formatDate(d.ends_at)}
-                  </td>
-
-                  <td className="text-center">{d.priority}</td>
-
-                  <td className="text-center">
-                    <StackBadge policy={d.stack_policy} />
-                  </td>
-
-                  <td className="text-center">
-                    {d.usage_limit_total ?? '-'}
-                  </td>
-
-                  <td className="text-center">
-                    {d.usage_limit_per_user ?? '-'}
-                  </td>
-
-                  {/* STATUS = ENABLED */}
-                  <td className="text-center">
-                    <button
-                      onClick={() => toggleEnabled(d)}
-                      className="hover:scale-105 transition"
-                    >
-                      <ToggleSwitch enabled={d.enabled} />
-                    </button>
-                  </td>
-
-                  <td className="text-center">
-                    <div className="flex flex-wrap gap-1">
-                      {d.targets?.length ? (
-                        d.targets.map(t => (
-                          <span
-                            key={`${t.type}-${t.id}`}
-                            className="px-2 py-1 rounded-md text-xs bg-purple-900/30 border border-purple-700/40"
-                          >
-                            {t.type} #{t.id}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-gray-500 text-xs">-</span>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="flex justify-end gap-2 p-4">
-                    <Link
-                      href={`/admin/voucher/discount/edit/${d.id}`}
-                      className="action-btn bg-orange-500 hover:bg-orange-400"
-                    >
-                      ✏
-                    </Link>
-
-                    <button
-                      onClick={() => {
-                        setSelectedId(d.id)
-                        setOpenDelete(true)
-                      }}
-                      className="action-btn bg-red-600 hover:bg-red-500"
-                    >
-                      🗑
-                    </button>
+            <tbody>
+              {loading ? (
+                <SkeletonRows />
+              ) : paginated.length === 0 ? (
+                <tr>
+                  <td colSpan="15" className="p-8 text-center text-gray-500">
+                    Tidak ada discount
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                paginated.map((d, i) => (
+                  <tr
+                    key={d.id}
+                    className={`
+                      border-t border-purple-900/30
+                      ${i % 2 === 0 ? 'bg-black/40' : 'bg-purple-950/10'}
+                      hover:bg-purple-900/20 transition
+                    `}
+                  >
+                    <td className="p-4 font-medium whitespace-nowrap text-center">
+                      {d.nama_discount}
+                    </td>
+
+                    <td className="text-center font-mono">
+                      {d.nominal}
+                    </td>
+
+                    <td className="text-center">
+                      <TypeBadge type={d.discount_type} />
+                    </td>
+
+                    <td className="text-center font-mono">
+                      {d.discount_value}
+                    </td>
+
+                    <td className="text-center">
+                      {d.min_order_amount ?? '-'}
+                    </td>
+
+                    <td className="text-center">
+                      {d.max_discount_amount ?? '-'}
+                    </td>
+
+                    <td className="text-center text-xs text-gray-400">
+                      {formatDate(d.starts_at)}
+                    </td>
+
+                    <td className="text-center text-xs text-gray-400">
+                      {formatDate(d.ends_at)}
+                    </td>
+
+                    <td className="text-center">{d.priority}</td>
+
+                    <td className="text-center">
+                      <StackBadge policy={d.stack_policy} />
+                    </td>
+
+                    <td className="text-center">
+                      {d.usage_limit_total ?? '-'}
+                    </td>
+
+                    <td className="text-center">
+                      {d.usage_limit_per_user ?? '-'}
+                    </td>
+
+                    {/* STATUS = ENABLED */}
+                    <td className="text-center">
+                      <button
+                        onClick={() => toggleEnabled(d)}
+                        className="hover:scale-105 transition"
+                      >
+                        <ToggleSwitch enabled={d.enabled} />
+                      </button>
+                    </td>
+
+                    <td className="text-center">
+                      <div className="flex flex-wrap gap-1">
+                        {d.targets?.length ? (
+                          d.targets.map(t => (
+                            <span
+                              key={`${t.type}-${t.id}`}
+                              className="px-2 py-1 rounded-md text-xs bg-purple-900/30 border border-purple-700/40"
+                            >
+                              {t.type} #{t.id}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-gray-500 text-xs">-</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="flex justify-end gap-2 p-4">
+                      <Link
+                        href={`/admin/voucher/discount/edit/${d.id}`}
+                        className="action-btn bg-orange-500 hover:bg-orange-400"
+                      >
+                        ✏
+                      </Link>
+
+                      <button
+                        onClick={() => {
+                          setSelectedId(d.id)
+                          setOpenDelete(true)
+                        }}
+                        className="action-btn bg-red-600 hover:bg-red-500"
+                      >
+                        🗑
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
+      {/* ================= MOBILE CARD ================= */}
+      <div className="md:hidden space-y-4">
+        {loading ? (
+          <SkeletonRows />
+        ) : paginated.length === 0 ? (
+          <div className="text-center text-gray-500 py-10">
+            Tidak ada discount
+          </div>
+        ) : (
+          paginated.map((d) => (
+            <div
+              key={d.id}
+              className="bg-gradient-to-br from-black to-purple-950/40 border border-purple-900/40 rounded-2xl p-4 space-y-3"
+            >
+              {/* HEADER */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-lg">
+                    {d.nama_discount}
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    Priority: {d.priority}
+                  </p>
+                </div>
+
+                <button onClick={() => toggleEnabled(d)}>
+                  <ToggleSwitch enabled={d.enabled} />
+                </button>
+              </div>
+
+              {/* INFO */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <Info label="Nominal" value={d.nominal} />
+                <Info label="Type" value={<TypeBadge type={d.discount_type} />} />
+                <Info label="Value" value={d.discount_value} />
+                <Info label="Min Order" value={d.min_order_amount ?? '-'} />
+                <Info label="Max Discount" value={d.max_discount_amount ?? '-'} />
+                <Info label="Stack" value={<StackBadge policy={d.stack_policy} />} />
+                <Info label="Starts" value={formatDate(d.starts_at)} />
+                <Info label="Ends" value={formatDate(d.ends_at)} />
+              </div>
+
+              {/* TARGETS */}
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Targets</p>
+                <div className="flex flex-wrap gap-1">
+                  {d.targets?.length ? (
+                    d.targets.map((t) => (
+                      <span
+                        key={`${t.type}-${t.id}`}
+                        className="px-2 py-1 rounded-md text-xs bg-purple-900/30 border border-purple-700/40"
+                      >
+                        {t.type} #{t.id}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 text-xs">-</span>
+                  )}
+                </div>
+              </div>
+
+              {/* ACTION */}
+              <div className="flex gap-2 pt-2">
+                <Link
+                  href={`/admin/voucher/discount/edit/${d.id}`}
+                  className="flex-1 text-center py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-sm"
+                >
+                  Edit
+                </Link>
+
+                <button
+                  onClick={() => {
+                    setSelectedId(d.id)
+                    setOpenDelete(true)
+                  }}
+                  className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
       {/* PAGINATION */}
       {!loading && totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-4">
@@ -402,4 +488,13 @@ function StackBadge({ policy }) {
 function formatDate(date) {
   if (!date) return '-'
   return new Date(date).toLocaleString('id-ID')
+}
+
+function Info({ label, value }) {
+  return (
+    <div>
+      <p className="text-gray-400">{label}</p>
+      <div className="mt-1">{value}</div>
+    </div>
+  )
 }
