@@ -12,6 +12,9 @@ const PAGE_SIZE = 5
 export default function DiscountPage() {
   const API = process.env.NEXT_PUBLIC_API_URL
 
+  const [subcategories, setSubcategories] = useState([])
+  const [products, setProducts] = useState([])
+
   const [discounts, setDiscounts] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState(null)
@@ -45,6 +48,26 @@ export default function DiscountPage() {
 
   useEffect(() => {
     loadDiscounts()
+
+    fetch(`${API}/api/v1/admin/subcategories`, {
+      headers: { Authorization: `Bearer ${Cookies.get('token')}` },
+    })
+      .then(res => res.json())
+      .then(json => {
+        const list = Array.isArray(json.data)
+          ? json.data
+          : json.data?.data || []
+        setSubcategories(list)
+      })
+
+    fetch(`${API}/api/v1/admin/products`, {
+      headers: { Authorization: `Bearer ${Cookies.get('token')}` },
+    })
+      .then(res => res.json())
+      .then(json => {
+        setProducts(json.data || [])
+      })
+
   }, [])
 
   const toggleEnabled = async (d) => {
@@ -256,7 +279,7 @@ export default function DiscountPage() {
                               key={`${t.type}-${t.id}`}
                               className="px-2 py-1 rounded-md text-xs bg-purple-900/30 border border-purple-700/40"
                             >
-                              {t.type} #{t.id}
+                              {t.type}: {getTargetName(t.type, t.id, subcategories, products)}
                             </span>
                           ))
                         ) : (
@@ -343,7 +366,7 @@ export default function DiscountPage() {
                         key={`${t.type}-${t.id}`}
                         className="px-2 py-1 rounded-md text-xs bg-purple-900/30 border border-purple-700/40"
                       >
-                        {t.type} #{t.id}
+                        {t.type}: {getTargetName(t.type, t.id, subcategories, products)}
                       </span>
                     ))
                   ) : (
@@ -497,4 +520,18 @@ function Info({ label, value }) {
       <div className="mt-1">{value}</div>
     </div>
   )
+}
+
+function getTargetName(type, id, subcategories, products) {
+  if (type === 'subcategory') {
+    const found = subcategories.find(s => s.id === id)
+    return found?.name || `#${id}`
+  }
+
+  if (type === 'product') {
+    const found = products.find(p => p.id === id)
+    return found?.name || `#${id}`
+  }
+
+  return `#${id}`
 }
