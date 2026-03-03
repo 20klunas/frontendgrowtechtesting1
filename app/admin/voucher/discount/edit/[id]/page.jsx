@@ -193,7 +193,10 @@ export default function EditDiscountPage() {
 
         <Select label="Discount Type"
           value={form.discount_type}
-          options={['percent', 'amount']}
+          options={[
+            { value: 'percent', label: 'Percent (%)' },
+            { value: 'fixed', label: 'Rupiah (Fixed Amount)' }
+          ]}
           onChange={v =>
             setForm({ ...form, discount_type: v })}
         />
@@ -374,7 +377,9 @@ function Select({ label, options, value, onChange }) {
         onChange={e => onChange(e.target.value)}
       >
         {options.map(o => (
-          <option key={o}>{o}</option>
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
         ))}
       </select>
     </div>
