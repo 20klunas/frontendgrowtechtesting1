@@ -472,6 +472,13 @@ function SuccessContent() {
               {closing ? "Menutup..." : "Close Delivery"}
             </button>
 
+            <Link
+              href={`./invoice/${orderId}`}
+              className="rounded-xl border border-purple-500 py-4 text-center font-semibold"
+            >
+              Lihat Detail Produk
+            </Link>
+
             <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mt-4">
               <Lock size={14} />
               Data terenkripsi & aman
@@ -480,7 +487,7 @@ function SuccessContent() {
         </div>
 
         {/* FOOTER */}
-        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+        {/* <div className="mt-10 grid gap-4 sm:grid-cols-2">
           {/* <Link
             href="/orders"
             className="rounded-xl bg-purple-700 py-4 text-center font-semibold"
@@ -488,13 +495,13 @@ function SuccessContent() {
             Lihat Semua Pemesanan
           </Link> */}
 
-          <Link
+          {/* <Link
             href={`./invoice/${orderId}`}
             className="rounded-xl border border-purple-500 py-4 text-center font-semibold"
           >
             Lihat Detail Produk
           </Link>
-        </div>
+        </div> */}
       </div>
 
       {toast && <Toast {...toast} />}
