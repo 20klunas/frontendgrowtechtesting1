@@ -1,44 +1,62 @@
 'use client'
 
-import { useEffect, useState } from "react"
-import { Check, X, Loader2, DollarSign } from "lucide-react"
+import { useEffect, useState, useMemo } from "react"
+import {
+  Check,
+  X,
+  Loader2,
+  DollarSign,
+  TrendingUp,
+  Users,
+  AlertTriangle
+} from "lucide-react"
+
+import {
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis
+} from "recharts"
+
 import { authFetch } from "../../../lib/authFetch"
 import ReferralTabs from "../components/ReferralTabs"
 import TableWrapper from "../components/TableWrapper"
-import FilterBar from "../components/FilterBar"
+
+/* ================= PAGE ================= */
 
 export default function ApprovalWDPage() {
 
-  const [withdraws, setWithdraws] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  const [statusFilter, setStatusFilter] = useState("pending")
-
-  const [actionLoading, setActionLoading] = useState(null)
+  const [withdraws,setWithdraws]=useState([])
+  const [loading,setLoading]=useState(true)
+  const [statusFilter,setStatusFilter]=useState("pending")
+  const [actionLoading,setActionLoading]=useState(null)
 
   /* ================= FETCH ================= */
 
-  useEffect(() => {
-    fetchWithdraws()
-  }, [statusFilter])
+  useEffect(()=>{ fetchWithdraws() },[statusFilter])
 
-  async function fetchWithdraws() {
+  async function fetchWithdraws(){
 
-    try {
+    try{
 
       setLoading(true)
 
-      const json = await authFetch(
-        `/api/v1/admin/withdraws?status=${statusFilter}`
-      )
+      const json = await authFetch(`/api/v1/admin/withdraws?status=${statusFilter}`)
 
       setWithdraws(json.data?.data || [])
 
-    } catch (err) {
+    }catch(err){
 
-      console.error("Withdraw fetch error:", err.message)
+      console.error(err)
 
-    } finally {
+    }finally{
 
       setLoading(false)
 
@@ -46,25 +64,25 @@ export default function ApprovalWDPage() {
 
   }
 
-  /* ================= APPROVE ================= */
+  /* ================= ACTIONS ================= */
 
-  async function approveWithdraw(id) {
+  async function approveWithdraw(id){
 
-    try {
+    try{
 
       setActionLoading(id)
 
-      await authFetch(`/api/v1/admin/withdraws/${id}/approve`, {
-        method: "POST"
+      await authFetch(`/api/v1/admin/withdraws/${id}/approve`,{
+        method:"POST"
       })
 
       fetchWithdraws()
 
-    } catch (err) {
+    }catch(err){
 
       alert(err.message)
 
-    } finally {
+    }finally{
 
       setActionLoading(null)
 
@@ -72,28 +90,26 @@ export default function ApprovalWDPage() {
 
   }
 
-  /* ================= REJECT ================= */
-
-  async function rejectWithdraw(id) {
+  async function rejectWithdraw(id){
 
     const reason = prompt("Reason reject?")
 
-    try {
+    try{
 
       setActionLoading(id)
 
-      await authFetch(`/api/v1/admin/withdraws/${id}/reject`, {
-        method: "POST",
-        body: JSON.stringify({ reason })
+      await authFetch(`/api/v1/admin/withdraws/${id}/reject`,{
+        method:"POST",
+        body:JSON.stringify({reason})
       })
 
       fetchWithdraws()
 
-    } catch (err) {
+    }catch(err){
 
       alert(err.message)
 
-    } finally {
+    }finally{
 
       setActionLoading(null)
 
@@ -101,25 +117,23 @@ export default function ApprovalWDPage() {
 
   }
 
-  /* ================= MARK PAID ================= */
+  async function markPaid(id){
 
-  async function markPaid(id) {
-
-    try {
+    try{
 
       setActionLoading(id)
 
-      await authFetch(`/api/v1/admin/withdraws/${id}/mark-paid`, {
-        method: "POST"
+      await authFetch(`/api/v1/admin/withdraws/${id}/mark-paid`,{
+        method:"POST"
       })
 
       fetchWithdraws()
 
-    } catch (err) {
+    }catch(err){
 
       alert(err.message)
 
-    } finally {
+    }finally{
 
       setActionLoading(null)
 
@@ -127,172 +141,363 @@ export default function ApprovalWDPage() {
 
   }
 
-  return (
+  /* ================= ANALYTICS ================= */
 
-    <div className="p-4 md:p-8 text-white">
+  const analytics = useMemo(()=>{
 
-      <h1 className="text-3xl md:text-4xl font-bold mb-2">
-        Admin Referral Withdraw
-      </h1>
+    const totalRevenue = withdraws.reduce((s,w)=>s+Number(w.amount),0)
 
-      <ReferralTabs />
+    const approved = withdraws.filter(w=>w.status==="approved")
+    const rejected = withdraws.filter(w=>w.status==="rejected")
+    const paid = withdraws.filter(w=>w.status==="paid")
 
-      {/* ================= FILTER ================= */}
+    const userMap={}
 
-      <div className="flex gap-3 my-6 flex-wrap">
+    withdraws.forEach(w=>{
 
-        {["pending","approved","paid","rejected"].map(s => (
+      if(!userMap[w.user?.id]){
 
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-4 py-2 rounded-lg border transition ${
-              statusFilter === s
-                ? "bg-purple-600 border-purple-600"
-                : "border-gray-700 hover:bg-gray-800"
-            }`}
-          >
-            {s}
-          </button>
+        userMap[w.user?.id]={
+          name:w.user?.name,
+          total:0,
+          count:0
+        }
 
-        ))}
+      }
 
-      </div>
+      userMap[w.user?.id].total+=Number(w.amount)
+      userMap[w.user?.id].count++
 
-      {/* ================= TABLE ================= */}
+    })
 
-      <TableWrapper>
+    const leaderboard = Object.values(userMap)
+      .sort((a,b)=>b.total-a.total)
+      .slice(0,5)
 
-        {loading ? (
+    const suspicious = withdraws.filter(w=>Number(w.amount)>10000000)
 
-          <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin" />
-          </div>
+    return{
+      totalRevenue,
+      approvedCount:approved.length,
+      rejectedCount:rejected.length,
+      paidCount:paid.length,
+      leaderboard,
+      suspicious
+    }
 
-        ) : (
+  },[withdraws])
 
-          <div className="overflow-x-auto">
+  /* ================= CHART DATA ================= */
 
-            <table className="w-full text-sm">
+  const distributionData=[
+    {name:"Approved",value:analytics.approvedCount},
+    {name:"Rejected",value:analytics.rejectedCount},
+    {name:"Paid",value:analytics.paidCount}
+  ]
 
-              <thead className="border-b border-gray-700 text-gray-300">
+  const revenueChart = withdraws.map(w=>({
+    date:new Date(w.created_at).toLocaleDateString(),
+    amount:Number(w.amount)
+  }))
 
-                <tr>
-                  <th className="py-3 text-left">ID</th>
-                  <th>User</th>
-                  <th>Email</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th>Action</th>
-                </tr>
+  /* ================= UI ================= */
 
-              </thead>
+  return(
 
-              <tbody>
+  <div className="p-4 md:p-8 text-white space-y-10">
 
-                {withdraws.map(w => (
+    <h1 className="text-3xl md:text-4xl font-bold">
+      Referral Admin Dashboard
+    </h1>
 
-                  <tr
-                    key={w.id}
-                    className="border-b border-gray-800 hover:bg-gray-900"
-                  >
+    <ReferralTabs/>
 
-                    <td className="py-3">{w.id}</td>
+    {/* ================= STATS ================= */}
 
-                    <td>{w.user?.name}</td>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
-                    <td className="text-gray-400 text-xs">
-                      {w.user?.email}
-                    </td>
+      <StatCard
+        icon={<DollarSign/>}
+        label="Total Referral Revenue"
+        value={`Rp ${analytics.totalRevenue.toLocaleString()}`}
+      />
 
-                    <td className="text-green-400">
-                      Rp {Number(w.amount).toLocaleString()}
-                    </td>
+      <StatCard
+        icon={<TrendingUp/>}
+        label="Approved Withdraw"
+        value={analytics.approvedCount}
+      />
 
-                    <td className={
-                      w.status === "approved"
-                        ? "text-green-400"
-                        : w.status === "rejected"
-                        ? "text-red-400"
-                        : w.status === "paid"
-                        ? "text-blue-400"
-                        : "text-yellow-400"
-                    }>
-                      {w.status}
-                    </td>
+      <StatCard
+        icon={<Users/>}
+        label="Top Affiliates"
+        value={analytics.leaderboard.length}
+      />
 
-                    <td className="text-gray-400 text-xs">
-                      {new Date(w.created_at).toLocaleDateString()}
-                    </td>
-
-                    <td className="flex gap-2 py-3 flex-wrap">
-
-                      {w.status === "pending" && (
-
-                        <>
-                          <button
-                            onClick={() => approveWithdraw(w.id)}
-                            className="bg-green-600 px-3 py-1 rounded flex items-center gap-1"
-                          >
-                            {actionLoading === w.id
-                              ? <Loader2 size={14} className="animate-spin"/>
-                              : <Check size={14}/>
-                            }
-                            Approve
-                          </button>
-
-                          <button
-                            onClick={() => rejectWithdraw(w.id)}
-                            className="bg-red-600 px-3 py-1 rounded flex items-center gap-1"
-                          >
-                            <X size={14}/>
-                            Reject
-                          </button>
-                        </>
-
-                      )}
-
-                      {w.status === "approved" && (
-
-                        <button
-                          onClick={() => markPaid(w.id)}
-                          className="bg-blue-600 px-3 py-1 rounded flex items-center gap-1"
-                        >
-                          <DollarSign size={14}/>
-                          Mark Paid
-                        </button>
-
-                      )}
-
-                    </td>
-
-                  </tr>
-
-                ))}
-
-                {!withdraws.length && (
-
-                  <tr>
-                    <td colSpan="7" className="text-center py-10 text-gray-500">
-                      No withdraw requests
-                    </td>
-                  </tr>
-
-                )}
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        )}
-
-      </TableWrapper>
+      <StatCard
+        icon={<AlertTriangle/>}
+        label="Suspicious Activity"
+        value={analytics.suspicious.length}
+      />
 
     </div>
 
+    {/* ================= CHARTS ================= */}
+
+    <div className="grid md:grid-cols-2 gap-6">
+
+      <ChartCard title="Commission Revenue Trend">
+
+        <ResponsiveContainer width="100%" height={250}>
+
+          <LineChart data={revenueChart}>
+
+            <XAxis dataKey="date"/>
+            <YAxis/>
+            <Tooltip/>
+
+            <Line
+              type="monotone"
+              dataKey="amount"
+              stroke="#9333ea"
+              strokeWidth={3}
+            />
+
+          </LineChart>
+
+        </ResponsiveContainer>
+
+      </ChartCard>
+
+      <ChartCard title="Withdraw Distribution">
+
+        <ResponsiveContainer width="100%" height={250}>
+
+          <PieChart>
+
+            <Pie
+              data={distributionData}
+              dataKey="value"
+              nameKey="name"
+              outerRadius={80}
+            >
+
+              <Cell fill="#22c55e"/>
+              <Cell fill="#ef4444"/>
+              <Cell fill="#3b82f6"/>
+
+            </Pie>
+
+            <Tooltip/>
+
+          </PieChart>
+
+        </ResponsiveContainer>
+
+      </ChartCard>
+
+    </div>
+
+    {/* ================= LEADERBOARD ================= */}
+
+    <ChartCard title="Top Affiliates">
+
+      <table className="w-full text-sm">
+
+        <thead className="text-gray-400 border-b border-gray-700">
+
+          <tr>
+            <th className="text-left py-2">User</th>
+            <th>Total Commission</th>
+            <th>Withdraw Count</th>
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          {analytics.leaderboard.map((u,i)=>(
+
+            <tr key={i} className="border-b border-gray-800">
+
+              <td className="py-2">{u.name}</td>
+
+              <td>
+                Rp {u.total.toLocaleString()}
+              </td>
+
+              <td>{u.count}</td>
+
+            </tr>
+
+          ))}
+
+        </tbody>
+
+      </table>
+
+    </ChartCard>
+
+    {/* ================= WITHDRAW MANAGEMENT ================= */}
+
+    <h2 className="text-2xl font-bold">
+      Withdraw Requests
+    </h2>
+
+    <div className="flex gap-2 flex-wrap">
+
+      {["pending","approved","paid","rejected"].map(s=>(
+        <button
+          key={s}
+          onClick={()=>setStatusFilter(s)}
+          className={`px-4 py-2 rounded-lg border ${
+            statusFilter===s
+            ? "bg-purple-600 border-purple-600"
+            : "border-gray-700"
+          }`}
+        >
+          {s}
+        </button>
+      ))}
+
+    </div>
+
+    <TableWrapper>
+
+      {loading ?(
+
+        <div className="flex justify-center py-10">
+          <Loader2 className="animate-spin"/>
+        </div>
+
+      ):(
+      <div className="overflow-x-auto">
+
+        <table className="w-full text-sm">
+
+          <thead className="border-b border-gray-700 text-gray-300">
+
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Email</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            {withdraws.map(w=>(
+            <tr key={w.id} className="border-b border-gray-800">
+
+              <td className="py-3">{w.id}</td>
+
+              <td>{w.user?.name}</td>
+
+              <td className="text-gray-400 text-xs">
+                {w.user?.email}
+              </td>
+
+              <td className="text-green-400">
+                Rp {Number(w.amount).toLocaleString()}
+              </td>
+
+              <td>{w.status}</td>
+
+              <td>
+                {new Date(w.created_at).toLocaleDateString()}
+              </td>
+
+              <td className="flex gap-2">
+
+                {w.status==="pending"&&(
+                <>
+                  <button
+                    onClick={()=>approveWithdraw(w.id)}
+                    className="bg-green-600 px-3 py-1 rounded"
+                  >
+                    {actionLoading===w.id
+                      ?<Loader2 className="animate-spin" size={14}/>
+                      :<Check size={14}/>
+                    }
+                  </button>
+
+                  <button
+                    onClick={()=>rejectWithdraw(w.id)}
+                    className="bg-red-600 px-3 py-1 rounded"
+                  >
+                    <X size={14}/>
+                  </button>
+                </>
+                )}
+
+                {w.status==="approved"&&(
+                <button
+                  onClick={()=>markPaid(w.id)}
+                  className="bg-blue-600 px-3 py-1 rounded"
+                >
+                  <DollarSign size={14}/>
+                </button>
+                )}
+
+              </td>
+
+            </tr>
+            ))}
+
+          </tbody>
+
+        </table>
+
+      </div>
+      )}
+
+    </TableWrapper>
+
+  </div>
+
   )
 
+}
+
+/* ================= COMPONENTS ================= */
+
+function StatCard({icon,label,value}){
+
+return(
+<div className="bg-black border border-gray-800 rounded-xl p-4">
+
+<div className="flex items-center gap-2 text-purple-400 mb-1">
+{icon}
+</div>
+
+<p className="text-xs text-gray-400">
+{label}
+</p>
+
+<p className="text-lg font-semibold">
+{value}
+</p>
+
+</div>
+)
+}
+
+function ChartCard({title,children}){
+
+return(
+<div className="bg-black border border-gray-800 rounded-xl p-6">
+
+<h3 className="font-semibold mb-4">
+{title}
+</h3>
+
+{children}
+
+</div>
+)
 }
