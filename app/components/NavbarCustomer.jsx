@@ -189,7 +189,7 @@ export default function NavbarCustomer() {
         scrolled ? "py-2 shadow-xl" : "py-4"
       )}
     >
-      <div className="mx-auto max-w-7xl px-6 flex items-center justify-between gap-6">
+      <div className="mx-auto max-w-7xl px-4 flex items-center justify-between gap-6">
 
         {/* ================= LEFT ================= */}
         <div className="flex items-center gap-3">
@@ -201,7 +201,7 @@ export default function NavbarCustomer() {
               priority
             />
           </div>
-          <span className="text-white font-semibold text-lg">
+          <span className="hidden sm:block text-white font-semibold text-lg">
             {brand.site_name || "Growtech Central"}
           </span>
         </div>
@@ -356,7 +356,7 @@ export default function NavbarCustomer() {
         </div>
 
         {/* MOBILE MENU */}
-        <div className="lg:hidden flex items-center gap-4">
+        <div className="lg:hidden flex items-center gap-3">
           {navItems.map(item => (
             <Link
               key={item.href}
@@ -374,14 +374,14 @@ export default function NavbarCustomer() {
         </div>
 
         {/* ================= RIGHT ================= */}
-        <div className="relative flex items-center gap-5">
+        <div className="relative flex items-center gap-3">
 
           {/* FAVORITES */}
           <Link
             href="/customer/favorites"
             className="relative text-white hover:text-pink-400 transition"
           >
-            <Heart size={22} />
+            <Heart size={20} />
           </Link>
 
           {/* CART */}
@@ -467,7 +467,7 @@ export default function NavbarCustomer() {
             onClick={() => setOpen(!open)}
             className="flex items-center gap-2"
           >
-            <div className="text-right leading-tight hidden sm:block">
+            <div className="text-right leading-tight hidden md:block">
               <div className="text-sm font-semibold text-white">
                 {user?.name}
               </div>
@@ -476,7 +476,7 @@ export default function NavbarCustomer() {
               </div>
             </div>
 
-            <div className="relative h-9 w-9 rounded-full overflow-hidden bg-purple-600">
+            <div className="relative h-8 w-8 rounded-full overflow-hidden bg-purple-600">
               {avatarSrc ? (
                 <Image
                   src={avatarSrc}
