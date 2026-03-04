@@ -270,6 +270,21 @@ function SuccessContent() {
     window.open(`./invoice/${orderId}?print=pdf`, "_blank");
   };
 
+  useEffect(() => {
+    if (!orderId) return;
+
+    const interval = setInterval(() => {
+      fetchAll();
+
+      if (order?.status === "fulfilled") {
+        clearInterval(interval);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [orderId, order]);
+  
+
   /* ================= LOADING ================= */
   if (loading) {
     return (
@@ -285,6 +300,9 @@ function SuccessContent() {
     );
   }
 
+  if (!delivery) {
+    return <p>Menyiapkan produk digital...</p>;
+  }
   return (
     <main className="min-h-screen bg-black px-4 py-16 text-white">
       <div className="mx-auto max-w-5xl">
