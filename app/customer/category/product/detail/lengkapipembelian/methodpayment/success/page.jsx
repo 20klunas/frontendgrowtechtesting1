@@ -481,12 +481,12 @@ function SuccessContent() {
 
         {/* FOOTER */}
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
-          <Link
+          {/* <Link
             href="/orders"
             className="rounded-xl bg-purple-700 py-4 text-center font-semibold"
           >
             Lihat Semua Pemesanan
-          </Link>
+          </Link> */}
 
           <Link
             href={`./invoice/${orderId}`}
