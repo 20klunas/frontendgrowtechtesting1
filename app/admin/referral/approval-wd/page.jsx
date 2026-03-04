@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Check, X, Loader2, DollarSign } from "lucide-react"
-import { authFetch } from "../../lib/authFetch"
+import { authFetch } from "../../../lib/authFetch"
 import ReferralTabs from "../components/ReferralTabs"
 import TableWrapper from "../components/TableWrapper"
 import FilterBar from "../components/FilterBar"
