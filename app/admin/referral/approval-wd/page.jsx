@@ -1,104 +1,298 @@
 'use client'
-import { useState } from 'react'
-import ReferralTabs from '../components/ReferralTabs'
-import TableWrapper from '../components/TableWrapper'
-import FilterBar from '../components/FilterBar'
+
+import { useEffect, useState } from "react"
+import { Check, X, Loader2, DollarSign } from "lucide-react"
+import { authFetch } from "../../lib/authFetch"
+import ReferralTabs from "../components/ReferralTabs"
+import TableWrapper from "../components/TableWrapper"
+import FilterBar from "../components/FilterBar"
 
 export default function ApprovalWDPage() {
-  const [requests, setRequests] = useState([
-    { id: 1, user: 'Ravi Kusuma', amount: 5000, date: '12-12-2025', status: 'Pending' },
-    { id: 2, user: 'Ravi Kusuma', amount: 5000, date: '12-12-2025', status: 'Pending' },
-  ])
 
-  const [history, setHistory] = useState([])
+  const [withdraws, setWithdraws] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const handleAction = (id, action) => {
-    const updated = requests.map(r =>
-      r.id === id ? { ...r, status: action } : r
-    )
+  const [statusFilter, setStatusFilter] = useState("pending")
 
-    const processed = updated.find(r => r.id === id)
+  const [actionLoading, setActionLoading] = useState(null)
 
-    setRequests(updated.filter(r => r.id !== id))
+  /* ================= FETCH ================= */
 
-    setHistory(prev => [
-      ...prev,
-      {
-        id: processed.id,
-        user: processed.user,
-        amount: processed.amount,
-        status: action,
-        note: action === 'Approved' ? 'Approved successfully' : 'Rejected by admin'
-      }
-    ])
+  useEffect(() => {
+    fetchWithdraws()
+  }, [statusFilter])
+
+  async function fetchWithdraws() {
+
+    try {
+
+      setLoading(true)
+
+      const json = await authFetch(
+        `/api/v1/admin/withdraws?status=${statusFilter}`
+      )
+
+      setWithdraws(json.data?.data || [])
+
+    } catch (err) {
+
+      console.error("Withdraw fetch error:", err.message)
+
+    } finally {
+
+      setLoading(false)
+
+    }
+
+  }
+
+  /* ================= APPROVE ================= */
+
+  async function approveWithdraw(id) {
+
+    try {
+
+      setActionLoading(id)
+
+      await authFetch(`/api/v1/admin/withdraws/${id}/approve`, {
+        method: "POST"
+      })
+
+      fetchWithdraws()
+
+    } catch (err) {
+
+      alert(err.message)
+
+    } finally {
+
+      setActionLoading(null)
+
+    }
+
+  }
+
+  /* ================= REJECT ================= */
+
+  async function rejectWithdraw(id) {
+
+    const reason = prompt("Reason reject?")
+
+    try {
+
+      setActionLoading(id)
+
+      await authFetch(`/api/v1/admin/withdraws/${id}/reject`, {
+        method: "POST",
+        body: JSON.stringify({ reason })
+      })
+
+      fetchWithdraws()
+
+    } catch (err) {
+
+      alert(err.message)
+
+    } finally {
+
+      setActionLoading(null)
+
+    }
+
+  }
+
+  /* ================= MARK PAID ================= */
+
+  async function markPaid(id) {
+
+    try {
+
+      setActionLoading(id)
+
+      await authFetch(`/api/v1/admin/withdraws/${id}/mark-paid`, {
+        method: "POST"
+      })
+
+      fetchWithdraws()
+
+    } catch (err) {
+
+      alert(err.message)
+
+    } finally {
+
+      setActionLoading(null)
+
+    }
+
   }
 
   return (
-    <div className="p-8 text-white">
-      <h1 className="text-4xl font-bold mb-2">Admin Referral</h1>
+
+    <div className="p-4 md:p-8 text-white">
+
+      <h1 className="text-3xl md:text-4xl font-bold mb-2">
+        Admin Referral Withdraw
+      </h1>
+
       <ReferralTabs />
 
-      {/* REQUEST LIST */}
+      {/* ================= FILTER ================= */}
+
+      <div className="flex gap-3 my-6 flex-wrap">
+
+        {["pending","approved","paid","rejected"].map(s => (
+
+          <button
+            key={s}
+            onClick={() => setStatusFilter(s)}
+            className={`px-4 py-2 rounded-lg border transition ${
+              statusFilter === s
+                ? "bg-purple-600 border-purple-600"
+                : "border-gray-700 hover:bg-gray-800"
+            }`}
+          >
+            {s}
+          </button>
+
+        ))}
+
+      </div>
+
+      {/* ================= TABLE ================= */}
+
       <TableWrapper>
-        <FilterBar />
-        <table className="w-full text-sm">
-          <thead className="border-b border-gray-700 text-gray-300">
-            <tr>
-              <th>ID</th><th>User</th><th>Jumlah</th><th>Tanggal</th><th>Status</th><th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map(r => (
-              <tr key={r.id} className="border-b border-gray-800">
-                <td className="py-3">{r.id}</td>
-                <td>{r.user}</td>
-                <td>Rp {r.amount.toLocaleString()}</td>
-                <td>{r.date}</td>
-                <td className="text-yellow-400">{r.status}</td>
-                <td className="flex gap-2 py-3">
-                  <button
-                    onClick={() => handleAction(r.id, 'Approved')}
-                    className="bg-green-500 px-3 py-1 rounded"
+
+        {loading ? (
+
+          <div className="flex justify-center py-10">
+            <Loader2 className="animate-spin" />
+          </div>
+
+        ) : (
+
+          <div className="overflow-x-auto">
+
+            <table className="w-full text-sm">
+
+              <thead className="border-b border-gray-700 text-gray-300">
+
+                <tr>
+                  <th className="py-3 text-left">ID</th>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {withdraws.map(w => (
+
+                  <tr
+                    key={w.id}
+                    className="border-b border-gray-800 hover:bg-gray-900"
                   >
-                    ACC
-                  </button>
-                  <button
-                    onClick={() => handleAction(r.id, 'Rejected')}
-                    className="bg-red-600 px-3 py-1 rounded"
-                  >
-                    Reject
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+                    <td className="py-3">{w.id}</td>
+
+                    <td>{w.user?.name}</td>
+
+                    <td className="text-gray-400 text-xs">
+                      {w.user?.email}
+                    </td>
+
+                    <td className="text-green-400">
+                      Rp {Number(w.amount).toLocaleString()}
+                    </td>
+
+                    <td className={
+                      w.status === "approved"
+                        ? "text-green-400"
+                        : w.status === "rejected"
+                        ? "text-red-400"
+                        : w.status === "paid"
+                        ? "text-blue-400"
+                        : "text-yellow-400"
+                    }>
+                      {w.status}
+                    </td>
+
+                    <td className="text-gray-400 text-xs">
+                      {new Date(w.created_at).toLocaleDateString()}
+                    </td>
+
+                    <td className="flex gap-2 py-3 flex-wrap">
+
+                      {w.status === "pending" && (
+
+                        <>
+                          <button
+                            onClick={() => approveWithdraw(w.id)}
+                            className="bg-green-600 px-3 py-1 rounded flex items-center gap-1"
+                          >
+                            {actionLoading === w.id
+                              ? <Loader2 size={14} className="animate-spin"/>
+                              : <Check size={14}/>
+                            }
+                            Approve
+                          </button>
+
+                          <button
+                            onClick={() => rejectWithdraw(w.id)}
+                            className="bg-red-600 px-3 py-1 rounded flex items-center gap-1"
+                          >
+                            <X size={14}/>
+                            Reject
+                          </button>
+                        </>
+
+                      )}
+
+                      {w.status === "approved" && (
+
+                        <button
+                          onClick={() => markPaid(w.id)}
+                          className="bg-blue-600 px-3 py-1 rounded flex items-center gap-1"
+                        >
+                          <DollarSign size={14}/>
+                          Mark Paid
+                        </button>
+
+                      )}
+
+                    </td>
+
+                  </tr>
+
+                ))}
+
+                {!withdraws.length && (
+
+                  <tr>
+                    <td colSpan="7" className="text-center py-10 text-gray-500">
+                      No withdraw requests
+                    </td>
+                  </tr>
+
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        )}
+
       </TableWrapper>
 
-      {/* HISTORY */}
-      <h2 className="text-2xl font-bold mt-10 mb-4">Riwayat Approval/Reject</h2>
-      <TableWrapper>
-        <table className="w-full text-sm">
-          <thead className="border-b border-gray-700 text-gray-300">
-            <tr>
-              <th>ID</th><th>User</th><th>Jumlah</th><th>Status</th><th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map(h => (
-              <tr key={h.id} className="border-b border-gray-800">
-                <td className="py-3">{h.id}</td>
-                <td>{h.user}</td>
-                <td>Rp {h.amount.toLocaleString()}</td>
-                <td className={h.status === 'Approved' ? 'text-green-400' : 'text-red-400'}>
-                  {h.status}
-                </td>
-                <td>{h.note}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </TableWrapper>
     </div>
+
   )
+
 }
