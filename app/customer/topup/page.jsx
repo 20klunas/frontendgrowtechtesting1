@@ -22,15 +22,15 @@ const PRESETS = [
 const PAYMENT_METHODS = [
   {
     id: "midtrans",
-    name: "QRIS Midtrans",
-    desc: "Scan QR Code Untuk Pembayaran Instant",
+    name: "Midtrans",
+    desc: "Klik Untuk Pembayaran Instant",
     fee: 35,
     prefix: "MID",
   },
   {
     id: "duitku",
-    name: "QRIS Duitku",
-    desc: "Scan QR Code Untuk Pembayaran Instant",
+    name: "Duitku",
+    desc: "Klik Untuk Pembayaran Instant",
     fee: 50,
     prefix: "DKU",
   },
