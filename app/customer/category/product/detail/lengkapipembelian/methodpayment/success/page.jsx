@@ -270,19 +270,6 @@ function SuccessContent() {
     window.open(`./invoice/${orderId}?print=pdf`, "_blank");
   };
 
-  useEffect(() => {
-    if (!orderId) return;
-
-    const interval = setInterval(() => {
-      fetchAll();
-
-      if (order?.status === "fulfilled") {
-        clearInterval(interval);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [orderId, order]);
   
 
   /* ================= LOADING ================= */
