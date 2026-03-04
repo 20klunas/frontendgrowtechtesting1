@@ -1,12 +1,15 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import {
   Copy,
   CheckCircle,
   Loader2,
   AlertCircle,
-  Wallet
+  Wallet,
+  Users,
+  TrendingUp,
+  Gift
 } from "lucide-react"
 
 import {
@@ -35,6 +38,9 @@ export default function ReferralPage() {
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const [withdrawHistory, setWithdrawHistory] = useState([])
+  const [withdrawLoadingHistory, setWithdrawLoadingHistory] = useState(false)
+
   const [attachCode, setAttachCode] = useState("")
   const [attachLoading, setAttachLoading] = useState(false)
   const [attachMessage, setAttachMessage] = useState(null)
@@ -47,56 +53,93 @@ export default function ReferralPage() {
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [withdrawMessage, setWithdrawMessage] = useState(null)
 
-  const [withdrawHistory, setWithdrawHistory] = useState([])
-  const [withdrawLoadingHistory, setWithdrawLoadingHistory] = useState(false)
-
-  const [mounted, setMounted] = useState(false)
-
   /* ================= INIT ================= */
 
   useEffect(() => {
+
     fetchDashboard()
     fetchWithdrawHistory()
-  }, [])
 
-  useEffect(() => {
-    setMounted(true)
   }, [])
 
   /* ================= FETCH DASHBOARD ================= */
 
   async function fetchDashboard() {
+
     try {
+
       setLoading(true)
 
       const json = await authFetch(`/api/v1/referral`)
-
       setDashboard(json.data)
 
     } catch (err) {
-      console.error("Dashboard error:", err.message)
+
+      console.error(err)
+
     } finally {
+
       setLoading(false)
+
     }
+
   }
 
   /* ================= FETCH WITHDRAW ================= */
 
   async function fetchWithdrawHistory() {
+
     try {
 
       setWithdrawLoadingHistory(true)
 
       const json = await authFetch(`/api/v1/withdraws`)
-
       setWithdrawHistory(json.data?.data || [])
 
     } catch (err) {
-      console.error("Withdraw history error:", err.message)
+
+      console.error(err)
+
     } finally {
+
       setWithdrawLoadingHistory(false)
+
     }
+
   }
+
+  /* ================= ANALYTICS ================= */
+
+  const analytics = useMemo(() => {
+
+    const total = withdrawHistory.reduce(
+      (sum, w) => sum + Number(w.amount),
+      0
+    )
+
+    const approved = withdrawHistory
+      .filter(w => w.status === "approved")
+      .reduce((sum, w) => sum + Number(w.amount), 0)
+
+    const pending = withdrawHistory
+      .filter(w => w.status === "pending")
+      .reduce((sum, w) => sum + Number(w.amount), 0)
+
+    return {
+      total,
+      approved,
+      pending,
+      withdrawCount: withdrawHistory.length
+    }
+
+  }, [withdrawHistory])
+
+  /* ================= CHART DATA ================= */
+
+  const chartData = withdrawHistory.map(w => ({
+    date: new Date(w.created_at).toLocaleDateString(),
+    amount: Number(w.amount)
+  }))
 
   /* ================= ATTACH REFERRAL ================= */
 
@@ -107,7 +150,6 @@ export default function ReferralPage() {
     try {
 
       setAttachLoading(true)
-      setAttachMessage(null)
 
       const json = await authFetch(`/api/v1/referral/attach`, {
         method: "POST",
@@ -118,7 +160,7 @@ export default function ReferralPage() {
 
       setAttachMessage({
         type: "success",
-        text: json.message || "Referral berhasil dipasang"
+        text: json.message
       })
 
       fetchDashboard()
@@ -132,11 +174,14 @@ export default function ReferralPage() {
       })
 
     } finally {
+
       setAttachLoading(false)
+
     }
+
   }
 
-  /* ================= PREVIEW DISCOUNT ================= */
+  /* ================= PREVIEW ================= */
 
   async function handlePreview() {
 
@@ -155,11 +200,14 @@ export default function ReferralPage() {
 
     } catch (err) {
 
-      console.error("Preview error:", err.message)
+      console.error(err)
 
     } finally {
+
       setPreviewLoading(false)
+
     }
+
   }
 
   /* ================= WITHDRAW ================= */
@@ -171,7 +219,6 @@ export default function ReferralPage() {
     try {
 
       setWithdrawLoading(true)
-      setWithdrawMessage(null)
 
       const json = await authFetch(`/api/v1/withdraws`, {
         method: "POST",
@@ -196,25 +243,25 @@ export default function ReferralPage() {
       })
 
     } finally {
+
       setWithdrawLoading(false)
+
     }
+
   }
 
   /* ================= COPY ================= */
 
   function copy(text) {
 
-    if (!text) return
-
     navigator.clipboard.writeText(text)
 
     setAttachMessage({
       type: "success",
-      text: "Berhasil disalin!"
+      text: "Copied!"
     })
-  }
 
-  /* ================= LOADING ================= */
+  }
 
   if (loading) {
 
@@ -229,28 +276,58 @@ export default function ReferralPage() {
   const referralCode = dashboard?.my_referral_code
   const relation = dashboard?.relation?.referrer
 
-  /* ================= UI ================= */
-
   return (
+
     <motion.section
       initial="hidden"
       animate="show"
       variants={fadeUp}
-      transition={{ duration: 0.4 }}
-      className="max-w-7xl mx-auto px-8 py-10 text-white"
+      className="max-w-7xl mx-auto px-4 md:px-8 py-10 text-white"
     >
 
-      <h1 className="text-3xl font-bold mb-8">Referral</h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-8">
+        Referral Dashboard
+      </h1>
+
+      {/* ================= ANALYTICS ================= */}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+
+        <StatCard
+          icon={<Gift size={20}/>}
+          label="Total Earnings"
+          value={`Rp ${analytics.total.toLocaleString()}`}
+        />
+
+        <StatCard
+          icon={<Wallet size={20}/>}
+          label="Withdraw Approved"
+          value={`Rp ${analytics.approved.toLocaleString()}`}
+        />
+
+        <StatCard
+          icon={<AlertCircle size={20}/>}
+          label="Pending Withdraw"
+          value={`Rp ${analytics.pending.toLocaleString()}`}
+        />
+
+        <StatCard
+          icon={<Users size={20}/>}
+          label="Withdraw Count"
+          value={analytics.withdrawCount}
+        />
+
+      </div>
 
       {/* ================= REFERRAL CODE ================= */}
 
       <Card>
 
-        <h3 className="font-semibold mb-4">Kode Referral</h3>
+        <h3 className="font-semibold mb-3">
+          Your Referral Code
+        </h3>
 
-        <p className="text-sm text-gray-400 mb-1">Kode Referral Anda</p>
-
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2">
 
           <input
             readOnly
@@ -260,194 +337,158 @@ export default function ReferralPage() {
 
           <button
             onClick={() => copy(referralCode)}
-            className="rounded-lg border border-purple-700 px-3 hover:bg-purple-700 transition"
+            className="px-3 border border-purple-700 rounded-lg"
           >
-            <Copy size={16} />
+            <Copy size={16}/>
           </button>
 
         </div>
 
-        <p className="text-sm text-gray-400 mb-1">Link Referral</p>
-
-        <input
-          readOnly
-          value={`https://growtechcentral.site?ref=${referralCode}`}
-          className="w-full rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
-        />
-
       </Card>
 
-      {/* ================= ATTACH CODE ================= */}
+      {/* ================= ATTACH ================= */}
 
       <Card className="mt-6">
 
-        <h3 className="font-semibold mb-3">Gunakan Kode Referral</h3>
+        <h3 className="font-semibold mb-3">
+          Use Referral Code
+        </h3>
 
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-2">
 
           <input
             value={attachCode}
-            onChange={(e) => setAttachCode(e.target.value)}
-            placeholder="Masukkan kode referral"
+            onChange={(e)=>setAttachCode(e.target.value)}
             className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
 
           <button
             onClick={handleAttach}
-            disabled={attachLoading}
-            className="rounded-lg bg-purple-700 px-4 hover:bg-purple-600"
+            className="bg-purple-700 px-4 rounded-lg"
           >
             {attachLoading
-              ? <Loader2 className="animate-spin" size={16} />
-              : "Gunakan"
-            }
+              ? <Loader2 className="animate-spin"/>
+              : "Attach"}
           </button>
 
         </div>
 
-        <AnimatePresence>
-
-          {attachMessage && (
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className={`text-sm flex gap-2 ${
-                attachMessage.type === "success"
-                  ? "text-green-400"
-                  : "text-red-400"
-              }`}
-            >
-
-              {attachMessage.type === "success"
-                ? <CheckCircle size={16} />
-                : <AlertCircle size={16} />
-              }
-
-              {attachMessage.text}
-
-            </motion.div>
-
-          )}
-
-        </AnimatePresence>
-
         {relation && (
-
           <p className="text-sm text-gray-400 mt-2">
-            Terhubung dengan: <b>{relation.name}</b>
+            Referrer: {relation.name}
           </p>
-
         )}
 
       </Card>
 
-      {/* ================= PREVIEW DISCOUNT ================= */}
+      {/* ================= PREVIEW ================= */}
 
       <Card className="mt-6">
 
-        <h3 className="font-semibold mb-3">Preview Diskon</h3>
+        <h3 className="font-semibold mb-3">
+          Preview Discount
+        </h3>
 
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-2">
 
           <input
             type="number"
             value={previewAmount}
-            onChange={(e) => setPreviewAmount(Number(e.target.value))}
+            onChange={(e)=>setPreviewAmount(Number(e.target.value))}
             className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
 
           <button
             onClick={handlePreview}
-            disabled={previewLoading}
-            className="rounded-lg bg-purple-700 px-4"
+            className="bg-purple-700 px-4 rounded-lg"
           >
-
             {previewLoading
-              ? <Loader2 className="animate-spin" size={16} />
-              : "Hitung"
-            }
-
+              ? <Loader2 className="animate-spin"/>
+              : "Check"}
           </button>
 
         </div>
 
         {preview && (
-
-          <div className="text-sm space-y-1">
-
-            <p>
-              Status:
-              <b className={preview.eligible ? "text-green-400" : "text-red-400"}>
-                {preview.eligible ? " Eligible" : " Tidak Eligible"}
-              </b>
-            </p>
+          <div className="mt-3 text-sm">
 
             <p>
-              Diskon:
+              Discount:
               <b> Rp {preview.discount_amount?.toLocaleString()}</b>
             </p>
 
             <p>
-              Total Bayar:
+              Final Price:
               <b> Rp {preview.final_amount?.toLocaleString()}</b>
             </p>
 
-            {preview.reason &&
-              <p className="text-red-400">{preview.reason}</p>
-            }
-
           </div>
-
         )}
 
       </Card>
 
       {/* ================= WITHDRAW ================= */}
 
-      <Card className="mt-10">
+      <Card className="mt-6">
 
-        <h3 className="font-semibold mb-3 flex items-center gap-2">
-          <Wallet size={18}/> Withdraw Komisi
+        <h3 className="font-semibold mb-3">
+          Withdraw Commission
         </h3>
 
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-2">
 
           <input
             type="number"
             value={withdrawAmount}
             onChange={(e)=>setWithdrawAmount(e.target.value)}
-            placeholder="Nominal withdraw"
             className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
 
           <button
             onClick={handleWithdraw}
-            disabled={withdrawLoading}
-            className="rounded-lg bg-purple-700 px-4"
+            className="bg-purple-700 px-4 rounded-lg"
           >
-
             {withdrawLoading
-              ? <Loader2 className="animate-spin" size={16}/>
-              : "Withdraw"
-            }
-
+              ? <Loader2 className="animate-spin"/>
+              : "Withdraw"}
           </button>
 
         </div>
 
-        {withdrawMessage && (
+      </Card>
 
-          <p className={`text-sm ${
-            withdrawMessage.type === "success"
-              ? "text-green-400"
-              : "text-red-400"
-          }`}>
-            {withdrawMessage.text}
-          </p>
+      {/* ================= CHART ================= */}
 
-        )}
+      <Card className="mt-10">
+
+        <h3 className="font-semibold mb-4">
+          Earnings Chart
+        </h3>
+
+        <div className="h-[300px]">
+
+          <ResponsiveContainer width="100%" height="100%">
+
+            <LineChart data={chartData}>
+
+              <XAxis dataKey="date"/>
+
+              <YAxis/>
+
+              <Tooltip/>
+
+              <Line
+                type="monotone"
+                dataKey="amount"
+                stroke="#9333ea"
+                strokeWidth={2}
+              />
+
+            </LineChart>
+
+          </ResponsiveContainer>
+
+        </div>
 
       </Card>
 
@@ -455,45 +496,45 @@ export default function ReferralPage() {
 
       <Card className="mt-10">
 
-        <h3 className="font-semibold mb-4">Riwayat Withdraw</h3>
+        <h3 className="font-semibold mb-4">
+          Withdraw History
+        </h3>
 
-        {withdrawLoadingHistory && (
-          <Loader2 className="animate-spin"/>
-        )}
+        <div className="space-y-2">
 
-        <div className="space-y-2 text-sm">
+          {withdrawHistory.map(w => (
 
-          {withdrawHistory.map((item)=>(
             <div
-              key={item.id}
-              className="border border-purple-700 rounded-lg p-3 flex justify-between"
+              key={w.id}
+              className="flex justify-between border border-purple-700 rounded-lg p-3"
             >
+
               <span>
-                Rp {Number(item.amount).toLocaleString()}
+                Rp {Number(w.amount).toLocaleString()}
               </span>
 
               <span className={
-                item.status === "approved"
+                w.status === "approved"
                   ? "text-green-400"
-                  : item.status === "rejected"
+                  : w.status === "rejected"
                   ? "text-red-400"
                   : "text-yellow-400"
               }>
-                {item.status}
+                {w.status}
               </span>
-            </div>
-          ))}
 
-          {!withdrawHistory.length && (
-            <p className="text-gray-500">Belum ada withdraw</p>
-          )}
+            </div>
+
+          ))}
 
         </div>
 
       </Card>
 
     </motion.section>
+
   )
+
 }
 
 /* ================= COMPONENT ================= */
@@ -501,12 +542,40 @@ export default function ReferralPage() {
 function Card({ children, className="" }) {
 
   return (
+
     <motion.div
       whileHover={{ scale:1.01 }}
       className={`rounded-2xl border border-purple-700 bg-black p-6 ${className}`}
     >
+
       {children}
+
     </motion.div>
+
+  )
+
+}
+
+function StatCard({ icon, label, value }) {
+
+  return (
+
+    <div className="border border-purple-700 rounded-xl p-4 bg-black">
+
+      <div className="flex items-center gap-2 mb-2 text-purple-400">
+        {icon}
+      </div>
+
+      <p className="text-xs text-gray-400">
+        {label}
+      </p>
+
+      <p className="font-semibold">
+        {value}
+      </p>
+
+    </div>
+
   )
 
 }
