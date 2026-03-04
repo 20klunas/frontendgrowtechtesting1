@@ -285,7 +285,7 @@ export default function TopUpPage() {
                 <th className="text-left">Metode</th>
                 <th className="text-left">Tanggal & Jam</th>
                 <th className="text-left">Status</th>
-                <th className="text-left">ID</th>
+                {/* <th className="text-left">ID</th> */}
               </tr>
             </thead>
             <tbody>
@@ -298,7 +298,7 @@ export default function TopUpPage() {
                   <td className={row.direction === "CREDIT" ? "text-green-400" : "text-red-400"}>
                     {row.direction}
                   </td>
-                  <td className="text-purple-400">{row.tx_id}</td>
+                  {/* <td className="text-purple-400">{row.tx_id}</td> */}
                 </tr>
               ))}
             </tbody>
