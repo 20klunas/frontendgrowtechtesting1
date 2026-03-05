@@ -58,26 +58,25 @@ export default function TransactionCard({ count, amount, status }) {
         config.glow
       )}
     >
-      {/* Glow layer */}
       <div className="pointer-events-none absolute inset-0 bg-white/5 opacity-0 hover:opacity-100 transition" />
 
       <div className="relative flex items-center justify-between">
-        {/* LEFT */}
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-gray-400">
             {config.label}
           </p>
 
           <p className="text-2xl font-bold text-white">
-            {count}
+            {count ?? 0}
           </p>
 
-          <p className="text-sm text-gray-300">
-            {amount}
-          </p>
+          {amount ? (
+            <p className="text-sm text-gray-300">{amount}</p>
+          ) : (
+            <p className="text-sm text-gray-500">&nbsp;</p>
+          )}
         </div>
 
-        {/* ICON */}
         <div
           className={cn(
             "flex h-12 w-12 items-center justify-center rounded-full",
