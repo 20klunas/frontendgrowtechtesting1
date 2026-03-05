@@ -301,6 +301,18 @@ export default function ReferralPage() {
 
   }
 
+  useEffect(()=>{
+
+    if(!previewAmount) return
+
+    const timeout=setTimeout(()=>{
+      handlePreview()
+    },600)
+
+    return ()=>clearTimeout(timeout)
+
+  },[previewAmount])
+
   if (loading) {
 
     return (
@@ -326,17 +338,10 @@ export default function ReferralPage() {
     return Number(value.replace(/\D/g, ""))
   }
 
-  useEffect(()=>{
+  const referralLink = `${typeof window !== 'undefined'
+    ? window.location.origin
+    : ''}/register?ref=${referralCode}`
 
-    if(!previewAmount) return
-
-    const timeout=setTimeout(()=>{
-      handlePreview()
-    },600)
-
-    return ()=>clearTimeout(timeout)
-
-  },[previewAmount])
 
   return (
 
