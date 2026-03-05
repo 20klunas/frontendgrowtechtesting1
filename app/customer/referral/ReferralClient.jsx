@@ -408,41 +408,41 @@ export default function ReferralPage() {
 
       </h1>
 
-      {/* ================= ANALYTICS ================= */}
+    {/* ================= ANALYTICS ================= */}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-10">
 
-        <StatCard
-          icon={<Gift size={20}/>}
-          label="Total Earnings"
-          value={`Rp ${analytics?.total?.toLocaleString() || 0}`}
-        />
+    <StatCard
+        icon={<Gift size={20}/>}
+        label="Total Earnings"
+        value={`Rp ${walletBalance?.commission_balance?.toLocaleString() || 0}`}
+    />
 
-        <StatCard
-          icon={<Wallet size={20}/>}
-          label="Withdraw Approved"
-          value={`Rp ${analytics.approved.toLocaleString()}`}
-        />
+    <StatCard
+        icon={<Wallet size={20}/>}
+        label="Available Balance"
+        value={`Rp ${walletBalance?.available?.toLocaleString() || 0}`}
+    />
 
-        <StatCard
-          icon={<AlertCircle size={20}/>}
-          label="Pending Withdraw"
-          value={`Rp ${walletBalance?.pending_total?.toLocaleString() || 0}`}
-        />
+    <StatCard
+        icon={<AlertCircle size={20}/>}
+        label="Pending Withdraw"
+        value={`Rp ${walletBalance?.pending_total?.toLocaleString() || 0}`}
+    />
 
-        <StatCard
-          icon={<Users size={20}/>}
-          label="Withdraw Count"
-          value={analytics.withdrawCount}
-        />
+    <StatCard
+        icon={<TrendingUp size={20}/>}
+        label="Withdraw Approved"
+        value={`Rp ${analytics?.approved?.toLocaleString() || 0}`}
+    />
 
-        <StatCard
-            icon={<Wallet size={20}/>}
-            label="Available Balance"
-            value={`Rp ${walletBalance?.available?.toLocaleString() || 0}`}
-        />
+    <StatCard
+        icon={<Users size={20}/>}
+        label="Withdraw Count"
+        value={analytics?.withdrawCount || 0}
+    />
 
-      </div>
+    </div>
 
       {/* ================= REFERRAL SHARE ================= */}
 
@@ -973,8 +973,16 @@ function StatCard({ icon, label, value }) {
   return (
 
     <motion.div
-      whileHover={{ scale:1.05 }}
-      className="border border-purple-700 rounded-xl p-4 bg-black/60 backdrop-blur"
+      whileHover={{ scale:1.04 }}
+      className="
+      border border-purple-700
+      rounded-xl
+      p-4
+      bg-black/60
+      backdrop-blur
+      transition
+      hover:border-purple-500
+      "
     >
 
       <div className="flex items-center gap-2 mb-2 text-purple-400">
@@ -985,7 +993,7 @@ function StatCard({ icon, label, value }) {
         {label}
       </p>
 
-      <p className="font-semibold text-lg">
+      <p className="font-semibold text-lg text-white">
         {value}
       </p>
 
