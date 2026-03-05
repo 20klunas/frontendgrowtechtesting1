@@ -33,6 +33,8 @@ import {
 
 import { motion, AnimatePresence } from "framer-motion"
 import { authFetch } from "../../lib/authFetch"
+import { useEffect, useState } from "react"
+import { Gift, Loader2 } from "lucide-react"
 
 
 /* ================= BACKGROUND ANIMATION ================= */
@@ -317,6 +319,26 @@ export default function ReferralPage() {
 
   const referralCode = dashboard?.my_referral_code
   const relation = dashboard?.relation?.referrer
+  const formatRupiah = (value) => {
+    if (!value) return ""
+    return new Intl.NumberFormat("id-ID").format(value)
+  }
+
+  const parseRupiah = (value) => {
+    return Number(value.replace(/\D/g, ""))
+  }
+
+  useEffect(()=>{
+
+    if(!previewAmount) return
+
+    const timeout=setTimeout(()=>{
+      handlePreview()
+    },600)
+
+    return ()=>clearTimeout(timeout)
+
+  },[previewAmount])
 
   return (
 
@@ -575,9 +597,8 @@ export default function ReferralPage() {
         </div>
 
         <p className="text-sm text-gray-400 mb-5">
-          This tool helps you estimate how much discount you will receive when using a referral.
-          Enter your expected purchase amount and the system will calculate the referral discount
-          automatically.
+          Estimate the discount you will receive when using a referral.
+          The calculation updates automatically as you type the purchase amount.
         </p>
 
         {/* INPUT */}
@@ -591,10 +612,13 @@ export default function ReferralPage() {
           <div className="flex flex-col sm:flex-row gap-2">
 
             <input
-              type="number"
-              value={previewAmount}
-              onChange={(e)=>setPreviewAmount(Number(e.target.value))}
-              placeholder="Example: 100000"
+              type="text"
+              value={formatRupiah(previewAmount)}
+              onChange={(e)=>{
+                const raw=parseRupiah(e.target.value)
+                setPreviewAmount(raw)
+              }}
+              placeholder="Example: 100.000"
               className="
               flex-1
               rounded-xl
@@ -620,7 +644,7 @@ export default function ReferralPage() {
 
               {previewLoading
                 ? <Loader2 className="animate-spin"/>
-                : "Check Discount"}
+                : "Check"}
 
             </button>
 
@@ -632,23 +656,109 @@ export default function ReferralPage() {
 
         {preview && (
 
-          <div className="mt-5 bg-purple-900/20 border border-purple-800 rounded-xl p-4 text-sm space-y-2">
+          <div className="mt-6 space-y-4">
 
-            <p className="text-gray-400">
-              Estimated Discount
-            </p>
+            {/* DISCOUNT RESULT */}
 
-            <p className="text-lg font-semibold text-green-400">
-              Rp {preview.discount_amount?.toLocaleString()}
-            </p>
+            <div className="bg-purple-900/20 border border-purple-800 rounded-xl p-4 text-sm space-y-2">
 
-            <p className="text-gray-400 mt-2">
-              Final Price After Discount
-            </p>
+              <div className="flex justify-between">
 
-            <p className="text-lg font-semibold text-purple-300">
-              Rp {preview.final_amount?.toLocaleString()}
-            </p>
+                <span className="text-gray-400">
+                  Purchase Amount
+                </span>
+
+                <span>
+                  Rp {preview.amount?.toLocaleString()}
+                </span>
+
+              </div>
+
+              <div className="flex justify-between">
+
+                <span className="text-gray-400">
+                  Referral Discount
+                </span>
+
+                <span className="text-green-400 font-semibold">
+                  Rp {preview.discount_amount?.toLocaleString()}
+                </span>
+
+              </div>
+
+              <div className="flex justify-between text-base font-semibold">
+
+                <span>
+                  Final Price
+                </span>
+
+                <span className="text-purple-300">
+                  Rp {preview.final_amount?.toLocaleString()}
+                </span>
+
+              </div>
+
+            </div>
+
+            {/* DISCOUNT PROGRESS BAR */}
+
+            <div>
+
+              <p className="text-xs text-gray-400 mb-1">
+                Discount Ratio
+              </p>
+
+              <div className="w-full bg-purple-900/30 rounded-full h-2">
+
+                <div
+                  style={{
+                    width: preview.amount
+                      ? `${Math.min((preview.discount_amount / preview.amount) * 100,100)}%`
+                      : "0%"
+                  }}
+                  className="h-2 bg-green-400 rounded-full transition-all duration-500"
+                />
+
+              </div>
+
+            </div>
+
+            {/* ELIGIBILITY STATUS */}
+
+            {preview.eligible === false && (
+
+              <div className="bg-red-900/20 border border-red-800 rounded-xl p-3 text-xs text-red-400">
+
+                {preview.reason || "Referral discount is not eligible for this order amount."}
+
+              </div>
+
+            )}
+
+            {preview.eligible === true && (
+
+              <div className="bg-green-900/20 border border-green-800 rounded-xl p-3 text-xs text-green-400">
+
+                Referral discount can be applied to this order.
+
+              </div>
+
+            )}
+
+            {/* MINIMUM ORDER INDICATOR */}
+
+            {preview.settings?.min_order_amount && (
+
+              <div className="text-xs text-gray-400">
+
+                Minimum order required:{" "}
+                <span className="text-purple-300 font-semibold">
+                  Rp {preview.settings.min_order_amount.toLocaleString()}
+                </span>
+
+              </div>
+
+            )}
 
           </div>
 
@@ -656,10 +766,10 @@ export default function ReferralPage() {
 
         {/* INFO */}
 
-        <div className="mt-5 text-xs text-gray-500 leading-relaxed">
+        <div className="mt-6 text-xs text-gray-500 leading-relaxed">
 
-          This preview shows the estimated referral discount based on your purchase amount.
-          The final discount will be applied automatically during checkout if the referral
+          This preview calculates the potential referral discount based on your purchase amount.
+          The final discount will be applied automatically during checkout if all referral
           requirements are met.
 
         </div>
