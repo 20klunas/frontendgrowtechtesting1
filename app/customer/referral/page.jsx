@@ -34,6 +34,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import { authFetch } from "../../lib/authFetch"
 
+import { useSearchParams } from "next/navigation"
+
 
 /* ================= BACKGROUND ANIMATION ================= */
 
@@ -313,6 +315,16 @@ export default function ReferralPage() {
 
   },[previewAmount])
 
+  useEffect(() => {
+
+    const ref = searchParams.get("ref")
+
+    if (ref) {
+      setAttachCode(ref.toUpperCase())
+    }
+
+  }, [searchParams])
+
   if (loading) {
 
     return (
@@ -340,7 +352,7 @@ export default function ReferralPage() {
 
   const referralLink = `${typeof window !== 'undefined'
     ? window.location.origin
-    : ''}/register?ref=${referralCode}`
+    : ''}/customer/referral?ref=${referralCode}`
 
 
   return (
