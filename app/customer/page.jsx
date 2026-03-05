@@ -88,15 +88,17 @@ export default function CustomerHomePage() {
 
             <div className="mt-8 flex gap-4">
               <Link
-                href="/customer/category/product"
+                href="/customer/category"
                 className="rounded-lg bg-purple-500 px-6 py-3 font-semibold hover:bg-purple-600"
               >
                 Jelajahi Katalog
               </Link>
 
-              <button className="rounded-lg border border-purple-500 px-6 py-3 text-purple-400 hover:bg-purple-500/10">
+              <Link 
+                href="/customer/faq"
+                className="rounded-lg border border-purple-500 px-6 py-3 text-purple-400 hover:bg-purple-500/10">
                 Informasi Lebih Lanjut
-              </button>
+              </Link>
             </div>
           </div>
 
