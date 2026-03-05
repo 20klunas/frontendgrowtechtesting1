@@ -235,7 +235,7 @@ export default function DashboardPage() {
 
         <motion.div
           variants={item}
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3"
         >
           <TransactionCard
             status="berhasil"
@@ -243,7 +243,7 @@ export default function DashboardPage() {
             amount={formatRupiah(revenue?.total || 0)}
           />
           <TransactionCard status="pending" count={trx?.pending || 0} amount="" />
-          <TransactionCard status="proses" count={trxProcess || 0} amount="" />
+          {/* <TransactionCard status="proses" count={trxProcess || 0} amount="" /> */}
           <TransactionCard status="gagal" count={trx?.failed || 0} amount="" />
         </motion.div>
       </motion.section>
