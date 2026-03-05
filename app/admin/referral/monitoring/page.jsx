@@ -83,11 +83,11 @@ export default function MonitoringReferralPage() {
   }
 
   return (
-    <div className="p-8 text-white">
+    <div className="px-4 md:px-8 py-6 text-white max-w-full overflow-x-hidden">
       <h1 className="text-4xl font-bold mb-2">Admin Referral</h1>
       <ReferralTabs />
 
-      <div className="flex justify-between mb-4">
+      <div className="flex flex-col md:flex-row md:justify-between gap-3 mb-4">
         <input
           type="text"
           placeholder="Cari referrer..."
@@ -96,7 +96,7 @@ export default function MonitoringReferralPage() {
             setSearch(e.target.value)
             setPage(1)
           }}
-          className="bg-black border border-purple-600 px-4 py-2 rounded-lg"
+          className="bg-black border border-purple-600 px-4 py-2 rounded-lg w-full md:w-auto"
         />
 
         <button
@@ -111,7 +111,7 @@ export default function MonitoringReferralPage() {
         {loading ? (
           <div className="p-6 text-gray-400">Loading...</div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="min-w-[900px] w-full text-sm">
             <thead className="text-gray-300 border-b border-gray-700">
               <tr>
                 <th>User / Kode Referral</th>

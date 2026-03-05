@@ -74,12 +74,12 @@ export default function ReferralRelationsPage() {
   }
 
   return (
-    <div className="p-8 text-white">
+    <div className="px-4 md:px-8 py-6 text-white max-w-full overflow-x-hidden">
       <h1 className="text-4xl font-bold mb-2">Admin Referral</h1>
       <ReferralTabs />
 
       {/* FILTER */}
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="flex flex-col md:flex-row gap-3 mb-6">
         <input
           type="text"
           placeholder="Search user / email / referral code..."
@@ -88,21 +88,21 @@ export default function ReferralRelationsPage() {
             setSearch(e.target.value)
             setPage(1)
           }}
-          className="bg-black border border-purple-600 px-4 py-2 rounded-lg"
+          className="bg-black border border-purple-600 px-4 py-2 rounded-lg w-full md:w-auto"
         />
 
         <input
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="bg-black border border-purple-600 px-4 py-2 rounded-lg"
+          className="bg-black border border-purple-600 px-4 py-2 rounded-lg w-full md:w-auto"
         />
 
         <input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="bg-black border border-purple-600 px-4 py-2 rounded-lg"
+          className="bg-black border border-purple-600 px-4 py-2 rounded-lg w-full md:w-auto"
         />
       </div>
 
@@ -111,7 +111,7 @@ export default function ReferralRelationsPage() {
         {loading ? (
           <div className="p-6 text-gray-400">Loading...</div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="min-w-[700px] w-full text-sm">
             <thead className="border-b border-gray-700 text-gray-300">
               <tr>
                 <th>User</th>
