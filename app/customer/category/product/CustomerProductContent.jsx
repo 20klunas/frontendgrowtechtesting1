@@ -20,6 +20,7 @@ export default function CustomerProductContent() {
 
   const [addingId, setAddingId] = useState(null);
   const [checkoutLoadingId, setCheckoutLoadingId] = useState(null);
+  const [sort, setSort] = useState("latest");
 
   // ===== FAVORITES =====
   const [favoriteIds, setFavoriteIds] = useState(new Set());
@@ -48,16 +49,22 @@ export default function CustomerProductContent() {
     fetchFavorites();
     setCurrentPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subcategoryId]);
+  }, [subcategoryId, sort]);
 
   /* ================= FETCH PRODUCTS ================= */
   const fetchProducts = async () => {
     try {
       setLoading(true);
 
-      const url = subcategoryId
-        ? `${API}/api/v1/products?subcategory_id=${subcategoryId}`
-        : `${API}/api/v1/products`;
+      let url = `${API}/api/v1/products?sort=${sort}&per_page=10`;
+
+      if (subcategoryId) {
+        url += `&subcategory_id=${subcategoryId}`;
+      }
+
+      // const url = subcategoryId
+      //   ? `${API}/api/v1/products?subcategory_id=${subcategoryId}`
+      //   : `${API}/api/v1/products`;
 
       const res = await fetch(url);
 
@@ -328,6 +335,20 @@ export default function CustomerProductContent() {
               "Deskripsi subkategori akan tampil di sini"}
           </p>
         </div>
+      </div>
+
+      <div className="flex justify-end mb-6">
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="bg-black border border-purple-700 text-white px-3 py-2 rounded-lg"
+        >
+          <option value="latest">Terbaru</option>
+          <option value="bestseller">Terlaris</option>
+          <option value="favorite">Favorit</option>
+          <option value="popular">Popular</option>
+          <option value="rating">Top Rated</option>
+        </select>
       </div>
 
       {/* ================= GRID ================= */}
