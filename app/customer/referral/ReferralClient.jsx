@@ -459,8 +459,8 @@ export default function ReferralPage() {
         </div>
 
         <p className="text-sm text-gray-400 mb-6">
-          Share your referral code or link with friends. When they register and make a purchase,
-          you will receive commission rewards automatically.
+          Kirim kode referralmu. Ketika mereka registrasi dan melakukan pembelian,
+          kamu akan menerima hadiah komisi otomatis.
         </p>
 
 
@@ -566,18 +566,18 @@ export default function ReferralPage() {
         <div className="bg-purple-900/20 border border-purple-800 rounded-xl p-4 text-sm text-gray-300">
 
           <p className="font-semibold mb-2 text-purple-300">
-            How Referral Works
+            Bagaimana kode referral bekerja?
           </p>
 
           <ul className="space-y-1 list-disc pl-4 text-gray-400">
 
-            <li>Share your referral code or link with friends.</li>
+            <li>Kirim kode referralmu atau link dengan temanmu.</li>
 
-            <li>They register using your referral.</li>
+            <li>Mereka dapat menggunakan referralmu.</li>
 
-            <li>When they purchase products, you earn commission.</li>
+            <li>Ketika mereka membeli produk, kamu mendapatkan komisi.</li>
 
-            <li>You can withdraw your commission anytime.</li>
+            <li>Kamu bisa menarik komisi kamu kapan saja.</li>
 
           </ul>
 
@@ -608,7 +608,7 @@ export default function ReferralPage() {
 
             {attachLoading
               ? <Loader2 className="animate-spin"/>
-              : "Attach"}
+              : "Use Code"}
 
           </button>
 
@@ -626,7 +626,7 @@ export default function ReferralPage() {
 
       {searchParams.get("ref") && (
         <div className="mb-4 p-3 rounded-lg bg-purple-900/30 border border-purple-700 text-sm">
-          Referral code detected. Click <b>Attach</b> to activate referral benefits.
+          Kode referral terdeteksi. Klik <b>Use Code</b> untuk mengaktifkan manfaat referral.
         </div>
       )}
 
@@ -645,8 +645,8 @@ export default function ReferralPage() {
         </div>
 
         <p className="text-sm text-gray-400 mb-5">
-          Estimate the discount you will receive when using a referral.
-          The calculation updates automatically as you type the purchase amount.
+          Perkirakan diskon yang akan Anda terima saat menggunakan kode referral.
+          Perhitungan akan diperbarui secara otomatis saat Anda mengetikkan jumlah pembelian.
         </p>
 
         {/* INPUT */}
@@ -753,7 +753,7 @@ export default function ReferralPage() {
             <div>
 
               <p className="text-xs text-gray-400 mb-1">
-                Discount Ratio
+                Rasio diskon terhadap jumlah pembelian.
               </p>
 
               <div className="w-full bg-purple-900/30 rounded-full h-2">
@@ -787,7 +787,7 @@ export default function ReferralPage() {
 
               <div className="bg-green-900/20 border border-green-800 rounded-xl p-3 text-xs text-green-400">
 
-                Referral discount can be applied to this order.
+                Diskon referral dapat diterapkan pada pesanan ini.
 
               </div>
 
@@ -799,7 +799,7 @@ export default function ReferralPage() {
 
               <div className="text-xs text-gray-400">
 
-                Minimum order required:{" "}
+                Minimum order diperlukan:{" "}
                 <span className="text-purple-300 font-semibold">
                   Rp {preview.settings.min_order_amount.toLocaleString()}
                 </span>
@@ -816,9 +816,8 @@ export default function ReferralPage() {
 
         <div className="mt-6 text-xs text-gray-500 leading-relaxed">
 
-          This preview calculates the potential referral discount based on your purchase amount.
-          The final discount will be applied automatically during checkout if all referral
-          requirements are met.
+          Pratinjau ini menghitung potensi diskon rujukan berdasarkan jumlah pembelian Anda.
+          Diskon akhir akan diterapkan secara otomatis saat pembayaran jika semua persyaratan rujukan terpenuhi.
 
         </div>
 
@@ -829,11 +828,11 @@ export default function ReferralPage() {
       <Card className="mt-6">
 
         <h3 className="font-semibold mb-3">
-          Withdraw Commission
+          Penarikan Komisi Referral
         </h3>
 
         <p className="text-xs text-gray-400 mb-2">
-            Available Balance:
+            Saldo Tersedia:
             <span className="text-green-400 ml-1">
                 Rp {walletBalance?.available?.toLocaleString()}
             </span>
@@ -868,7 +867,7 @@ export default function ReferralPage() {
       <Card className="mt-10">
 
         <h3 className="font-semibold mb-4">
-          Earnings Chart
+          Grafik Penarikan Komisi Referral
         </h3>
 
         <div className="h-[320px] min-h-[320px]">
@@ -906,7 +905,7 @@ export default function ReferralPage() {
       <Card className="mt-10">
 
         <h3 className="font-semibold mb-4">
-          Withdraw History
+          Riwayat Penarikan Komisi Referral
         </h3>
 
         <div className="space-y-3">
