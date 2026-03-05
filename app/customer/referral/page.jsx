@@ -33,7 +33,6 @@ import {
 
 import { motion, AnimatePresence } from "framer-motion"
 import { authFetch } from "../../lib/authFetch"
-import { useEffect, useState } from "react"
 
 
 /* ================= BACKGROUND ANIMATION ================= */
