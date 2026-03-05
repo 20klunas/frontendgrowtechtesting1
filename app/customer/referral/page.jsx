@@ -64,6 +64,7 @@ const fadeUp = {
 /* ================= MAIN PAGE ================= */
 
 export default function ReferralPage() {
+  const searchParams = useSearchParams()
 
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -82,6 +83,7 @@ export default function ReferralPage() {
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [withdrawMessage, setWithdrawMessage] = useState(null)
+  
 
   /* ================= INIT ================= */
 
@@ -839,7 +841,7 @@ export default function ReferralPage() {
 
         <div className="h-[320px]">
 
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={300}>
 
             <LineChart data={chartData}>
 
