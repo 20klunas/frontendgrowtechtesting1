@@ -16,7 +16,8 @@ import {
   Share2,
   Crown,
   Clock,
-  Network
+  Network,
+  Loader2
 } from "lucide-react"
 
 import {
@@ -34,7 +35,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import { authFetch } from "../../lib/authFetch"
 import { useEffect, useState } from "react"
-import { Gift, Loader2 } from "lucide-react"
 
 
 /* ================= BACKGROUND ANIMATION ================= */
