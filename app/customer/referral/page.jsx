@@ -17,7 +17,6 @@ import {
   Crown,
   Clock,
   Network,
-  Loader2
 } from "lucide-react"
 
 import {
