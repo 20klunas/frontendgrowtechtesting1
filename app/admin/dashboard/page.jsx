@@ -292,7 +292,7 @@ export default function DashboardPage() {
             variant="warning"
           />
           <StatCard
-            title={`M:${usersData?.by_tier?.member ?? 0} • R:${usersData?.by_tier?.reseller ?? 0} • V:${usersData?.by_tier?.vip ?? 0}`}
+            title={`Member:${usersData?.by_tier?.member ?? 0} • Reseller:${usersData?.by_tier?.reseller ?? 0} • VIP:${usersData?.by_tier?.vip ?? 0}`}
             label="Total User per Tier"
             icon={Users}
             variant="info"
