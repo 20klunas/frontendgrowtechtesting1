@@ -597,6 +597,12 @@ export default function ReferralPage() {
 
       </Card>
 
+      {searchParams.get("ref") && (
+        <div className="mb-4 p-3 rounded-lg bg-purple-900/30 border border-purple-700 text-sm">
+          Referral code detected. Click <b>Attach</b> to activate referral benefits.
+        </div>
+      )}
+
       {/* ================= PREVIEW DISCOUNT ================= */}
 
       <Card className="mt-6">
