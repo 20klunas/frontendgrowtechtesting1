@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { CheckCircle, Clock, Eye, X } from "lucide-react"
-import { cn } from "../../../lib/utils"
+import { CheckCircle, Clock, Eye, X } from "lucide-react";
+import { cn } from "../../../lib/utils";
 
 const statusConfig = {
   berhasil: {
@@ -40,11 +40,11 @@ const statusConfig = {
     iconColor: "text-red-400",
     glow: "hover:shadow-red-500/20",
   },
-}
+};
 
-export default function TransactionCard({ count, amount, status }) {
-  const config = statusConfig[status] || statusConfig.pending
-  const Icon = config.icon
+export default function TransactionCard({ count = 0, amount = "", status = "pending" }) {
+  const config = statusConfig[status] || statusConfig.pending;
+  const Icon = config.icon;
 
   return (
     <div
@@ -58,17 +58,17 @@ export default function TransactionCard({ count, amount, status }) {
         config.glow
       )}
     >
+      {/* Glow layer */}
       <div className="pointer-events-none absolute inset-0 bg-white/5 opacity-0 hover:opacity-100 transition" />
 
       <div className="relative flex items-center justify-between">
+        {/* LEFT */}
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-gray-400">
             {config.label}
           </p>
 
-          <p className="text-2xl font-bold text-white">
-            {count ?? 0}
-          </p>
+          <p className="text-2xl font-bold text-white">{count}</p>
 
           {amount ? (
             <p className="text-sm text-gray-300">{amount}</p>
@@ -77,6 +77,7 @@ export default function TransactionCard({ count, amount, status }) {
           )}
         </div>
 
+        {/* ICON */}
         <div
           className={cn(
             "flex h-12 w-12 items-center justify-center rounded-full",
@@ -87,5 +88,5 @@ export default function TransactionCard({ count, amount, status }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
