@@ -832,7 +832,7 @@ export default function ReferralPage() {
         </h3>
 
         <p className="text-xs text-gray-400 mb-2">
-            Saldo Tersedia:
+            Saldo Referral Tersedia:
             <span className="text-green-400 ml-1">
                 Rp {walletBalance?.available?.toLocaleString()}
             </span>
