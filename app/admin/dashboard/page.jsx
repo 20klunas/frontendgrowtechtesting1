@@ -19,8 +19,8 @@ import {
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 
-// ✅ sesuaikan path kalau beda di project kamu
-import { authFetch } from "../../../lib/authFetch";
+// sesuaikan path kalau beda di project kamu
+import { authFetch } from "../../lib/authFetch";
 
 /* ================= HELPERS ================= */
 
