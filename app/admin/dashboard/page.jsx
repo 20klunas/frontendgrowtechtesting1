@@ -97,29 +97,24 @@ export default function DashboardPage() {
     return p.toString();
   }, [rangeApplied, filtersApplied]);
 
-  async function fetchDashboard() {
-    setLoading(true);
-    setErr(null);
+async function fetchDashboard() {
+  setLoading(true);
+  setErr(null);
 
-    try {
-      const res = await authFetch(`/api/v1/admin/dashboard/summary?${queryString}`, {
-        method: "GET",
-      });
+  try {
+    const json = await authFetch(
+      `/api/v1/admin/dashboard/summary?${queryString}`,
+      { method: "GET" }
+    );
 
-      const json = await res.json();
-
-      if (!res.ok || json?.success === false) {
-        throw new Error(json?.error?.message || "Gagal memuat dashboard");
-      }
-
-      setData(json.data || json);
-    } catch (e) {
-      setErr(e?.message || "Terjadi error");
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
+    setData(json.data || json);
+  } catch (e) {
+    setErr(e?.message || "Terjadi error");
+    setData(null);
+  } finally {
+    setLoading(false);
   }
+}
 
   useEffect(() => {
     setChartOffset(0);
@@ -127,12 +122,17 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryString]);
 
+  if (!json) {
+    setData({});
+    return;
+  }
+
   // ===== mapping data backend
-  const trx = data?.transactions_all_time || {};
-  const revenue = data?.revenue || {};
-  const products = data?.products || {};
-  const usersData = data?.users || {};
-  const chart = data?.chart || {};
+  const trx = data?.transactions_all_time ?? {};
+  const revenue = data?.revenue ?? {};
+  const products = data?.products ?? {};
+  const usersData = data?.users ?? {};
+  const chart = data?.chart ?? {};
 
   const statusCounts = trx?.by_status || {};
   const trxProcess = (statusCounts?.created || 0) + (statusCounts?.pending || 0);
