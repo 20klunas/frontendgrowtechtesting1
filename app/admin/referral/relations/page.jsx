@@ -114,7 +114,6 @@ export default function ReferralRelationsPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-gray-700 text-gray-300">
               <tr>
-                <th>ID</th>
                 <th>User</th>
                 <th>Referrer</th>
                 <th>Locked At</th>
@@ -124,25 +123,25 @@ export default function ReferralRelationsPage() {
             <tbody>
               {data.map((row) => (
                 <tr key={row.id} className="border-b border-gray-800">
-                  <td className="py-3">{row.id}</td>
+                  {/* <td className="py-3">{row.id}</td> */}
 
-                  <td>
+                  <td className="text-center">
                     {row.user?.name}
                     <br />
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-center text-gray-400">
                       {row.user?.email}
                     </span>
                   </td>
 
-                  <td>
+                  <td className="text-center">
                     {row.referrer?.name}
                     <br />
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-center text-gray-400">
                       {row.referrer?.email}
                     </span>
                   </td>
 
-                  <td>
+                  <td className="text-center">
                     {row.locked_at
                       ? new Date(row.locked_at).toLocaleDateString('id-ID')
                       : '-'}
@@ -151,7 +150,7 @@ export default function ReferralRelationsPage() {
                   <td>
                     <button
                       onClick={() => handleForceUnlock(row.user_id)}
-                      className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded"
+                      className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded align-middle text-center"
                     >
                       Force Unlock
                     </button>
