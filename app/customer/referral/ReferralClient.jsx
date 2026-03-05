@@ -83,6 +83,7 @@ export default function ReferralPage() {
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [withdrawMessage, setWithdrawMessage] = useState(null)
+  const [walletBalance, setWalletBalance] = useState(null)
   
 
   /* ================= INIT ================= */
@@ -90,6 +91,7 @@ export default function ReferralPage() {
   useEffect(() => {
     fetchDashboard()
     fetchWithdrawHistory()
+    fetchBalance()
   }, [])
 
   /* ================= FETCH DASHBOARD ================= */
@@ -114,6 +116,22 @@ export default function ReferralPage() {
     }
 
   }
+
+  async function fetchBalance() {
+
+    try {
+
+        const json = await authFetch(`/api/v1/withdraws-balance`)
+
+        setWalletBalance(json.data)
+
+    } catch (err) {
+
+        console.error(err)
+
+    }
+
+ }
 
   /* ================= FETCH WITHDRAW ================= */
 
@@ -264,6 +282,7 @@ export default function ReferralPage() {
 
       setWithdrawAmount("")
       fetchWithdrawHistory()
+      fetchBalance()
 
     } catch (err) {
 
@@ -396,7 +415,7 @@ export default function ReferralPage() {
         <StatCard
           icon={<Gift size={20}/>}
           label="Total Earnings"
-          value={`Rp ${analytics.total.toLocaleString()}`}
+          value={`Rp ${walletBalance?.commission_balance?.toLocaleString() || 0}`}
         />
 
         <StatCard
@@ -408,13 +427,19 @@ export default function ReferralPage() {
         <StatCard
           icon={<AlertCircle size={20}/>}
           label="Pending Withdraw"
-          value={`Rp ${analytics.pending.toLocaleString()}`}
+          value={`Rp ${walletBalance?.pending_total?.toLocaleString() || 0}`}
         />
 
         <StatCard
           icon={<Users size={20}/>}
           label="Withdraw Count"
           value={analytics.withdrawCount}
+        />
+
+        <StatCard
+            icon={<Wallet size={20}/>}
+            label="Available Balance"
+            value={`Rp ${walletBalance?.available?.toLocaleString() || 0}`}
         />
 
       </div>
@@ -806,6 +831,13 @@ export default function ReferralPage() {
         <h3 className="font-semibold mb-3">
           Withdraw Commission
         </h3>
+
+        <p className="text-xs text-gray-400 mb-2">
+            Available Balance:
+            <span className="text-green-400 ml-1">
+                Rp {walletBalance?.available?.toLocaleString()}
+            </span>
+        </p>
 
         <div className="flex gap-2">
 
