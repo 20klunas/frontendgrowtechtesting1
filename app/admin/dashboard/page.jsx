@@ -97,35 +97,34 @@ export default function DashboardPage() {
     return p.toString();
   }, [rangeApplied, filtersApplied]);
 
-async function fetchDashboard() {
-  setLoading(true);
-  setErr(null);
+  async function fetchDashboard() {
+    setLoading(true);
+    setErr(null);
 
-  try {
-    const json = await authFetch(
-      `/api/v1/admin/dashboard/summary?${queryString}`,
-      { method: "GET" }
-    );
+    try {
+      const json = await authFetch(
+        `/api/v1/admin/dashboard/summary?${queryString}`,
+        { method: "GET" }
+      );
 
-    setData(json.data || json);
-  } catch (e) {
-    setErr(e?.message || "Terjadi error");
-    setData(null);
-  } finally {
-    setLoading(false);
+      if (json?.success === false) {
+        throw new Error(json?.error?.message || "Gagal memuat dashboard");
+      }
+
+      setData(json.data || json);
+    } catch (e) {
+      setErr(e?.message || "Terjadi error");
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   useEffect(() => {
     setChartOffset(0);
     fetchDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryString]);
-
-  if (!json) {
-    setData({});
-    return;
-  }
 
   // ===== mapping data backend
   const trx = data?.transactions_all_time ?? {};
