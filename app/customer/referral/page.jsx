@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from "react"
+
 import {
   Copy,
   CheckCircle,
@@ -9,7 +10,9 @@ import {
   Wallet,
   Users,
   TrendingUp,
-  Gift
+  Gift,
+  ArrowUpRight,
+  Sparkles
 } from "lucide-react"
 
 import {
@@ -18,20 +21,39 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  CartesianGrid
 } from "recharts"
 
 import { motion, AnimatePresence } from "framer-motion"
 import { authFetch } from "../../lib/authFetch"
 
-/* ================= ANIMATION ================= */
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0 }
+/* ================= BACKGROUND ANIMATION ================= */
+
+const backgroundGlow = {
+  animate: {
+    opacity: [0.3, 0.6, 0.3],
+    scale: [1, 1.05, 1],
+  },
+  transition: {
+    duration: 6,
+    repeat: Infinity
+  }
 }
 
-/* ================= PAGE ================= */
+/* ================= PAGE ANIMATION ================= */
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: .4 }
+  }
+}
+
+/* ================= MAIN PAGE ================= */
 
 export default function ReferralPage() {
 
@@ -56,10 +78,8 @@ export default function ReferralPage() {
   /* ================= INIT ================= */
 
   useEffect(() => {
-
     fetchDashboard()
     fetchWithdrawHistory()
-
   }, [])
 
   /* ================= FETCH DASHBOARD ================= */
@@ -266,9 +286,13 @@ export default function ReferralPage() {
   if (loading) {
 
     return (
-      <div className="flex justify-center items-center h-screen text-white">
-        <Loader2 className="animate-spin" />
+
+      <div className="flex justify-center items-center h-screen text-purple-400">
+
+        <Loader2 className="animate-spin w-10 h-10" />
+
       </div>
+
     )
 
   }
@@ -282,16 +306,35 @@ export default function ReferralPage() {
       initial="hidden"
       animate="show"
       variants={fadeUp}
-      className="max-w-7xl mx-auto px-4 md:px-8 py-10 text-white"
+      className="relative max-w-7xl mx-auto px-4 md:px-8 py-12 text-white"
     >
 
-      <h1 className="text-2xl md:text-3xl font-bold mb-8">
+      {/* Background glow */}
+
+      <motion.div
+        variants={backgroundGlow}
+        animate="animate"
+        className="absolute blur-[120px] bg-purple-700 opacity-30 w-[500px] h-[500px] -top-40 -left-40 rounded-full"
+      />
+
+      <motion.div
+        variants={backgroundGlow}
+        animate="animate"
+        className="absolute blur-[120px] bg-fuchsia-700 opacity-30 w-[400px] h-[400px] bottom-0 right-0 rounded-full"
+      />
+
+      {/* TITLE */}
+
+      <h1 className="text-3xl md:text-4xl font-bold mb-10 flex items-center gap-2">
+
+        <Sparkles className="text-purple-400"/>
         Referral Dashboard
+
       </h1>
 
       {/* ================= ANALYTICS ================= */}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
 
         <StatCard
           icon={<Gift size={20}/>}
@@ -332,12 +375,12 @@ export default function ReferralPage() {
           <input
             readOnly
             value={referralCode || ""}
-            className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
+            className="flex-1 rounded-xl bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
 
           <button
             onClick={() => copy(referralCode)}
-            className="px-3 border border-purple-700 rounded-lg"
+            className="px-4 border border-purple-700 rounded-xl hover:bg-purple-700/30 transition"
           >
             <Copy size={16}/>
           </button>
@@ -359,24 +402,28 @@ export default function ReferralPage() {
           <input
             value={attachCode}
             onChange={(e)=>setAttachCode(e.target.value)}
-            className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
+            className="flex-1 rounded-xl bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
 
           <button
             onClick={handleAttach}
-            className="bg-purple-700 px-4 rounded-lg"
+            className="bg-purple-700 px-4 rounded-xl hover:bg-purple-600 transition"
           >
+
             {attachLoading
               ? <Loader2 className="animate-spin"/>
               : "Attach"}
+
           </button>
 
         </div>
 
         {relation && (
+
           <p className="text-sm text-gray-400 mt-2">
             Referrer: {relation.name}
           </p>
+
         )}
 
       </Card>
@@ -395,34 +442,42 @@ export default function ReferralPage() {
             type="number"
             value={previewAmount}
             onChange={(e)=>setPreviewAmount(Number(e.target.value))}
-            className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
+            className="flex-1 rounded-xl bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
 
           <button
             onClick={handlePreview}
-            className="bg-purple-700 px-4 rounded-lg"
+            className="bg-purple-700 px-4 rounded-xl hover:bg-purple-600 transition"
           >
+
             {previewLoading
               ? <Loader2 className="animate-spin"/>
               : "Check"}
+
           </button>
 
         </div>
 
         {preview && (
-          <div className="mt-3 text-sm">
+
+          <div className="mt-4 text-sm space-y-1">
 
             <p>
               Discount:
-              <b> Rp {preview.discount_amount?.toLocaleString()}</b>
+              <b className="text-green-400">
+                Rp {preview.discount_amount?.toLocaleString()}
+              </b>
             </p>
 
             <p>
               Final Price:
-              <b> Rp {preview.final_amount?.toLocaleString()}</b>
+              <b className="text-purple-400">
+                Rp {preview.final_amount?.toLocaleString()}
+              </b>
             </p>
 
           </div>
+
         )}
 
       </Card>
@@ -441,16 +496,18 @@ export default function ReferralPage() {
             type="number"
             value={withdrawAmount}
             onChange={(e)=>setWithdrawAmount(e.target.value)}
-            className="flex-1 rounded-lg bg-purple-900/40 border border-purple-700 px-4 py-2"
+            className="flex-1 rounded-xl bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
 
           <button
             onClick={handleWithdraw}
-            className="bg-purple-700 px-4 rounded-lg"
+            className="bg-purple-700 px-4 rounded-xl hover:bg-purple-600 transition"
           >
+
             {withdrawLoading
               ? <Loader2 className="animate-spin"/>
               : "Withdraw"}
+
           </button>
 
         </div>
@@ -465,11 +522,13 @@ export default function ReferralPage() {
           Earnings Chart
         </h3>
 
-        <div className="h-[300px]">
+        <div className="h-[320px]">
 
           <ResponsiveContainer width="100%" height="100%">
 
             <LineChart data={chartData}>
+
+              <CartesianGrid strokeDasharray="3 3" stroke="#6b21a8"/>
 
               <XAxis dataKey="date"/>
 
@@ -481,7 +540,8 @@ export default function ReferralPage() {
                 type="monotone"
                 dataKey="amount"
                 stroke="#9333ea"
-                strokeWidth={2}
+                strokeWidth={3}
+                dot={false}
               />
 
             </LineChart>
@@ -500,16 +560,17 @@ export default function ReferralPage() {
           Withdraw History
         </h3>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
 
           {withdrawHistory.map(w => (
 
-            <div
+            <motion.div
               key={w.id}
-              className="flex justify-between border border-purple-700 rounded-lg p-3"
+              whileHover={{ scale:1.02 }}
+              className="flex justify-between border border-purple-700 rounded-xl p-4 bg-purple-900/20"
             >
 
-              <span>
+              <span className="font-semibold">
                 Rp {Number(w.amount).toLocaleString()}
               </span>
 
@@ -523,7 +584,7 @@ export default function ReferralPage() {
                 {w.status}
               </span>
 
-            </div>
+            </motion.div>
 
           ))}
 
@@ -537,6 +598,7 @@ export default function ReferralPage() {
 
 }
 
+
 /* ================= COMPONENT ================= */
 
 function Card({ children, className="" }) {
@@ -545,7 +607,7 @@ function Card({ children, className="" }) {
 
     <motion.div
       whileHover={{ scale:1.01 }}
-      className={`rounded-2xl border border-purple-700 bg-black p-6 ${className}`}
+      className={`rounded-2xl border border-purple-700 bg-black/70 backdrop-blur p-6 ${className}`}
     >
 
       {children}
@@ -556,11 +618,15 @@ function Card({ children, className="" }) {
 
 }
 
+
 function StatCard({ icon, label, value }) {
 
   return (
 
-    <div className="border border-purple-700 rounded-xl p-4 bg-black">
+    <motion.div
+      whileHover={{ scale:1.05 }}
+      className="border border-purple-700 rounded-xl p-4 bg-black/60 backdrop-blur"
+    >
 
       <div className="flex items-center gap-2 mb-2 text-purple-400">
         {icon}
@@ -570,11 +636,11 @@ function StatCard({ icon, label, value }) {
         {label}
       </p>
 
-      <p className="font-semibold">
+      <p className="font-semibold text-lg">
         {value}
       </p>
 
-    </div>
+    </motion.div>
 
   )
 
