@@ -415,7 +415,7 @@ export default function ReferralPage() {
         <StatCard
           icon={<Gift size={20}/>}
           label="Total Earnings"
-          value={`Rp ${walletBalance?.commission_balance?.toLocaleString() || 0}`}
+          value={`Rp ${analytics?.total?.toLocaleString() || 0}`}
         />
 
         <StatCard
