@@ -21,56 +21,30 @@ import {
   Lock
 } from "lucide-react";
 
-const mainMenus = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  // { label: "Produk", href: "/admin/produk", icon: Package },
-  // { label: "Kategori", href: "/admin/kategori", icon: Layers },
-];
+// const mainMenus = [
+//   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+//   // { label: "Produk", href: "/admin/produk", icon: Package },
+//   // { label: "Kategori", href: "/admin/kategori", icon: Layers },
+// ];
 
 
-const managementMenus = [
-  { label: "Pengguna", href: "/admin/pengguna", icon: Users },
-  { label: "Transaksi", href: "/admin/datatransaksi", icon: CreditCard },
-  { label: "Deposit", href: "/admin/datadeposit", icon: Wallet },
-  { label: "Voucher", href: "/admin/voucher", icon: Ticket },
-  { label: "Referral", href: "/admin/referral", icon: Share2 },
-];
+// const managementMenus = [
+//   { label: "Pengguna", href: "/admin/pengguna", icon: Users },
+//   { label: "Transaksi", href: "/admin/datatransaksi", icon: CreditCard },
+//   { label: "Deposit", href: "/admin/datadeposit", icon: Wallet },
+//   { label: "Voucher", href: "/admin/voucher", icon: Ticket },
+//   { label: "Referral", href: "/admin/referral", icon: Share2 },
+// ];
 
-const systemMenus = [
-  { label: "Konfigurasi", href: "/admin/konfigurasi", icon: Settings },
-  { label: "Konten", href: "/admin/konten", icon: FileText },
-];
+// const systemMenus = [
+//   { label: "Konfigurasi", href: "/admin/konfigurasi", icon: Settings },
+//   { label: "Konten", href: "/admin/konten", icon: FileText },
+// ];
 
 
 export default function AdminSidebar({ open, setOpen, collapsed }) {
   const pathname = usePathname();
   const { can } = usePermission()
-
-  {adminMenu.map(group => {
-
-    const visibleItems = group.items?.filter(
-      item => !item.permission || can(item.permission)
-    )
-
-    if (visibleItems?.length === 0) return null
-
-    return (
-      <SidebarGroup key={group.group} title={group.group}>
-
-        {group.items.map(menu => (
-          <SidebarItem
-            key={menu.href}
-            label={menu.label}
-            href={menu.href}
-            icon={menu.icon}
-            pathname={pathname}
-            locked={menu.permission && !can(menu.permission)}
-          />
-        ))}
-
-      </SidebarGroup>
-    )
-  })}
 
   return (
     <>
@@ -133,6 +107,32 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
         {/* NAVIGATION */}
         <nav className="flex-1 overflow-y-auto overscroll-contain px-3 py-5 pb-24 space-y-6 text-sm">
 
+            {adminMenu.map(group => {
+
+              const visibleItems = group.items?.filter(
+                item => !item.permission || can(item.permission)
+              )
+
+              if (visibleItems?.length === 0) return null
+
+              return (
+                <SidebarGroup key={group.group} title={group.group}>
+
+                  {group.items.map(menu => (
+                    <SidebarItem
+                      key={menu.href}
+                      label={menu.label}
+                      href={menu.href}
+                      icon={menu.icon}
+                      pathname={pathname}
+                      locked={menu.permission && !can(menu.permission)}
+                    />
+                  ))}
+
+                </SidebarGroup>
+              )
+            })}
+
           <SidebarGroup title="Main Navigation">
             {mainMenus.map(menu => (
               <SidebarItem
@@ -142,7 +142,7 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
               />
             ))}
 
-            <SidebarDropdown
+            {/* <SidebarDropdown
               label="Manajemen Produk"
               icon={Package}
               pathname={pathname}
@@ -151,7 +151,7 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
                 { label: "Sub Kategori", href: "/admin/sub-kategori" },
                 { label: "Produk", href: "/admin/produk" },
               ]}
-            />
+            /> */}
           </SidebarGroup>
 
           <SidebarGroup title="Management">
@@ -216,16 +216,15 @@ function SidebarGroup({ title, children }) {
   );
 }
 
-function SidebarItem({ label, href, icon: Icon, pathname, collapsed, locked }) {
+function SidebarItem({ label, href, icon: Icon, pathname, locked }) {
   const active = pathname.startsWith(href)
 
   return (
     <Link
       href={locked ? "#" : href}
+      title={locked ? "Anda tidak memiliki akses" : ""}
       onClick={(e) => {
-        if (locked) {
-          e.preventDefault()
-        }
+        if (locked) e.preventDefault()
       }}
       className={`
         relative group flex items-center gap-3
@@ -234,28 +233,25 @@ function SidebarItem({ label, href, icon: Icon, pathname, collapsed, locked }) {
         ${locked
           ? "text-gray-500 cursor-not-allowed opacity-60"
           : active
-          ? "bg-purple-600 text-white shadow-sm shadow-purple-900/30"
+          ? "bg-purple-600 text-white"
           : "text-gray-300 hover:bg-purple-800/40 hover:text-white"}
       `}
     >
+
       {active && !locked && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r bg-purple-400" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r bg-purple-400"/>
       )}
 
       <Icon size={18} />
 
-      {!collapsed && (
-        <span className="flex items-center gap-2 truncate">
-          {label}
+      <span className="flex items-center gap-2 truncate">
+        {label}
 
-          {locked && (
-            <Lock
-              size={14}
-              className="text-red-400 animate-pulse"
-            />
-          )}
-        </span>
-      )}
+        {locked && (
+          <Lock size={14} className="text-red-400 animate-pulse"/>
+        )}
+      </span>
+
     </Link>
   )
 }

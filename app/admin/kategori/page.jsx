@@ -128,7 +128,7 @@ export default function KategoriPage() {
 
   // ================= UI =================
   return (
-    // <PermissionGate permission="manage_categories">
+    <PermissionGate permission="manage_categories">
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-white">
           Manajemen Kategori
@@ -261,6 +261,6 @@ export default function KategoriPage() {
           </div>
         )}
       </div>
-    // </PermissionGate>
+    </PermissionGate>
   )
 }
