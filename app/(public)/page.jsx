@@ -39,21 +39,21 @@ export default function HomePage() {
 
   return (
 
-    <main className="relative w-full bg-black text-white overflow-x-hidden">
+    <main className="w-full min-h-screen bg-black text-white overflow-x-hidden">
 
-      {/* ===================================================== */}
+      {/* ============================================ */}
       {/* HERO */}
-      {/* ===================================================== */}
+      {/* ============================================ */}
 
-      <section className="w-full py-20">
+      <section className="w-full py-24">
 
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 items-center gap-12">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 items-center gap-16">
 
           {/* LEFT */}
 
           <div>
 
-            <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
+            <h1 className="text-4xl md:text-5xl font-bold leading-tight">
 
               {brand.site_name || "Growtech Central"}
 
@@ -67,7 +67,7 @@ export default function HomePage() {
 
             {brand.description && (
 
-              <p className="mt-6 text-gray-400 max-w-xl">
+              <p className="mt-6 text-gray-400 max-w-xl leading-relaxed">
                 {brand.description}
               </p>
 
@@ -77,7 +77,7 @@ export default function HomePage() {
 
               <Link
                 href="/public/product"
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition"
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition shadow-lg shadow-purple-900/30"
               >
                 Jelajahi Katalog
               </Link>
@@ -112,11 +112,11 @@ export default function HomePage() {
 
       </section>
 
-      {/* ===================================================== */}
+      {/* ============================================ */}
       {/* STATS */}
-      {/* ===================================================== */}
+      {/* ============================================ */}
 
-      <section className="w-full pb-16">
+      <section className="w-full pb-20">
 
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
 
@@ -132,45 +132,40 @@ export default function HomePage() {
 
       </section>
 
-      {/* ===================================================== */}
-      {/* BANNER FULL WIDTH */}
-      {/* ===================================================== */}
+      {/* ============================================ */}
+      {/* BANNER SECTION */}
+      {/* ============================================ */}
 
-      <section className="relative w-full py-16 overflow-hidden">
+      <section className="w-full py-20 bg-gradient-to-b from-black via-purple-950/20 to-black">
 
-        {/* banner */}
-
-        <div className="relative w-full">
-
-          <BannerCarousel
-            banners={banners || []}
-            autoplay
-            loop
-          />
-
-        </div>
+        <BannerCarousel
+          banners={banners || []}
+          autoplay
+          loop
+        />
 
       </section>
 
     </main>
+
   )
 }
 
-/* ===================================================== */
-/* COMPONENT */
-/* ===================================================== */
+/* ============================================ */
+/* STAT COMPONENT */
+/* ============================================ */
 
 function StatItem({title, subtitle}) {
 
   return (
 
-    <div className="text-center rounded-xl bg-purple-900/20 border border-purple-700/40 py-6 hover:bg-purple-900/30 transition">
+    <div className="text-center rounded-xl bg-purple-900/20 border border-purple-700/40 py-8 hover:bg-purple-900/30 transition backdrop-blur">
 
-      <h3 className="text-2xl font-bold text-purple-400">
+      <h3 className="text-3xl font-bold text-purple-400">
         {title}
       </h3>
 
-      <p className="text-gray-400 text-sm mt-1">
+      <p className="text-gray-400 text-sm mt-2">
         {subtitle}
       </p>
 
