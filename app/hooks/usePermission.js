@@ -3,12 +3,13 @@
 import { useAdminAuth } from "./useAdminAuth"
 
 export function usePermission() {
-  const { permissions, loading } = useAdminAuth()
+  const { permissions, admin, loading } = useAdminAuth()
 
   const can = (key) => {
+    if (!key) return true
     if (!permissions) return false
     return permissions.includes("*") || permissions.includes(key)
   }
 
-  return { can, loading }
+  return { can, permissions, admin, loading }
 }

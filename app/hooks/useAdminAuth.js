@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react"
 import Cookies from "js-cookie"
 
-const API = process.env.NEXT_PUBLIC_API_URL
+const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "")
+
+function buildUrl(path) {
+  if (API.endsWith("/api/v1")) {
+    return `${API}${path}`
+  }
+  return `${API}/api/v1${path}`
+}
 
 export function useAdminAuth() {
   const [admin, setAdmin] = useState(null)
@@ -18,15 +25,26 @@ export function useAdminAuth() {
       return
     }
 
-    fetch(`${API}/admin/me`, {
+    fetch(buildUrl("/admin/me"), {
       headers: {
         Authorization: `Bearer ${token}`,
+        Accept: "application/json",
       },
     })
-      .then(res => res.json())
-      .then(res => {
-        setAdmin(res.data)
-        setPermissions(res.data.permissions || [])
+      .then(async (res) => {
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error?.message || "Gagal mengambil admin me")
+        }
+        return json
+      })
+      .then((json) => {
+        setAdmin(json.data || null)
+        setPermissions(json.data?.permissions || [])
+      })
+      .catch(() => {
+        setAdmin(null)
+        setPermissions([])
       })
       .finally(() => setLoading(false))
   }, [])
