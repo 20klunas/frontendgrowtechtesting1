@@ -164,7 +164,7 @@ function StatItem({ title, subtitle }) {
       <h3 className="text-xl sm:text-2xl font-bold">
         {title}
       </h3>
-      <span className="text-gray-400 text-sm">
+      <span className="text-gray-500 text-sm">
         {subtitle}
       </span>
     </div>
