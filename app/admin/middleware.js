@@ -38,7 +38,7 @@ export function middleware(req) {
     !permissions.includes(requiredPermission) &&
     !permissions.includes("*")
   ) {
-    return NextResponse.rewrite(new URL("/404", req.url))
+    return NextResponse.rewrite(new URL("admin/404", req.url))
   }
 
   return NextResponse.next()
