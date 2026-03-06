@@ -141,17 +141,17 @@ export default function HomePage() {
 
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-purple-700/20 blur-[200px] rounded-full pointer-events-none"/>
 
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-black to-black pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-black to-black pointer-events-none" />
 
-        <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-16">
+            <div className="relative w-full">
 
-          <BannerCarousel
-            banners={banners || []}
-            autoplay
-            loop
-          />
+              <BannerCarousel
+                banners={banners || []}
+                autoplay
+                loop
+              />
 
-        </div>
+            </div>
 
       </section>
 
