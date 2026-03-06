@@ -36,7 +36,7 @@ export default function HomePage() {
   }, [API])
 
   return (
-    <main className="home-wrapper text-white overflow-x-hidden">
+    <main className="home-wrapper text-white overflow-x-hidden relative bg-black">
 
       {/* ================= HERO ================= */}
       <section className="
@@ -135,13 +135,23 @@ export default function HomePage() {
       </section>
 
       {/* ================= BANNER ================= */}
-      <section className="mt-16">
+      <section className="relative mt-20 overflow-hidden">
 
-        <BannerCarousel
-          banners={banners || []}
-          autoplay
-          loop
-        />
+        {/* glow background seperti customer page */}
+
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-purple-700/20 blur-[200px] rounded-full pointer-events-none"/>
+
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-black to-black pointer-events-none" />
+
+        <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-16">
+
+          <BannerCarousel
+            banners={banners || []}
+            autoplay
+            loop
+          />
+
+        </div>
 
       </section>
 
