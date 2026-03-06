@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Cookies from 'js-cookie'
 import { motion } from "framer-motion";
+import PermissionGate from "../../components/admin/PermissionGate"
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -127,137 +128,139 @@ export default function KategoriPage() {
 
   // ================= UI =================
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-white">
-        Manajemen Kategori
-      </h1>
+    <PermissionGate permission="manage_categories">
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-white">
+          Manajemen Kategori
+        </h1>
 
-      <motion.div
-        className="
-          rounded-2xl
-          border border-purple-600/60
-          bg-black
-          p-6
-          shadow-[0_0_25px_rgba(168,85,247,0.15)]
-        "
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        <div className="flex justify-end mb-4">
-          <button className="btn-add" onClick={openCreate}>
-            + Tambah
-          </button>
-        </div>
+        <motion.div
+          className="
+            rounded-2xl
+            border border-purple-600/60
+            bg-black
+            p-6
+            shadow-[0_0_25px_rgba(168,85,247,0.15)]
+          "
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <div className="flex justify-end mb-4">
+            <button className="btn-add" onClick={openCreate}>
+              + Tambah
+            </button>
+          </div>
 
-        {loading ? (
-          <p className="text-purple-300">Loading...</p>
-        ) : (
-          <table className="w-full text-sm text-gray-300">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th>ID</th>
-                <th>Nama Kategori</th>
-                <th className="text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map(item => (
-                <tr
-                  key={item.id}
-                  className="border-b border-white/5 hover:bg-purple-900/20 text-center"
-                >
-                  <td className="text-center">{item.id}</td>
-                  <td className="text-white text-center">{item.name}</td>
-                  <td className="text-center space-x-2">
-                    <button
-                      className="btn-edit-sm"
-                      onClick={() => openEdit(item)}
-                    >
-                      Edit
+          {loading ? (
+            <p className="text-purple-300">Loading...</p>
+          ) : (
+            <table className="w-full text-sm text-gray-300">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th>ID</th>
+                  <th>Nama Kategori</th>
+                  <th className="text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map(item => (
+                  <tr
+                    key={item.id}
+                    className="border-b border-white/5 hover:bg-purple-900/20 text-center"
+                  >
+                    <td className="text-center">{item.id}</td>
+                    <td className="text-white text-center">{item.name}</td>
+                    <td className="text-center space-x-2">
+                      <button
+                        className="btn-edit-sm"
+                        onClick={() => openEdit(item)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn-delete-sm"
+                        onClick={() => openDelete(item)}
+                      >
+                        Hapus
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {categories.length === 0 && (
+                  <tr>
+                    <td colSpan="3" className="text-center py-6 text-purple-300">
+                      Data kosong
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </motion.div>
+
+        {/* ================= MODAL ================= */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+            <div className="w-full max-w-md rounded-2xl border border-purple-600/60 bg-black p-6">
+              {mode === 'delete' ? (
+                <>
+                  <h3 className="text-xl font-semibold text-white mb-4">
+                    Hapus Kategori
+                  </h3>
+                  <p className="text-gray-300 mb-6">
+                    Yakin ingin menghapus <b>{selected?.name}</b>?
+                  </p>
+
+                  <div className="flex justify-end gap-2">
+                    <button className="btn-cancel" onClick={closeModal}>
+                      Batal
                     </button>
                     <button
                       className="btn-delete-sm"
-                      onClick={() => openDelete(item)}
+                      onClick={handleDelete}
+                      disabled={submitting}
                     >
-                      Hapus
+                      {submitting ? 'Menghapus...' : 'Hapus'}
                     </button>
-                  </td>
-                </tr>
-              ))}
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={handleSubmit}>
+                  <h3 className="text-xl font-semibold text-white mb-4">
+                    {mode === 'edit' ? 'Edit' : 'Tambah'} Kategori
+                  </h3>
 
-              {categories.length === 0 && (
-                <tr>
-                  <td colSpan="3" className="text-center py-6 text-purple-300">
-                    Data kosong
-                  </td>
-                </tr>
+                  <input
+                    className="input-primary mb-4"
+                    placeholder="Nama kategori"
+                    value={form.name}
+                    onChange={e => setForm({ name: e.target.value })}
+                    required
+                  />
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      className="btn-cancel"
+                      onClick={closeModal}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn-add"
+                      disabled={submitting}
+                    >
+                      {submitting ? 'Menyimpan...' : 'Simpan'}
+                    </button>
+                  </div>
+                </form>
               )}
-            </tbody>
-          </table>
-        )}
-      </motion.div>
-
-      {/* ================= MODAL ================= */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="w-full max-w-md rounded-2xl border border-purple-600/60 bg-black p-6">
-            {mode === 'delete' ? (
-              <>
-                <h3 className="text-xl font-semibold text-white mb-4">
-                  Hapus Kategori
-                </h3>
-                <p className="text-gray-300 mb-6">
-                  Yakin ingin menghapus <b>{selected?.name}</b>?
-                </p>
-
-                <div className="flex justify-end gap-2">
-                  <button className="btn-cancel" onClick={closeModal}>
-                    Batal
-                  </button>
-                  <button
-                    className="btn-delete-sm"
-                    onClick={handleDelete}
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Menghapus...' : 'Hapus'}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <form onSubmit={handleSubmit}>
-                <h3 className="text-xl font-semibold text-white mb-4">
-                  {mode === 'edit' ? 'Edit' : 'Tambah'} Kategori
-                </h3>
-
-                <input
-                  className="input-primary mb-4"
-                  placeholder="Nama kategori"
-                  value={form.name}
-                  onChange={e => setForm({ name: e.target.value })}
-                  required
-                />
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    className="btn-cancel"
-                    onClick={closeModal}
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-add"
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Menyimpan...' : 'Simpan'}
-                  </button>
-                </div>
-              </form>
-            )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </PermissionGate>
   )
 }

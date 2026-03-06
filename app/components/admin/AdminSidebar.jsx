@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
+import { adminMenu } from "../../rbac/adminMenu"
+import { usePermission } from "../../hooks/usePermission"
 import {
   LayoutDashboard,
   Package,
@@ -41,6 +43,32 @@ const systemMenus = [
 
 export default function AdminSidebar({ open, setOpen, collapsed }) {
   const pathname = usePathname();
+  const { can } = usePermission()
+
+  {adminMenu.map(group => {
+
+    const visibleItems = group.items?.filter(
+      item => !item.permission || can(item.permission)
+    )
+
+    if (visibleItems?.length === 0) return null
+
+    return (
+      <SidebarGroup key={group.group} title={group.group}>
+
+        {visibleItems.map(menu => (
+          <SidebarItem
+            key={menu.href}
+            label={menu.label}
+            href={menu.href}
+            icon={menu.icon}
+            pathname={pathname}
+          />
+        ))}
+
+      </SidebarGroup>
+    )
+  })}
 
   return (
     <>
