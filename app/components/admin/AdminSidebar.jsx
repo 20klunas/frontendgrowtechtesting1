@@ -17,7 +17,8 @@ import {
   Share2,
   Settings,
   FileText,
-  LogOut
+  LogOut,
+  Lock
 } from "lucide-react";
 
 const mainMenus = [
@@ -56,13 +57,14 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
     return (
       <SidebarGroup key={group.group} title={group.group}>
 
-        {visibleItems.map(menu => (
+        {group.items.map(menu => (
           <SidebarItem
             key={menu.href}
             label={menu.label}
             href={menu.href}
             icon={menu.icon}
             pathname={pathname}
+            locked={menu.permission && !can(menu.permission)}
           />
         ))}
 
@@ -214,41 +216,51 @@ function SidebarGroup({ title, children }) {
   );
 }
 
-function SidebarItem({ label, href, icon: Icon, pathname, collapsed }) {
+function SidebarItem({ label, href, icon: Icon, pathname, collapsed, locked }) {
   const active = pathname.startsWith(href)
 
   return (
     <Link
-      href={href}
+      href={locked ? "#" : href}
+      onClick={(e) => {
+        if (locked) {
+          e.preventDefault()
+        }
+      }}
       className={`
         relative group flex items-center gap-3
         px-4 py-2.5 rounded-lg
         transition-all duration-200
-        ${active
+        ${locked
+          ? "text-gray-500 cursor-not-allowed opacity-60"
+          : active
           ? "bg-purple-600 text-white shadow-sm shadow-purple-900/30"
           : "text-gray-300 hover:bg-purple-800/40 hover:text-white"}
       `}
     >
-      {/* ACTIVE INDICATOR */}
-      {active && (
+      {active && !locked && (
         <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r bg-purple-400" />
       )}
 
-      <Icon
-        size={18}
-        className="
-          transition-transform duration-200
-          group-hover:scale-110
-          group-hover:rotate-[360deg]
-        "
-      />
+      <Icon size={18} />
 
-      {!collapsed && <span className="truncate">{label}</span>}
+      {!collapsed && (
+        <span className="flex items-center gap-2 truncate">
+          {label}
+
+          {locked && (
+            <Lock
+              size={14}
+              className="text-red-400 animate-pulse"
+            />
+          )}
+        </span>
+      )}
     </Link>
   )
 }
 
-function SidebarDropdown({ label, icon: Icon, items, pathname }) {
+function SidebarDropdown({ label, icon: Icon, items, pathname, can }) {
   const isActive = items.some(item => pathname.startsWith(item.href));
   const [open, setOpen] = useState(isActive);
 
@@ -292,23 +304,34 @@ function SidebarDropdown({ label, icon: Icon, items, pathname }) {
           `}
         >
           {items.map(item => {
-            const active = pathname.startsWith(item.href);
+
+            const locked = item.permission && !can(item.permission)
+            const active = pathname.startsWith(item.href)
 
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={locked ? "#" : item.href}
+                onClick={(e)=>{
+                  if(locked) e.preventDefault()
+                }}
                 className={`
-                  block px-3 py-2 rounded-md text-sm
+                  flex items-center justify-between
+                  px-3 py-2 rounded-md text-sm
                   transition
-                  ${active
+                  ${locked
+                    ? "text-gray-500 opacity-60 cursor-not-allowed"
+                    : active
                     ? "bg-purple-700 text-white"
                     : "text-gray-300 hover:bg-purple-800/40"}
                 `}
               >
                 {item.label}
+
+                {locked && <Lock size={14} className="text-red-400"/>}
+
               </Link>
-            );
+            )
           })}
         </div>
       )}
