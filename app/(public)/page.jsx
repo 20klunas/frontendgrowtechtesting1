@@ -135,13 +135,14 @@ export default function HomePage() {
       </section>
 
       {/* ================= BANNER ================= */}
-      <section className="px-2 sm:px-6 lg:px-10 pb-16">
+      <section className="mt-16">
+
         <BannerCarousel
-          banners={banners}
-          baseWidth={280} // lebih kecil biar pas mobile
+          banners={banners || []}
           autoplay
           loop
         />
+
       </section>
 
     </main>
