@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Cookies from "js-cookie"
+import PermissionGate from '../../components/admin/PermissionGate'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
