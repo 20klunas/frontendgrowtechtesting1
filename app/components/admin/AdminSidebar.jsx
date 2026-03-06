@@ -44,7 +44,15 @@ import {
 
 export default function AdminSidebar({ open, setOpen, collapsed }) {
   const pathname = usePathname();
-  const { can } = usePermission()
+  const { can, loading } = usePermission()
+
+  const visibleItems = group.items.filter(
+    item => !item.permission || can(item.permission)
+  )
+
+  if (!visibleItems.length) return null
+
+  if (loading) return null
 
   return (
     <>
@@ -107,40 +115,41 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
         {/* NAVIGATION */}
         <nav className="flex-1 overflow-y-auto overscroll-contain px-3 py-5 pb-24 space-y-6 text-sm">
 
-            {adminMenu.map(group => {
+          {adminMenu.map(group => {
 
-              const visibleItems = group.items?.filter(
-                item => !item.permission || can(item.permission)
-              )
+            const items = group.items
 
-              if (visibleItems?.length === 0) return null
+            return (
+              <SidebarGroup key={group.group} title={group.group}>
 
-              return (
-                <SidebarGroup key={group.group} title={group.group}>
+                {items.map(menu => {
 
-                  {group.items.map(menu => (
+                  const locked = menu.permission && !can(menu.permission)
+
+                  return (
                     <SidebarItem
                       key={menu.href}
                       label={menu.label}
                       href={menu.href}
                       icon={menu.icon}
                       pathname={pathname}
-                      locked={menu.permission && !can(menu.permission)}
+                      locked={locked}
                     />
-                  ))}
+                  )
+                })}
 
-                </SidebarGroup>
-              )
-            })}
+              </SidebarGroup>
+            )
+          })}
 
-          <SidebarGroup title="Main Navigation">
+          {/* <SidebarGroup title="Main Navigation">
             {mainMenus.map(menu => (
               <SidebarItem
                 key={menu.label}
                 {...menu}
                 pathname={pathname}
               />
-            ))}
+            ))} */}
 
             {/* <SidebarDropdown
               label="Manajemen Produk"
@@ -152,9 +161,9 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
                 { label: "Produk", href: "/admin/produk" },
               ]}
             /> */}
-          </SidebarGroup>
+          {/* </SidebarGroup> */}
 
-          <SidebarGroup title="Management">
+          {/* <SidebarGroup title="Management">
             {managementMenus.map(menu => (
               <SidebarItem
                 key={menu.label}
@@ -172,7 +181,7 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
                 pathname={pathname}
               />
             ))}
-          </SidebarGroup>
+          </SidebarGroup> */}
 
 
         </nav>
