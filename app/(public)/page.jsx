@@ -138,10 +138,6 @@ export default function HomePage() {
 
       <section className="relative w-full py-16 overflow-hidden">
 
-        {/* glow background */}
-
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-purple-700/20 blur-[200px] rounded-full pointer-events-none"/>
-
         {/* banner */}
 
         <div className="relative w-full">
