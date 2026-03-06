@@ -275,7 +275,7 @@ function SidebarDropdown({ label, icon: Icon, items, pathname, can }) {
           transition
           ${isActive
             ? "bg-purple-600 text-white"
-            : "text-gray-300 hover:bg-purple-800/40 hover:text-white"}
+            : "text-gray-300 hover:bg-purple-800/50 hover:text-white"}
         `}
       >
         <div className="flex items-center gap-3">
