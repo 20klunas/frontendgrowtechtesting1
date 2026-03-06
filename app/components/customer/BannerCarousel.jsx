@@ -1,239 +1,207 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
-import Image from 'next/image'
-import Link from 'next/link'
+import { useEffect, useMemo, useRef, useState } from "react"
+import { motion } from "framer-motion"
+import Image from "next/image"
+import Link from "next/link"
 
-const GAP = 36
-const SPRING = { type: 'spring', stiffness: 160, damping: 26 }
-const DRAG_BUFFER = 120
-const VELOCITY_THRESHOLD = 500
+const GAP = 40
+const SPRING = { type: "spring", stiffness: 120, damping: 22 }
 
 export default function BannerCarousel({
   banners = [],
-  baseWidth = 980, // lebih lebar
   autoplay = true,
   autoplayDelay = 4000,
   pauseOnHover = true,
-  loop = true,
+  loop = true
 }) {
 
   const containerRef = useRef(null)
 
-  const itemWidth =
-  typeof window !== "undefined"
-    ? Math.min(window.innerWidth * 0.7, baseWidth)
-    : baseWidth
+  const [position, setPosition] = useState(1)
+  const [hovered, setHovered] = useState(false)
+  const [mouse, setMouse] = useState({ x: 0, y: 0 })
+
+  const itemWidth = 900
   const trackOffset = itemWidth + GAP
 
-  /* ================= DUPLICATE ================= */
-
-  const extendedBanners = useMemo(() => {
+  const extended = useMemo(() => {
     if (banners.length >= 3) return banners
     return [...banners, ...banners, ...banners]
   }, [banners])
 
-  const itemsForRender = useMemo(() => {
-    if (!loop || extendedBanners.length === 0) return extendedBanners
-    return [
-      extendedBanners[extendedBanners.length - 1],
-      ...extendedBanners,
-      extendedBanners[0],
-    ]
-  }, [extendedBanners, loop])
-
-  const [position, setPosition] = useState(loop ? 1 : 0)
-  const [hovered, setHovered] = useState(false)
-  const [jumping, setJumping] = useState(false)
-
-  /* ================= INIT ================= */
-
-  useEffect(() => {
-    const start = loop ? 1 : 0
-    setPosition(start)
-  }, [extendedBanners.length, loop])
-
-  /* ================= AUTOPLAY ================= */
-
-  useEffect(() => {
-    if (!autoplay || extendedBanners.length <= 1) return
-    if (pauseOnHover && hovered) return
-
-    const timer = setInterval(() => {
-      setPosition(prev => prev + 1)
-    }, autoplayDelay)
-
-    return () => clearInterval(timer)
-
-  }, [hovered, autoplay, autoplayDelay, extendedBanners.length])
-
-  /* ================= LOOP FIX ================= */
-
-  const handleAnimationComplete = () => {
-
-    if (!loop) return
-
-    if (position === itemsForRender.length - 1) {
-
-      setJumping(true)
-      setPosition(1)
-
-      requestAnimationFrame(() => setJumping(false))
-
-    }
-
-    if (position === 0) {
-
-      setJumping(true)
-
-      const target = extendedBanners.length
-
-      setPosition(target)
-
-      requestAnimationFrame(() => setJumping(false))
-
-    }
-
-  }
-
-  /* ================= DRAG ================= */
-
-  const handleDragEnd = (_, info) => {
-
-    const { offset, velocity } = info
-
-    if (offset.x < -DRAG_BUFFER || velocity.x < -VELOCITY_THRESHOLD) {
-      setPosition(prev => prev + 1)
-    }
-
-    else if (offset.x > DRAG_BUFFER || velocity.x > VELOCITY_THRESHOLD) {
-      setPosition(prev => prev - 1)
-    }
-
-  }
+  const renderItems = useMemo(() => {
+    if (!loop) return extended
+    return [extended[extended.length - 1], ...extended, extended[0]]
+  }, [extended])
 
   const activeIndex =
-    (position - 1 + extendedBanners.length) % extendedBanners.length
+    (position - 1 + extended.length) % extended.length
+
+  useEffect(() => {
+    if (!autoplay) return
+    if (pauseOnHover && hovered) return
+
+    const t = setInterval(() => {
+      setPosition((p) => p + 1)
+    }, autoplayDelay)
+
+    return () => clearInterval(t)
+  }, [hovered, autoplay])
+
+  const centerOffset =
+    typeof window !== "undefined"
+      ? window.innerWidth / 2 - itemWidth / 2
+      : 0
+
+  const handleMouseMove = (e) => {
+    const rect = containerRef.current.getBoundingClientRect()
+
+    const x = (e.clientX - rect.left) / rect.width
+    const y = (e.clientY - rect.top) / rect.height
+
+    setMouse({ x, y })
+  }
 
   if (!banners.length) return null
 
   return (
+    <section className="relative py-28 overflow-hidden">
 
-    <section className="relative w-full py-28 overflow-hidden">
+      {/* Dynamic glow background */}
 
-      {/* Glow background */}
-
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.18),transparent_60%)]" />
+      <motion.div
+        animate={{
+          background: `radial-gradient(circle at ${mouse.x * 100}% ${
+            mouse.y * 100
+          }%, rgba(168,85,247,0.35), transparent 60%)`
+        }}
+        className="absolute inset-0"
+      />
 
       <div
         ref={containerRef}
         className="relative overflow-hidden"
-        onMouseEnter={() => pauseOnHover && setHovered(true)}
-        onMouseLeave={() => pauseOnHover && setHovered(false)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onMouseMove={handleMouseMove}
       >
 
         <motion.div
-          className="flex justify-center cursor-grab active:cursor-grabbing"
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          onDragEnd={handleDragEnd}
-          animate={{ x: -(position * trackOffset) }}
-          transition={jumping ? { duration: 0 } : SPRING}
+          className="flex"
+          animate={{
+            x: centerOffset - position * trackOffset
+          }}
+          transition={SPRING}
           style={{ gap: GAP }}
-          onAnimationComplete={handleAnimationComplete}
         >
 
-          {itemsForRender.map((banner, i) => {
+          {renderItems.map((banner, i) => {
 
             const isActive =
-              (i - 1 + extendedBanners.length) %
-                extendedBanners.length === activeIndex
+              (i - 1 + extended.length) % extended.length === activeIndex
+
+            const tiltX = (mouse.y - 0.5) * 10
+            const tiltY = (mouse.x - 0.5) * -10
 
             return (
-
               <motion.div
-                key={banner.id + '-' + i}
+                key={banner.id + "-" + i}
                 className="relative shrink-0"
                 animate={{
-                  scale: isActive ? 1 : 0.82,
-                  opacity: isActive ? 1 : 0.45,
-                  y: isActive ? 0 : 30,
-                  filter: isActive ? "blur(0px)" : "blur(2px)",
+                  scale: isActive ? 1 : 0.8,
+                  opacity: isActive ? 1 : 0.4,
+                  y: isActive ? 0 : 40
                 }}
-                transition={{ duration: 0.5 }}
                 style={{
                   width: itemWidth,
-                  height: 260, // lebih pendek dari lebar
+                  height: 360,
+                  perspective: 1200
                 }}
               >
 
-                <Link href={banner.link_url || '#'}>
+                <motion.div
+                  animate={
+                    isActive
+                      ? {
+                          rotateX: tiltX,
+                          rotateY: tiltY
+                        }
+                      : {}
+                  }
+                  transition={{ duration: 0.3 }}
+                  className="relative w-full h-full rounded-3xl overflow-hidden group"
+                >
 
-                  <div className="relative w-full h-full rounded-3xl overflow-hidden group">
+                  <Image
+                    src={banner.image_url}
+                    alt={banner.title || "Banner"}
+                    fill
+                    priority
+                    className="object-cover group-hover:scale-105 transition duration-700"
+                  />
 
-                    <Image
-                      src={banner.image_url}
-                      alt={banner.title || 'Banner'}
-                      fill
-                      priority
-                      unoptimized
-                      className="object-cover group-hover:scale-105 transition duration-700"
-                    />
+                  {/* blur cinematic overlay */}
 
-                    {/* Cinematic overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-                    <div className="absolute inset-0 bg-gradient-to-tr from-black/50 via-transparent to-purple-500/10" />
+                  {/* banner content */}
 
-                    {/* Center glow */}
+                  <div className="absolute bottom-8 left-8">
 
-                    {isActive && (
+                    {banner.title && (
+                      <h3 className="text-3xl font-bold mb-3 text-white drop-shadow-lg">
+                        {banner.title}
+                      </h3>
+                    )}
 
-                      <div className="absolute inset-0 shadow-[0_0_90px_rgba(168,85,247,0.45)]" />
+                    {banner.subtitle && (
+                      <p className="text-gray-300 mb-4 max-w-sm">
+                        {banner.subtitle}
+                      </p>
+                    )}
 
+                    {banner.link_url && (
+                      <Link
+                        href={banner.link_url}
+                        className="inline-block px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 font-semibold shadow-lg shadow-purple-900/40 transition"
+                      >
+                        Lihat Promo
+                      </Link>
                     )}
 
                   </div>
 
-                </Link>
+                  {/* glow highlight */}
+
+                  {isActive && (
+                    <div className="absolute inset-0 shadow-[0_0_120px_rgba(168,85,247,0.55)]" />
+                  )}
+
+                </motion.div>
 
               </motion.div>
-
             )
-
           })}
-
         </motion.div>
 
-        {/* INDICATORS */}
+        {/* indicators */}
 
         <div className="flex justify-center mt-12 gap-3">
 
           {banners.map((_, i) => (
-
-            <motion.button
+            <button
               key={i}
-              onClick={() => setPosition(loop ? i + 1 : i)}
-              animate={{
-                width: activeIndex === i ? 36 : 10,
-                opacity: activeIndex === i ? 1 : 0.35,
-              }}
-              transition={{ duration: 0.3 }}
-              className={`h-[10px] rounded-full ${
+              onClick={() => setPosition(i + 1)}
+              className={`h-[10px] rounded-full transition-all ${
                 activeIndex === i
-                  ? 'bg-purple-400 shadow-[0_0_14px_rgba(168,85,247,0.9)]'
-                  : 'bg-white/30'
+                  ? "w-8 bg-purple-500 shadow-[0_0_16px_rgba(168,85,247,0.9)]"
+                  : "w-3 bg-white/30"
               }`}
             />
-
           ))}
-
         </div>
-
       </div>
-
     </section>
-
   )
-
 }
