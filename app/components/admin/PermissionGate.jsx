@@ -10,7 +10,7 @@ export default function PermissionGate({ permission, children }) {
 
   useEffect(() => {
     if (!loading && !can(permission)) {
-      router.replace("/404")
+      router.replace("admin/404")
     }
   }, [loading])
 
