@@ -20,6 +20,8 @@ export default function CustomerHomePage() {
   const [open, setOpen] = useState(true)
   const [brand, setBrand] = useState({})
   const [banners, setBanners] = useState([])
+  const [products, setProducts] = useState([])
+  const [loadingProducts, setLoadingProducts] = useState(true)
 
   useEffect(() => {
     fetch(`${API}/api/v1/content/banners`)
@@ -50,6 +52,30 @@ export default function CustomerHomePage() {
         setBrand(data.brand || {})
       })
       .catch(console.error)
+  }, [API])
+
+  useEffect(() => {
+    const fetchPopularProducts = async () => {
+      try {
+        setLoadingProducts(true)
+
+        const res = await fetch(`${API}/api/v1/products?sort=popular&per_page=4`)
+        const json = await res.json()
+
+        if (json.success) {
+          setProducts(json?.data?.data || [])
+        } else {
+          setProducts([])
+        }
+      } catch (err) {
+        console.error("Failed fetch popular products:", err)
+        setProducts([])
+      } finally {
+        setLoadingProducts(false)
+      }
+    }
+
+    fetchPopularProducts()
   }, [API])
 
   return (
@@ -148,10 +174,76 @@ export default function CustomerHomePage() {
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          <ProductCard image="/product/redfinger.png" />
-          <ProductCard image="/product/ugphone.png" />
-          <ProductCard image="/product/vsphone.png" />
-          <ProductCard image="/product/redfinger.png" />
+
+          {loadingProducts ? (
+            <>
+              <div className="h-52 bg-zinc-800 rounded-xl animate-pulse" />
+              <div className="h-52 bg-zinc-800 rounded-xl animate-pulse" />
+              <div className="h-52 bg-zinc-800 rounded-xl animate-pulse" />
+              <div className="h-52 bg-zinc-800 rounded-xl animate-pulse" />
+            </>
+          ) : (
+            products.map((product) => {
+
+              const price =
+                product?.tier_pricing?.member ??
+                product?.tier_pricing?.guest ??
+                0
+
+              return (
+                <Link
+                  key={product.id}
+                  href={`/customer/category/product/${product.id}`}
+                  className="group rounded-2xl border border-purple-700 bg-black overflow-hidden hover:border-purple-500 transition"
+                >
+
+                  <div className="relative h-[160px] bg-white">
+                    <Image
+                      src={product?.subcategory?.image_url || "/placeholder.png"}
+                      width={300}
+                      height={200}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition"
+                    />
+                  </div>
+
+                  <div className="p-4">
+                    <h3 className="font-semibold text-white mb-1 line-clamp-1">
+                      {product.name}
+                    </h3>
+
+                    <p className="text-xs text-gray-400 mb-2">
+                      Stok {product.available_stock ?? 0}
+                    </p>
+
+                    <div className="flex items-center text-yellow-400 text-sm mb-2">
+                      {"★".repeat(Math.round(product.rating || 0))}
+                      {"☆".repeat(5 - Math.round(product.rating || 0))}
+                      <span className="text-xs text-gray-400 ml-2">
+                        ({product.rating_count || 0})
+                      </span>
+                    </div>
+
+                    <p className="font-bold text-green-400">
+                      Rp {price.toLocaleString("id-ID")}
+                    </p>
+                  </div>
+
+                </Link>
+              )
+            })
+          )}
+
+        </div>
+
+        {/* tombol lihat semua */}
+        <div className="flex justify-center mt-10">
+          <Link
+            href="/customer/category"
+            className="px-6 py-3 rounded-lg border border-purple-500 text-purple-400 hover:bg-purple-500/10 transition"
+          >
+            Lihat Semua Produk
+          </Link>
         </div>
       </section>
     </main>
