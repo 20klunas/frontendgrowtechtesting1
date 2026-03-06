@@ -12,16 +12,18 @@ const normalizeSettings = (rows = []) =>
   }, {})
 
 export default function HomePage() {
+
   const API = process.env.NEXT_PUBLIC_API_URL
+
   const [brand, setBrand] = useState({})
   const [banners, setBanners] = useState([])
+
+  /* ================= FETCH DATA ================= */
 
   useEffect(() => {
     fetch(`${API}/api/v1/content/banners`)
       .then(res => res.json())
-      .then(res => {
-        setBanners(res.data || [])
-      })
+      .then(res => setBanners(res.data || []))
       .catch(console.error)
   }, [API])
 
@@ -36,122 +38,123 @@ export default function HomePage() {
   }, [API])
 
   return (
-    <main className="home-wrapper text-white overflow-x-hidden relative bg-black">
 
-      {/* ================= HERO ================= */}
-      <section className="
-        flex flex-col-reverse lg:flex-row
-        items-center
-        gap-10 lg:gap-20
-        px-5 sm:px-8 lg:px-16
-        py-10 lg:py-20
-      ">
-        {/* LEFT */}
-        <div className="flex-1 text-center lg:text-left">
-          <h1 className="
-            text-3xl sm:text-4xl lg:text-5xl
-            font-bold
-            leading-tight
-          ">
-            {brand.site_name || "Growtech Central"}
-            <br />
-            <span className="text-purple-400">
-              {brand.home_subtitle || "Toko Digital Terpercaya"}
-            </span>
-          </h1>
+    <main className="relative w-full bg-black text-white overflow-x-hidden">
 
-          {brand.description && (
-            <p className="
-              mt-4
-              text-gray-400
-              text-sm sm:text-base
-              max-w-xl
-              mx-auto lg:mx-0
-            ">
-              {brand.description}
-            </p>
-          )}
+      {/* ===================================================== */}
+      {/* HERO */}
+      {/* ===================================================== */}
 
-          <div className="
-            flex flex-col sm:flex-row
-            gap-3
-            mt-6
-            justify-center lg:justify-start
-          ">
-            <Link
-              href="/public/product"
-              className="
-                btn-primary
-                w-full sm:w-auto
-                text-center
-              "
-            >
-              Jelajahi Katalog
-            </Link>
+      <section className="w-full py-20">
 
-            <button
-              className="
-                btn-outline
-                w-full sm:w-auto
-              "
-            >
-              Informasi Lebih Lanjut
-            </button>
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 items-center gap-12">
+
+          {/* LEFT */}
+
+          <div>
+
+            <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
+
+              {brand.site_name || "Growtech Central"}
+
+              <br/>
+
+              <span className="text-purple-400">
+                {brand.home_subtitle || "Toko Digital Terpercaya"}
+              </span>
+
+            </h1>
+
+            {brand.description && (
+
+              <p className="mt-6 text-gray-400 max-w-xl">
+                {brand.description}
+              </p>
+
+            )}
+
+            <div className="mt-8 flex flex-wrap gap-4">
+
+              <Link
+                href="/public/product"
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition"
+              >
+                Jelajahi Katalog
+              </Link>
+
+              <Link
+                href="/public/faq"
+                className="px-6 py-3 border border-purple-500 rounded-lg text-purple-400 hover:bg-purple-500/10 transition"
+              >
+                Informasi Lebih Lanjut
+              </Link>
+
+            </div>
+
           </div>
+
+          {/* RIGHT */}
+
+          <div className="flex justify-center lg:justify-end">
+
+            <Image
+              src="/logoherosection.png"
+              alt="Growtech"
+              width={420}
+              height={420}
+              priority
+              className="drop-shadow-[0_0_60px_rgba(168,85,247,0.7)]"
+            />
+
+          </div>
+
         </div>
 
-        {/* RIGHT */}
-        <div className="flex-1 flex justify-center">
-          <Image
-            src="/logoherosection.png"
-            alt="Growtech Logo"
-            width={420}
-            height={420}
-            priority
-            className="
-              w-[220px] sm:w-[300px] lg:w-[420px]
-              h-auto
-              object-contain
-            "
-          />
-        </div>
       </section>
 
-      {/* ================= STATS ================= */}
-      <section className="px-5 sm:px-8 lg:px-16 pb-10">
-        <div className="
-          grid grid-cols-1 sm:grid-cols-3
-          gap-4
-          bg-black/40
-          border border-purple-800/40
-          rounded-2xl
-          p-5 sm:p-6
-          text-center
-        ">
-          <StatItem title="10K+" subtitle="Produk Tersedia" />
-          <StatItem title="100%" subtitle="Aman & Terpercaya" />
-          <StatItem title="24/7" subtitle="Dukungan Pelanggan" />
+      {/* ===================================================== */}
+      {/* STATS */}
+      {/* ===================================================== */}
+
+      <section className="w-full pb-16">
+
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+
+            <StatItem title="10K+" subtitle="Produk Tersedia"/>
+            <StatItem title="100%" subtitle="Aman & Terpercaya"/>
+            <StatItem title="24/7" subtitle="Dukungan Pelanggan"/>
+
+          </div>
+
         </div>
+
       </section>
 
-      {/* ================= BANNER ================= */}
-      <section className="relative mt-20 overflow-hidden">
+      {/* ===================================================== */}
+      {/* BANNER FULL WIDTH */}
+      {/* ===================================================== */}
 
-        {/* glow background seperti customer page */}
+      <section className="relative w-full py-16 overflow-hidden">
+
+        {/* glow background */}
 
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-purple-700/20 blur-[200px] rounded-full pointer-events-none"/>
 
-          <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-black to-black pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-black to-black pointer-events-none"/>
 
-            <div className="relative w-full">
+        {/* banner */}
 
-              <BannerCarousel
-                banners={banners || []}
-                autoplay
-                loop
-              />
+        <div className="relative w-full">
 
-            </div>
+          <BannerCarousel
+            banners={banners || []}
+            autoplay
+            loop
+          />
+
+        </div>
 
       </section>
 
@@ -159,24 +162,26 @@ export default function HomePage() {
   )
 }
 
-/* ================= COMPONENT ================= */
+/* ===================================================== */
+/* COMPONENT */
+/* ===================================================== */
 
-function StatItem({ title, subtitle }) {
+function StatItem({title, subtitle}) {
+
   return (
-    <div className="
-      rounded-xl
-      bg-purple-900/20
-      border border-purple-700/30
-      py-4
-      hover:bg-purple-900/30
-      transition
-    ">
-      <h3 className="text-xl sm:text-2xl font-bold">
+
+    <div className="text-center rounded-xl bg-purple-900/20 border border-purple-700/40 py-6 hover:bg-purple-900/30 transition">
+
+      <h3 className="text-2xl font-bold text-purple-400">
         {title}
       </h3>
-      <span className="text-gray-500 text-sm">
+
+      <p className="text-gray-400 text-sm mt-1">
         {subtitle}
-      </span>
+      </p>
+
     </div>
+
   )
+
 }
