@@ -244,7 +244,6 @@ export default function CustomerHomePage() {
 
         <BannerCarousel
           banners={banners || []}
-          baseWidth={340}
           autoplay
           loop
         />

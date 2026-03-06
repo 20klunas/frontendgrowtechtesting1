@@ -21,7 +21,10 @@ export default function BannerCarousel({
 
   const containerRef = useRef(null)
 
-  const itemWidth = baseWidth
+  const itemWidth =
+  typeof window !== "undefined"
+    ? Math.min(window.innerWidth * 0.7, baseWidth)
+    : baseWidth
   const trackOffset = itemWidth + GAP
 
   /* ================= DUPLICATE ================= */
