@@ -6,6 +6,7 @@ import Cookies from 'js-cookie'
 import { motion } from 'framer-motion'
 import { authFetch } from '../../lib/authFetch'
 import { X } from 'lucide-react'
+import PermissionGate from "../../components/admin/PermissionGate"  
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -332,174 +333,176 @@ export default function SubKategoriPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-white">Manajemen Sub Kategori</h1>
+    <PermissionGate permission="manage_subcategories">
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-white">Manajemen Sub Kategori</h1>
 
-      <motion.div
-        className="rounded-2xl border border-purple-600/60 bg-black p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        <div className="flex justify-end mb-4">
-          <button className="btn-add" onClick={openCreate}>
-            + Tambah
-          </button>
-        </div>
-
-        {loading ? (
-          <p className="text-gray-300">Loading...</p>
-        ) : (
-          <table className="w-full text-sm text-gray-300">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th>ID</th>
-                <th>Logo</th>
-                <th>Nama</th>
-                <th>Kategori</th>
-                <th>Provider</th>
-                <th>Description</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-b border-white/5 text-center">
-                  <td>{item.id}</td>
-                  <td className="items-center justify-center flex">
-                    {item.image_url ? (
-                      <NextImage src={item.image_url} width={40} height={40} alt="" />
-                    ) : (
-                      <span className="text-white/30 text-center">-</span>
-                    )}
-                  </td>
-                  <td className="text-center">{item.name}</td>
-                  <td className="text-center">{item.category?.name}</td>
-                  <td className="text-center">{item.provider}</td>
-                  <td className="text-center">{item.description || '-'}</td>
-                  <td className="space-x-2">
-                    <button onClick={() => openEdit(item)} className="btn-edit-sm">
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelected(item)
-                        if (confirm('Yakin hapus sub kategori ini?')) handleDelete()
-                      }}
-                      className="btn-delete-sm"
-                    >
-                      Hapus
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </motion.div>
-
-      {/* MODAL */}
-      {showModal && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          className="rounded-2xl border border-purple-600/60 bg-black p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={closeModal}
         >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md bg-black p-6 rounded-2xl border border-purple-600/60 shadow-[0_0_40px_rgba(168,85,247,0.25)]"
-          >
-            <button
-              type="button"
-              onClick={closeModal}
-              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-purple-600 transition text-white"
-            >
-              <X size={18} />
+          <div className="flex justify-end mb-4">
+            <button className="btn-add" onClick={openCreate}>
+              + Tambah
             </button>
+          </div>
 
-            <form onSubmit={handleSubmit}>
-              <select
-                className="input-primary mb-3"
-                value={form.category_id}
-                onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-                required
-              >
-                <option value="">Pilih kategori</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
+          {loading ? (
+            <p className="text-gray-300">Loading...</p>
+          ) : (
+            <table className="w-full text-sm text-gray-300">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th>ID</th>
+                  <th>Logo</th>
+                  <th>Nama</th>
+                  <th>Kategori</th>
+                  <th>Provider</th>
+                  <th>Description</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.id} className="border-b border-white/5 text-center">
+                    <td>{item.id}</td>
+                    <td className="items-center justify-center flex">
+                      {item.image_url ? (
+                        <NextImage src={item.image_url} width={40} height={40} alt="" />
+                      ) : (
+                        <span className="text-white/30 text-center">-</span>
+                      )}
+                    </td>
+                    <td className="text-center">{item.name}</td>
+                    <td className="text-center">{item.category?.name}</td>
+                    <td className="text-center">{item.provider}</td>
+                    <td className="text-center">{item.description || '-'}</td>
+                    <td className="space-x-2">
+                      <button onClick={() => openEdit(item)} className="btn-edit-sm">
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelected(item)
+                          if (confirm('Yakin hapus sub kategori ini?')) handleDelete()
+                        }}
+                        className="btn-delete-sm"
+                      >
+                        Hapus
+                      </button>
+                    </td>
+                  </tr>
                 ))}
-              </select>
-
-              <input
-                className="input-primary mb-3"
-                placeholder="Nama"
-                value={form.name}
-                onChange={(e) => {
-                  const name = e.target.value
-                  setForm({
-                    ...form,
-                    name,
-                    slug: generateSlug(name),
-                  })
-                }}
-                required
-              />
-
-              <input className="input-primary mb-3" placeholder="Slug" value={form.slug} readOnly />
-
-              <input
-                className="input-primary mb-3"
-                placeholder="Provider"
-                value={form.provider}
-                onChange={(e) => setForm({ ...form, provider: e.target.value })}
-              />
-
-              <input
-                className="input-primary mb-3"
-                placeholder="Description"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-              />
-
-              <input
-                type="file"
-                className="mb-3"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e.target.files?.[0])}
-              />
-
-              {uploading && (
-                <div className="mb-3">
-                  <div className="w-full bg-purple-900/40 rounded h-2">
-                    <div
-                      className="bg-purple-500 h-2 rounded transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-purple-300 mt-1">Uploading... {progress}%</p>
-                </div>
-              )}
-
-              {preview && (
-                <div className="mb-3">
-                  <NextImage src={preview} width={80} height={80} alt="preview" />
-                </div>
-              )}
-
-              <button className="btn-add w-full" disabled={submitting || uploading}>
-                {submitting ? 'Menyimpan...' : uploading ? 'Uploading...' : 'Simpan'}
-              </button>
-            </form>
-          </motion.div>
+              </tbody>
+            </table>
+          )}
         </motion.div>
-      )}
-    </div>
+
+        {/* MODAL */}
+        {showModal && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeModal}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-md bg-black p-6 rounded-2xl border border-purple-600/60 shadow-[0_0_40px_rgba(168,85,247,0.25)]"
+            >
+              <button
+                type="button"
+                onClick={closeModal}
+                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-purple-600 transition text-white"
+              >
+                <X size={18} />
+              </button>
+
+              <form onSubmit={handleSubmit}>
+                <select
+                  className="input-primary mb-3"
+                  value={form.category_id}
+                  onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+                  required
+                >
+                  <option value="">Pilih kategori</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  className="input-primary mb-3"
+                  placeholder="Nama"
+                  value={form.name}
+                  onChange={(e) => {
+                    const name = e.target.value
+                    setForm({
+                      ...form,
+                      name,
+                      slug: generateSlug(name),
+                    })
+                  }}
+                  required
+                />
+
+                <input className="input-primary mb-3" placeholder="Slug" value={form.slug} readOnly />
+
+                <input
+                  className="input-primary mb-3"
+                  placeholder="Provider"
+                  value={form.provider}
+                  onChange={(e) => setForm({ ...form, provider: e.target.value })}
+                />
+
+                <input
+                  className="input-primary mb-3"
+                  placeholder="Description"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                />
+
+                <input
+                  type="file"
+                  className="mb-3"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e.target.files?.[0])}
+                />
+
+                {uploading && (
+                  <div className="mb-3">
+                    <div className="w-full bg-purple-900/40 rounded h-2">
+                      <div
+                        className="bg-purple-500 h-2 rounded transition-all"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-purple-300 mt-1">Uploading... {progress}%</p>
+                  </div>
+                )}
+
+                {preview && (
+                  <div className="mb-3">
+                    <NextImage src={preview} width={80} height={80} alt="preview" />
+                  </div>
+                )}
+
+                <button className="btn-add w-full" disabled={submitting || uploading}>
+                  {submitting ? 'Menyimpan...' : uploading ? 'Uploading...' : 'Simpan'}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </div>
+    </PermissionGate>  
   )
 }
