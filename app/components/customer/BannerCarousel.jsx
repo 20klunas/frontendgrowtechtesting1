@@ -218,7 +218,7 @@ export default function BannerCarousel({
               transition={{ duration: 0.3 }}
               className={`h-[10px] rounded-full ${
                 activeIndex === i
-                  ? 'bg-purple-500 shadow-[0_0_14px_rgba(168,85,247,0.9)]'
+                  ? 'bg-purple-400 shadow-[0_0_14px_rgba(168,85,247,0.9)]'
                   : 'bg-white/30'
               }`}
             />
