@@ -142,8 +142,6 @@ export default function HomePage() {
 
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-purple-700/20 blur-[200px] rounded-full pointer-events-none"/>
 
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-black to-black pointer-events-none"/>
-
         {/* banner */}
 
         <div className="relative w-full">
