@@ -60,7 +60,7 @@ export default function DataTransaksiPage() {
   };
 
   return (
-    <PermissionGate permission="view_transactions">
+    <PermissionGate permission="manage_orders">
       <section className="p-8 text-white">
         <h1 className="text-3xl font-bold mb-6">Data Transaksi</h1>
 

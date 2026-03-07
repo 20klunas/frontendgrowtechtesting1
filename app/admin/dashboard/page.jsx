@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import TransactionChart from "../../components/admin/cards/TransactionChart";
 import TransactionCard from "../../components/admin/cards/TransactionCard";
 import StatCard from "../../components/admin/cards/StatCard";
-
+import PermissionGate from "../../components/admin/PermissionGate";
 import {
   Select,
   SelectContent,
@@ -150,369 +150,371 @@ export default function DashboardPage() {
   const tierOptions = data?.filter_options?.user_tier || ["member", "reseller", "vip"];
 
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="min-h-screen bg-background p-4 lg:p-6"
-    >
-      {/* HEADER */}
-      <motion.header variants={item} className="mb-6">
-        <h1 className="text-2xl font-bold text-white lg:text-3xl">
-          Dashboard Admin
-        </h1>
-        <p className="text-gray-400">
-          Halo, Selamat datang{" "}
-          <span className="font-semibold text-white">{userName}</span>
-        </p>
-      </motion.header>
-
-      {/* TOOLBAR */}
+    <PermissionGate permission="view_dashboard">
       <motion.div
-        variants={item}
-        className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="min-h-screen bg-background p-4 lg:p-6"
       >
-        <div className="flex items-center gap-2">
-          <Select value={rangeDraft} onValueChange={(v) => setRangeDraft(v)}>
-            <SelectTrigger className="w-[140px] border-[#3d2b5e] bg-[#2d1b4e] text-white">
-              <SelectValue placeholder="Pilih Range" />
-            </SelectTrigger>
-            <SelectContent className="border-[#3d2b5e] bg-[#1a1a2e] text-white">
-              {RANGE_PRESETS.map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* HEADER */}
+        <motion.header variants={item} className="mb-6">
+          <h1 className="text-2xl font-bold text-white lg:text-3xl">
+            Dashboard Admin
+          </h1>
+          <p className="text-gray-400">
+            Halo, Selamat datang{" "}
+            <span className="font-semibold text-white">{userName}</span>
+          </p>
+        </motion.header>
+
+        {/* TOOLBAR */}
+        <motion.div
+          variants={item}
+          className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-center gap-2">
+            <Select value={rangeDraft} onValueChange={(v) => setRangeDraft(v)}>
+              <SelectTrigger className="w-[140px] border-[#3d2b5e] bg-[#2d1b4e] text-white">
+                <SelectValue placeholder="Pilih Range" />
+              </SelectTrigger>
+              <SelectContent className="border-[#3d2b5e] bg-[#1a1a2e] text-white">
+                {RANGE_PRESETS.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              onClick={() => setRangeApplied(rangeDraft)}
+              className="bg-purple-700 hover:bg-purple-600"
+            >
+              Terapkan
+            </Button>
+          </div>
 
           <Button
-            onClick={() => setRangeApplied(rangeDraft)}
-            className="bg-purple-700 hover:bg-purple-600"
+            onClick={() => {
+              setFiltersDraft(filtersApplied || {});
+              setOpenFilter(true);
+            }}
+            className="bg-[#2d1b4e] border border-[#3d2b5e] text-white hover:bg-[#3a2462]"
           >
-            Terapkan
+            <Filter className="h-4 w-4 mr-2" />
+            Filter
           </Button>
-        </div>
-
-        <Button
-          onClick={() => {
-            setFiltersDraft(filtersApplied || {});
-            setOpenFilter(true);
-          }}
-          className="bg-[#2d1b4e] border border-[#3d2b5e] text-white hover:bg-[#3a2462]"
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          Filter
-        </Button>
-      </motion.div>
-
-      {/* ERROR */}
-      {err && (
-        <motion.div
-          variants={item}
-          className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-200"
-        >
-          {err}
         </motion.div>
-      )}
 
-      {/* STATISTIK TRANSAKSI */}
-      <motion.section variants={item} className="mb-8 space-y-4">
-        <h2 className="text-xl font-bold text-white">Statistik Transaksi</h2>
-
-        <TransactionChart
-          labels={chart.labels || []}
-          values={chart.revenue || []}
-          offset={chartOffset}
-          setOffset={setChartOffset}
-          loading={loading}
-        />
-      </motion.section>
-
-      {/* DATA TRANSAKSI */}
-      <motion.section variants={item} className="mb-8 space-y-4">
-        <h2 className="text-xl font-bold text-white">Data Transaksi</h2>
-
-        <motion.div
-          variants={item}
-          className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3"
-        >
-          <TransactionCard
-            status="berhasil"
-            count={trx?.success || 0}
-            amount={formatRupiah(revenue?.total || 0)}
-          />
-          <TransactionCard status="pending" count={trx?.pending || 0} amount="" />
-          {/* <TransactionCard status="proses" count={trxProcess || 0} amount="" /> */}
-          <TransactionCard status="gagal" count={trx?.failed || 0} amount="" />
-        </motion.div>
-      </motion.section>
-
-      {/* PROFIT */}
-      <motion.section variants={item} className="mb-8 space-y-4">
-        <h2 className="text-xl font-bold text-white">Profit</h2>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard
-            title={formatRupiah(revenue?.today || 0)}
-            label="Profit Hari Ini"
-            icon={DollarSign}
-            variant="success"
-          />
-          <StatCard
-            title={formatRupiah(revenue?.month || 0)}
-            label="Profit Bulan Ini"
-            icon={DollarSign}
-            variant="info"
-          />
-          <StatCard
-            title={formatRupiah(revenue?.total || 0)}
-            label="Profit Total"
-            icon={DollarSign}
-            variant="default"
-          />
-        </div>
-      </motion.section>
-
-      {/* DATA USER */}
-      <motion.section variants={item} className="mb-8 space-y-4">
-        <h2 className="text-xl font-bold text-white">Data User</h2>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard
-            title={`${usersData?.total || 0}`}
-            label="Total User"
-            icon={Users}
-            variant="default"
-          />
-          <StatCard
-            title={formatRupiah(usersData?.total_transaction_nominal || 0)}
-            label="Total Transaksi User"
-            icon={DollarSign}
-            variant="warning"
-          />
-          <StatCard
-            title={`Member:${usersData?.by_tier?.member ?? 0} • Reseller:${usersData?.by_tier?.reseller ?? 0} • VIP:${usersData?.by_tier?.vip ?? 0}`}
-            label="Total User per Tier"
-            icon={Users}
-            variant="info"
-          />
-        </div>
-      </motion.section>
-
-      {/* DATA PRODUK */}
-      <motion.section variants={item} className="mb-8 space-y-4">
-        <h2 className="text-xl font-bold text-white">Data Produk</h2>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard
-            title={`${products?.categories || 0}`}
-            label="Total Kategori Produk"
-            icon={Boxes}
-            variant="default"
-          />
-          <StatCard
-            title={`${products?.subcategories || 0}`}
-            label="Total SubKategori Produk"
-            icon={Layers}
-            variant="info"
-          />
-          <StatCard
-            title={`${products?.products || 0}`}
-            label="Total Produk"
-            icon={Package}
-            variant="success"
-          />
-        </div>
-      </motion.section>
-
-      {/* FILTER MODAL */}
-      <AnimatePresence>
-        {openFilter && (
+        {/* ERROR */}
+        {err && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setOpenFilter(false)}
+            variants={item}
+            className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-200"
           >
-            <motion.div
-              className="w-full max-w-3xl rounded-2xl border border-[#3d2b5e] bg-[#1a102b] p-5 text-white shadow-xl"
-              initial={{ y: 18, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 18, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-bold">Menu Filter</h3>
-                <button
-                  className="rounded-lg px-2 py-1 text-gray-300 hover:bg-white/10"
-                  onClick={() => setOpenFilter(false)}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Rentang tanggal */}
-              <div className="mb-5 border-b border-white/10 pb-5">
-                <h4 className="mb-3 font-semibold">Rentang Tanggal</h4>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <p className="mb-2 text-sm text-gray-300">Dari Tanggal</p>
-                    <Input
-                      type="date"
-                      value={filtersDraft?.from || ""}
-                      onChange={(e) =>
-                        setFiltersDraft((s) => ({ ...s, from: e.target.value }))
-                      }
-                      className="border-[#3d2b5e] bg-white text-black"
-                    />
-                  </div>
-                  <div>
-                    <p className="mb-2 text-sm text-gray-300">Sampai Tanggal</p>
-                    <Input
-                      type="date"
-                      value={filtersDraft?.to || ""}
-                      onChange={(e) =>
-                        setFiltersDraft((s) => ({ ...s, to: e.target.value }))
-                      }
-                      className="border-[#3d2b5e] bg-white text-black"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Filter tambahan */}
-              <div className="mb-5">
-                <h4 className="mb-3 font-semibold">Filter Tambahan</h4>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {/* Status */}
-                  <div>
-                    <p className="mb-2 text-sm text-gray-300">Status</p>
-                    <Select
-                      value={filtersDraft?.status || "Semua"}
-                      onValueChange={(v) =>
-                        setFiltersDraft((s) => ({
-                          ...s,
-                          status: v === "Semua" ? undefined : v,
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="border-[#3d2b5e] bg-white text-black">
-                        <SelectValue placeholder="Semua" />
-                      </SelectTrigger>
-                      <SelectContent className="border-[#3d2b5e] bg-white text-black">
-                        <SelectItem value="Semua">Semua</SelectItem>
-                        {statusOptions.map((st) => (
-                          <SelectItem key={st} value={st}>
-                            {st}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Produk */}
-                  <div>
-                    <p className="mb-2 text-sm text-gray-300">Produk</p>
-                    <Select
-                      value={filtersDraft?.product_id || "Semua"}
-                      onValueChange={(v) =>
-                        setFiltersDraft((s) => ({
-                          ...s,
-                          product_id: v === "Semua" ? undefined : v,
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="border-[#3d2b5e] bg-white text-black">
-                        <SelectValue placeholder="Semua" />
-                      </SelectTrigger>
-                      <SelectContent className="border-[#3d2b5e] bg-white text-black">
-                        <SelectItem value="Semua">Semua</SelectItem>
-                        {productsOptions.map((p) => (
-                          <SelectItem key={p.id} value={String(p.id)}>
-                            {p.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Tipe user */}
-                  <div>
-                    <p className="mb-2 text-sm text-gray-300">Tipe User</p>
-                    <Select
-                      value={filtersDraft?.user_tier || "Semua"}
-                      onValueChange={(v) =>
-                        setFiltersDraft((s) => ({
-                          ...s,
-                          user_tier: v === "Semua" ? undefined : v,
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="border-[#3d2b5e] bg-white text-black">
-                        <SelectValue placeholder="Semua" />
-                      </SelectTrigger>
-                      <SelectContent className="border-[#3d2b5e] bg-white text-black">
-                        <SelectItem value="Semua">Semua</SelectItem>
-                        {tierOptions.map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {t}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Kata kunci */}
-                  <div>
-                    <p className="mb-2 text-sm text-gray-300">Kata Kunci</p>
-                    <Input
-                      value={filtersDraft?.q || ""}
-                      placeholder="Masukan Kata Kunci"
-                      onChange={(e) =>
-                        setFiltersDraft((s) => ({ ...s, q: e.target.value }))
-                      }
-                      className="border-[#3d2b5e] bg-white text-black"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <Button
-                  variant="outline"
-                  className="border-white/20 bg-transparent text-white hover:bg-white/10"
-                  onClick={() => setFiltersDraft({})}
-                >
-                  Reset
-                </Button>
-
-                <Button
-                  className="bg-white text-black hover:bg-white/90"
-                  onClick={() => {
-                    const hasFrom = !!filtersDraft?.from;
-                    const hasTo = !!filtersDraft?.to;
-
-                    const fixed = { ...(filtersDraft || {}) };
-                    if ((hasFrom && !hasTo) || (!hasFrom && hasTo)) {
-                      delete fixed.from;
-                      delete fixed.to;
-                    }
-
-                    setFiltersApplied(fixed);
-                    setOpenFilter(false);
-                  }}
-                >
-                  Terap Filter
-                </Button>
-              </div>
-            </motion.div>
+            {err}
           </motion.div>
         )}
-      </AnimatePresence>
-    </motion.div>
+
+        {/* STATISTIK TRANSAKSI */}
+        <motion.section variants={item} className="mb-8 space-y-4">
+          <h2 className="text-xl font-bold text-white">Statistik Transaksi</h2>
+
+          <TransactionChart
+            labels={chart.labels || []}
+            values={chart.revenue || []}
+            offset={chartOffset}
+            setOffset={setChartOffset}
+            loading={loading}
+          />
+        </motion.section>
+
+        {/* DATA TRANSAKSI */}
+        <motion.section variants={item} className="mb-8 space-y-4">
+          <h2 className="text-xl font-bold text-white">Data Transaksi</h2>
+
+          <motion.div
+            variants={item}
+            className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3"
+          >
+            <TransactionCard
+              status="berhasil"
+              count={trx?.success || 0}
+              amount={formatRupiah(revenue?.total || 0)}
+            />
+            <TransactionCard status="pending" count={trx?.pending || 0} amount="" />
+            {/* <TransactionCard status="proses" count={trxProcess || 0} amount="" /> */}
+            <TransactionCard status="gagal" count={trx?.failed || 0} amount="" />
+          </motion.div>
+        </motion.section>
+
+        {/* PROFIT */}
+        <motion.section variants={item} className="mb-8 space-y-4">
+          <h2 className="text-xl font-bold text-white">Profit</h2>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <StatCard
+              title={formatRupiah(revenue?.today || 0)}
+              label="Profit Hari Ini"
+              icon={DollarSign}
+              variant="success"
+            />
+            <StatCard
+              title={formatRupiah(revenue?.month || 0)}
+              label="Profit Bulan Ini"
+              icon={DollarSign}
+              variant="info"
+            />
+            <StatCard
+              title={formatRupiah(revenue?.total || 0)}
+              label="Profit Total"
+              icon={DollarSign}
+              variant="default"
+            />
+          </div>
+        </motion.section>
+
+        {/* DATA USER */}
+        <motion.section variants={item} className="mb-8 space-y-4">
+          <h2 className="text-xl font-bold text-white">Data User</h2>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <StatCard
+              title={`${usersData?.total || 0}`}
+              label="Total User"
+              icon={Users}
+              variant="default"
+            />
+            <StatCard
+              title={formatRupiah(usersData?.total_transaction_nominal || 0)}
+              label="Total Transaksi User"
+              icon={DollarSign}
+              variant="warning"
+            />
+            <StatCard
+              title={`Member:${usersData?.by_tier?.member ?? 0} • Reseller:${usersData?.by_tier?.reseller ?? 0} • VIP:${usersData?.by_tier?.vip ?? 0}`}
+              label="Total User per Tier"
+              icon={Users}
+              variant="info"
+            />
+          </div>
+        </motion.section>
+
+        {/* DATA PRODUK */}
+        <motion.section variants={item} className="mb-8 space-y-4">
+          <h2 className="text-xl font-bold text-white">Data Produk</h2>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <StatCard
+              title={`${products?.categories || 0}`}
+              label="Total Kategori Produk"
+              icon={Boxes}
+              variant="default"
+            />
+            <StatCard
+              title={`${products?.subcategories || 0}`}
+              label="Total SubKategori Produk"
+              icon={Layers}
+              variant="info"
+            />
+            <StatCard
+              title={`${products?.products || 0}`}
+              label="Total Produk"
+              icon={Package}
+              variant="success"
+            />
+          </div>
+        </motion.section>
+
+        {/* FILTER MODAL */}
+        <AnimatePresence>
+          {openFilter && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpenFilter(false)}
+            >
+              <motion.div
+                className="w-full max-w-3xl rounded-2xl border border-[#3d2b5e] bg-[#1a102b] p-5 text-white shadow-xl"
+                initial={{ y: 18, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 18, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-bold">Menu Filter</h3>
+                  <button
+                    className="rounded-lg px-2 py-1 text-gray-300 hover:bg-white/10"
+                    onClick={() => setOpenFilter(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Rentang tanggal */}
+                <div className="mb-5 border-b border-white/10 pb-5">
+                  <h4 className="mb-3 font-semibold">Rentang Tanggal</h4>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="mb-2 text-sm text-gray-300">Dari Tanggal</p>
+                      <Input
+                        type="date"
+                        value={filtersDraft?.from || ""}
+                        onChange={(e) =>
+                          setFiltersDraft((s) => ({ ...s, from: e.target.value }))
+                        }
+                        className="border-[#3d2b5e] bg-white text-black"
+                      />
+                    </div>
+                    <div>
+                      <p className="mb-2 text-sm text-gray-300">Sampai Tanggal</p>
+                      <Input
+                        type="date"
+                        value={filtersDraft?.to || ""}
+                        onChange={(e) =>
+                          setFiltersDraft((s) => ({ ...s, to: e.target.value }))
+                        }
+                        className="border-[#3d2b5e] bg-white text-black"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter tambahan */}
+                <div className="mb-5">
+                  <h4 className="mb-3 font-semibold">Filter Tambahan</h4>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {/* Status */}
+                    <div>
+                      <p className="mb-2 text-sm text-gray-300">Status</p>
+                      <Select
+                        value={filtersDraft?.status || "Semua"}
+                        onValueChange={(v) =>
+                          setFiltersDraft((s) => ({
+                            ...s,
+                            status: v === "Semua" ? undefined : v,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="border-[#3d2b5e] bg-white text-black">
+                          <SelectValue placeholder="Semua" />
+                        </SelectTrigger>
+                        <SelectContent className="border-[#3d2b5e] bg-white text-black">
+                          <SelectItem value="Semua">Semua</SelectItem>
+                          {statusOptions.map((st) => (
+                            <SelectItem key={st} value={st}>
+                              {st}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Produk */}
+                    <div>
+                      <p className="mb-2 text-sm text-gray-300">Produk</p>
+                      <Select
+                        value={filtersDraft?.product_id || "Semua"}
+                        onValueChange={(v) =>
+                          setFiltersDraft((s) => ({
+                            ...s,
+                            product_id: v === "Semua" ? undefined : v,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="border-[#3d2b5e] bg-white text-black">
+                          <SelectValue placeholder="Semua" />
+                        </SelectTrigger>
+                        <SelectContent className="border-[#3d2b5e] bg-white text-black">
+                          <SelectItem value="Semua">Semua</SelectItem>
+                          {productsOptions.map((p) => (
+                            <SelectItem key={p.id} value={String(p.id)}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Tipe user */}
+                    <div>
+                      <p className="mb-2 text-sm text-gray-300">Tipe User</p>
+                      <Select
+                        value={filtersDraft?.user_tier || "Semua"}
+                        onValueChange={(v) =>
+                          setFiltersDraft((s) => ({
+                            ...s,
+                            user_tier: v === "Semua" ? undefined : v,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="border-[#3d2b5e] bg-white text-black">
+                          <SelectValue placeholder="Semua" />
+                        </SelectTrigger>
+                        <SelectContent className="border-[#3d2b5e] bg-white text-black">
+                          <SelectItem value="Semua">Semua</SelectItem>
+                          {tierOptions.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {t}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Kata kunci */}
+                    <div>
+                      <p className="mb-2 text-sm text-gray-300">Kata Kunci</p>
+                      <Input
+                        value={filtersDraft?.q || ""}
+                        placeholder="Masukan Kata Kunci"
+                        onChange={(e) =>
+                          setFiltersDraft((s) => ({ ...s, q: e.target.value }))
+                        }
+                        className="border-[#3d2b5e] bg-white text-black"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  <Button
+                    variant="outline"
+                    className="border-white/20 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => setFiltersDraft({})}
+                  >
+                    Reset
+                  </Button>
+
+                  <Button
+                    className="bg-white text-black hover:bg-white/90"
+                    onClick={() => {
+                      const hasFrom = !!filtersDraft?.from;
+                      const hasTo = !!filtersDraft?.to;
+
+                      const fixed = { ...(filtersDraft || {}) };
+                      if ((hasFrom && !hasTo) || (!hasFrom && hasTo)) {
+                        delete fixed.from;
+                        delete fixed.to;
+                      }
+
+                      setFiltersApplied(fixed);
+                      setOpenFilter(false);
+                    }}
+                  >
+                    Terap Filter
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </PermissionGate>  
   );
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import SectionCard from "../../../components/admin/SectionCard"
 import { apiFetch } from "../../../../app/lib/apiFetch"
 import Toast from "../../../components/ui/Toast"
-
+import PermissionGate from "../../../components/admin/PermissionGate"
 export default function WebsitePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -157,51 +157,53 @@ export default function WebsitePage() {
   if (loading) return null
 
   return (
-    <>
-      {toast && (
-        <Toast {...toast} onClose={() => setToast(null)} />
-      )}
+    <PermissionGate permission="manage_site_settings">  
+      <>
+        {toast && (
+          <Toast {...toast} onClose={() => setToast(null)} />
+        )}
 
-      {/* 🔥 PREVIEW MAINTENANCE */}
-      {form.maintenance_web && (
-        <div className="mb-4 p-4 bg-yellow-600/20 border border-yellow-500 rounded-lg">
-          ⚠ Website sedang dalam mode maintenance
-        </div>
-      )}
+        {/* 🔥 PREVIEW MAINTENANCE */}
+        {form.maintenance_web && (
+          <div className="mb-4 p-4 bg-yellow-600/20 border border-yellow-500 rounded-lg">
+            ⚠ Website sedang dalam mode maintenance
+          </div>
+        )}
 
-      <SectionCard title="Pengaturan Utama Website">
-        <div className="grid grid-cols-2 gap-4">
+        <SectionCard title="Pengaturan Utama Website">
+          <div className="grid grid-cols-2 gap-4">
 
-          <Input label="Judul Website" name="site_name" value={form.site_name} onChange={handleChange} changed={isChanged("site_name")} />
-          <Input label="Judul Pendek" name="short_name" value={form.short_name} onChange={handleChange} changed={isChanged("short_name")} />
+            <Input label="Judul Website" name="site_name" value={form.site_name} onChange={handleChange} changed={isChanged("site_name")} />
+            <Input label="Judul Pendek" name="short_name" value={form.short_name} onChange={handleChange} changed={isChanged("short_name")} />
 
-          <Input label="Title Home" name="home_title" value={form.home_title} onChange={handleChange} changed={isChanged("home_title")} />
-          <Input label="Subtitle Home" name="home_subtitle" value={form.home_subtitle} onChange={handleChange} changed={isChanged("home_subtitle")} />
+            <Input label="Title Home" name="home_title" value={form.home_title} onChange={handleChange} changed={isChanged("home_title")} />
+            <Input label="Subtitle Home" name="home_subtitle" value={form.home_subtitle} onChange={handleChange} changed={isChanged("home_subtitle")} />
 
-          <Textarea label="Deskripsi Website" name="description" value={form.description} onChange={handleChange} changed={isChanged("description")} />
-          <Textarea label="Web Keyword (SEO)" name="keywords" value={form.keywords} onChange={handleChange} changed={isChanged("keywords")} />
+            <Textarea label="Deskripsi Website" name="description" value={form.description} onChange={handleChange} changed={isChanged("description")} />
+            <Textarea label="Web Keyword (SEO)" name="keywords" value={form.keywords} onChange={handleChange} changed={isChanged("keywords")} />
 
-          <Input label="Phone / Discord" name="phone" value={form.phone} onChange={handleChange} changed={isChanged("phone")} />
-          <Input label="Email" name="email" value={form.email} onChange={handleChange} changed={isChanged("email")} />
+            <Input label="Phone / Discord" name="phone" value={form.phone} onChange={handleChange} changed={isChanged("phone")} />
+            <Input label="Email" name="email" value={form.email} onChange={handleChange} changed={isChanged("email")} />
 
-          <Textarea label="Footer Deskripsi" name="footer_desc" value={form.footer_desc} onChange={handleChange} changed={isChanged("footer_desc")} />
-          <Input label="Versi Website" name="version" value={form.version} onChange={handleChange} changed={isChanged("version")} />
+            <Textarea label="Footer Deskripsi" name="footer_desc" value={form.footer_desc} onChange={handleChange} changed={isChanged("footer_desc")} />
+            <Input label="Versi Website" name="version" value={form.version} onChange={handleChange} changed={isChanged("version")} />
 
-          <Toggle label="Maintenance Website" name="maintenance_web" checked={form.maintenance_web} onChange={handleChange} />
-          <Toggle label="Maintenance API" name="maintenance_api" checked={form.maintenance_api} onChange={handleChange} />
-        </div>
+            <Toggle label="Maintenance Website" name="maintenance_web" checked={form.maintenance_web} onChange={handleChange} />
+            <Toggle label="Maintenance API" name="maintenance_api" checked={form.maintenance_api} onChange={handleChange} />
+          </div>
 
-        <div className="pt-6">
-          <button
-            onClick={handleSubmit}
-            disabled={!hasChanges || saving}
-            className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold disabled:opacity-50"
-          >
-            {saving ? "Menyimpan..." : "Simpan Perubahan"}
-          </button>
-        </div>
-      </SectionCard>
-    </>
+          <div className="pt-6">
+            <button
+              onClick={handleSubmit}
+              disabled={!hasChanges || saving}
+              className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold disabled:opacity-50"
+            >
+              {saving ? "Menyimpan..." : "Simpan Perubahan"}
+            </button>
+          </div>
+        </SectionCard>
+      </>
+    </PermissionGate>  
   )
 }
 
