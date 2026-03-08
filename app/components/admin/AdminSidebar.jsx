@@ -42,15 +42,15 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
           fixed left-0 top-14 z-40
           h-[calc(100vh-56px)]
           ${collapsed ? "w-20" : "w-64"}
-          
+
           bg-gradient-to-b 
-          from-purple-900 
-          to-purple-950
-          
+          from-purple-100 
+          to-white
+
           dark:from-[#2a0446] 
           dark:to-[#12001f]
 
-          border-r border-purple-800/40
+          border-r border-purple-200 dark:border-purple-800/40
           transition-all duration-300
 
           ${open ? "translate-x-0" : "-translate-x-full"}
