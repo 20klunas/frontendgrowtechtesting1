@@ -50,12 +50,12 @@ export const adminMenu = [
   {
     group: "Management",
     items: [
-      // {
-      //   label: "Pengguna",
-      //   href: "/admin/pengguna",
-      //   icon: Users,
-      //   permission: "manage_users",
-      // },
+      {
+        label: "Pengguna",
+        href: "/admin/pengguna",
+        icon: Users,
+        permission: "manage_users",
+      },
       {
         label: "Transaksi",
         href: "/admin/datatransaksi",
@@ -98,12 +98,12 @@ export const adminMenu = [
         icon: FileText,
         permission: "manage_pages",
       },
-      // {
-      //   label: "Akses Admin",
-      //   href: "/admin/akses-admin",
-      //   icon: ShieldCheck,
-      //   permission: "manage_admins",
-      // },
+      {
+        label: "Akses Admin",
+        href: "/admin/akses-admin",
+        icon: ShieldCheck,
+        permission: "manage_admins",
+      },
     ],
   },
 ]
