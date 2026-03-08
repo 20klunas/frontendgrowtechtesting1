@@ -35,7 +35,7 @@ export default function AdminNavbar({ onMenuClick, theme, setTheme }) {
         variant="ghost"
         size="icon"
         onClick={onMenuClick}
-        className="text-white hover:bg-white/10"
+        className="text-muted-foreground hover:bg-white/10"
       >
         <Menu className="h-6 w-6" />
       </Button>

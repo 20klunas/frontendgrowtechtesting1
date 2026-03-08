@@ -42,9 +42,17 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
           fixed left-0 top-14 z-40
           h-[calc(100vh-56px)]
           ${collapsed ? "w-20" : "w-64"}
-          bg-gradient-to-b from-[#2a0446] to-[#12001f]
+          
+          bg-gradient-to-b 
+          from-purple-900 
+          to-purple-950
+          
+          dark:from-[#2a0446] 
+          dark:to-[#12001f]
+
           border-r border-purple-800/40
           transition-all duration-300
+
           ${open ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -81,7 +89,7 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
 function SidebarGroup({ title, children }) {
   return (
     <div>
-      <div className="px-3 mb-2 text-[10px] tracking-widest text-purple-300/60 font-semibold uppercase">
+      <div className="px-3 mb-2 text-[10px] tracking-widest text-purple-700/70 dark:text-purple-300/60 font-semibold uppercase">
         {title}
       </div>
       <div className="space-y-1">{children}</div>
@@ -102,7 +110,7 @@ function SidebarItem({ label, href, icon: Icon, pathname, collapsed }) {
         ${
           active
             ? "bg-purple-600 text-white shadow-sm shadow-purple-900/30"
-            : "text-gray-300 hover:bg-purple-800/40 hover:text-white"
+            : "text-gray-600 dark:text-gray-300 hover:bg-purple-200/40 dark:hover:bg-purple-800/40"
         }
       `}
     >
