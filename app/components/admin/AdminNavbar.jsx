@@ -59,10 +59,10 @@ export default function AdminNavbar({ onMenuClick, theme, setTheme }) {
             className="flex items-center gap-2 pl-2 hover:opacity-90"
           >
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium text-white">
+              <p className="text-sm text-muted-foreground font-medium text-white">
                 {user?.full_name || user?.name || "-"}
               </p>
-              <p className="text-xs text-gray-400 capitalize">
+              <p className="text-xs text-muted-foreground text-gray-400 capitalize">
                 {user?.role || "-"}
               </p>
             </div>
