@@ -58,7 +58,7 @@ export default function ProductsContent() {
   return (
     <main className="product-wrapper">
       <h1 className="product-title">
-        {subcategoryId ? "Produk Subkategori" : "Semua Produk"}
+        {subcategoryId ? "Produk" : "Semua Produk"}
       </h1>
 
       <div className="product-grid">
