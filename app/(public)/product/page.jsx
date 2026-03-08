@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import ProductCard from "../../components/ProductCard";
 import { motion } from "framer-motion";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -113,19 +112,20 @@ export default function ProductPage() {
   }, [subcategories, debouncedSearch, sort]);
 
   return (
-    <main className="min-h-screen text-white px-4 sm:px-6 lg:px-10 py-8">
+    <main className="min-h-screen text-white px-4 sm:px-6 lg:px-10 py-8
+    bg-gradient-to-b from-[#020617] via-[#020617] to-black">
 
       {/* ================= TITLE ================= */}
 
       <motion.h1
-        initial={{ opacity: 0, y: -15 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-3xl font-bold mb-8"
       >
         Produk
       </motion.h1>
 
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-8">
 
         {/* ================= SIDEBAR ================= */}
 
@@ -135,19 +135,15 @@ export default function ProductPage() {
           bg-white/5
           border border-white/10
           rounded-2xl
-          p-4
+          p-5
+          shadow-xl
         ">
 
-          <h4 className="text-sm font-semibold mb-3 text-purple-400">
+          <h4 className="text-sm font-semibold mb-4 text-purple-400">
             Kategori
           </h4>
 
-          <div className="
-            flex lg:flex-col
-            gap-2
-            overflow-x-auto lg:overflow-visible
-            whitespace-nowrap
-          ">
+          <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible">
 
             <CategoryButton
               active={!selectedCategory}
@@ -185,7 +181,8 @@ export default function ProductPage() {
             border border-white/10
             rounded-2xl
             p-4
-            mb-5
+            mb-6
+            shadow-lg
           ">
 
             <span className="text-sm text-white/60">
@@ -194,15 +191,13 @@ export default function ProductPage() {
 
             <div className="flex flex-col sm:flex-row gap-2">
 
-              {/* SEARCH */}
-
               <input
                 type="text"
                 placeholder="Cari produk..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="
-                  bg-black/30
+                  bg-black/40
                   border border-white/10
                   rounded-lg
                   px-3 py-2
@@ -213,20 +208,17 @@ export default function ProductPage() {
                 "
               />
 
-              {/* SORT */}
-
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
                 className="
-                  bg-black/30
+                  bg-black/40
                   border border-white/10
                   rounded-lg
                   px-3 py-2
                   text-sm
                   outline-none
                   w-full sm:w-40
-                  focus:border-purple-500
                 "
               >
                 <option value="terbaru">Terbaru</option>
@@ -242,34 +234,33 @@ export default function ProductPage() {
           {loading ? (
             <SkeletonGrid />
           ) : (
+
             <motion.div
               layout
               className="
                 grid
                 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5
-                gap-4
+                gap-6
               "
             >
 
               {filteredSubcategories.map((sub) => (
+
                 <motion.div
                   key={sub.id}
                   layout
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.05, y: -4 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <ProductCard subcategory={sub} />
+                  <ProductCardPremium subcategory={sub} />
                 </motion.div>
+
               ))}
 
-              {filteredSubcategories.length === 0 && (
-                <p className="text-white/40 col-span-full text-center py-10">
-                  Produk tidak ditemukan
-                </p>
-              )}
-
             </motion.div>
+
           )}
 
         </section>
@@ -277,6 +268,92 @@ export default function ProductPage() {
       </div>
 
     </main>
+  );
+}
+
+/* =========================
+   PRODUCT CARD PREMIUM
+========================= */
+
+function ProductCardPremium({ subcategory }) {
+
+  return (
+
+    <div className="
+      group
+      relative
+      rounded-2xl
+      overflow-hidden
+      border border-white/10
+      bg-gradient-to-b from-[#020617] to-black
+      shadow-lg
+      transition
+      hover:shadow-purple-500/30
+    ">
+
+      {/* IMAGE */}
+
+      <div className="
+        aspect-square
+        flex
+        items-center
+        justify-center
+        p-6
+        bg-black
+      ">
+
+        <img
+          src={subcategory.icon}
+          alt={subcategory.name}
+          className="
+            max-h-full
+            max-w-full
+            object-contain
+            transition
+            duration-500
+            group-hover:scale-110
+          "
+        />
+
+      </div>
+
+      {/* CONTENT */}
+
+      <div className="p-4">
+
+        <h3 className="font-semibold text-lg">
+          {subcategory.name}
+        </h3>
+
+        <p className="text-xs text-white/50 mt-1">
+          SELF-AUTO
+        </p>
+
+        <button
+          className="
+            mt-4
+            w-full
+            rounded-lg
+            bg-gradient-to-r
+            from-purple-600
+            to-purple-500
+            hover:from-purple-500
+            hover:to-purple-400
+            py-2.5
+            text-sm
+            font-semibold
+            transition
+            shadow-md
+            hover:shadow-purple-500/40
+          "
+        >
+          Lihat Produk
+        </button>
+
+      </div>
+
+    </div>
+
   );
 }
 
@@ -289,10 +366,10 @@ function CategoryButton({ active, children, ...props }) {
     <button
       {...props}
       className={`
-        px-3 py-2 rounded-lg text-sm transition
+        px-4 py-2 rounded-lg text-sm transition
         ${
           active
-            ? "bg-purple-600 text-white"
+            ? "bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg"
             : "bg-white/5 hover:bg-white/10 text-white/70"
         }
       `}
@@ -303,27 +380,35 @@ function CategoryButton({ active, children, ...props }) {
 }
 
 /* =========================
-   SKELETON LOADING
+   SKELETON
 ========================= */
 
 function SkeletonGrid() {
+
   return (
+
     <div className="
       grid
       grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5
-      gap-4
+      gap-6
     ">
+
       {[...Array(10)].map((_, i) => (
+
         <div
           key={i}
           className="
-            h-48
+            aspect-square
             rounded-xl
             bg-white/5
             animate-pulse
           "
         />
+
       ))}
+
     </div>
+
   );
+
 }
