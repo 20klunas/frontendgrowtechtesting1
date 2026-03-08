@@ -66,7 +66,12 @@ export default function ProductPage() {
       const json = await res.json();
 
       if (json.success) {
-        setSubcategories(json.data);
+
+        const data = Array.isArray(json.data)
+          ? json.data
+          : json.data?.data || [];
+
+        setSubcategories(data);
       }
 
       setLoading(false);
@@ -92,8 +97,8 @@ export default function ProductPage() {
 
   const filteredSubcategories = useMemo(() => {
 
-    let data = subcategories.filter((sub) =>
-      sub.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+    let data = (Array.isArray(subcategories) ? subcategories : []).filter((sub) =>
+      (sub.name || "").toLowerCase().includes(debouncedSearch.toLowerCase())
     );
 
     if (sort === "termurah") {
