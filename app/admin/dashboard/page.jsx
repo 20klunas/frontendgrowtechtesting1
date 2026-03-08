@@ -171,13 +171,16 @@ export default function DashboardPage() {
         {/* TOOLBAR */}
         <motion.div
           variants={item}
-          className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          className="mb-6 flex flex-wrap items-center justify-between gap-3"
         >
-          <div className="flex items-center gap-2">
+          {/* LEFT FILTER */}
+          <div className="flex items-center gap-3">
+
             <Select value={rangeDraft} onValueChange={(v) => setRangeDraft(v)}>
-              <SelectTrigger className="w-[140px] border-[#3d2b5e] bg-[#2d1b4e] text-white">
-                <SelectValue placeholder="Pilih Range" />
+              <SelectTrigger className="h-10 w-[140px] border-[#3d2b5e] bg-[#2d1b4e] text-white">
+                <SelectValue placeholder="Range" />
               </SelectTrigger>
+
               <SelectContent className="border-[#3d2b5e] bg-[#1a1a2e] text-white">
                 {RANGE_PRESETS.map((f) => (
                   <SelectItem key={f.value} value={f.value}>
@@ -189,20 +192,22 @@ export default function DashboardPage() {
 
             <Button
               onClick={() => setRangeApplied(rangeDraft)}
-              className="bg-purple-700 hover:bg-purple-600"
+              className="h-10 bg-purple-700 hover:bg-purple-600"
             >
               Terapkan
             </Button>
+
           </div>
 
+          {/* RIGHT FILTER */}
           <Button
             onClick={() => {
               setFiltersDraft(filtersApplied || {});
               setOpenFilter(true);
             }}
-            className="bg-[#2d1b4e] border border-[#3d2b5e] text-white hover:bg-[#3a2462]"
+            className="h-10 bg-[#2d1b4e] border border-[#3d2b5e] text-white hover:bg-[#3a2462]"
           >
-            <Filter className="h-4 w-4 mr-2" />
+            <Filter className="mr-2 h-4 w-4" />
             Filter
           </Button>
         </motion.div>
@@ -338,7 +343,7 @@ export default function DashboardPage() {
               onClick={() => setOpenFilter(false)}
             >
               <motion.div
-                className="w-full max-w-3xl rounded-2xl border border-[#3d2b5e] bg-[#1a102b] p-5 text-white shadow-xl"
+                className="w-full max-w-3xl rounded-2xl border border-[#3d2b5e] bg-[#1a102b] p-6 text-white shadow-xl"
                 initial={{ y: 18, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 18, opacity: 0 }}
@@ -357,7 +362,7 @@ export default function DashboardPage() {
                 {/* Rentang tanggal */}
                 <div className="mb-5 border-b border-white/10 pb-5">
                   <h4 className="mb-3 font-semibold">Rentang Tanggal</h4>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <p className="mb-2 text-sm text-gray-300">Dari Tanggal</p>
                       <Input
@@ -387,7 +392,7 @@ export default function DashboardPage() {
                 <div className="mb-5">
                   <h4 className="mb-3 font-semibold">Filter Tambahan</h4>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {/* Status */}
                     <div>
                       <p className="mb-2 text-sm text-gray-300">Status</p>
@@ -400,7 +405,7 @@ export default function DashboardPage() {
                           }))
                         }
                       >
-                        <SelectTrigger className="border-[#3d2b5e] bg-white text-black">
+                        <SelectTrigger className="h-10 border-[#3d2b5e] bg-white text-black">
                           <SelectValue placeholder="Semua" />
                         </SelectTrigger>
                         <SelectContent className="border-[#3d2b5e] bg-white text-black">
@@ -426,7 +431,7 @@ export default function DashboardPage() {
                           }))
                         }
                       >
-                        <SelectTrigger className="border-[#3d2b5e] bg-white text-black">
+                        <SelectTrigger className="h-10 border-[#3d2b5e] bg-white text-black">
                           <SelectValue placeholder="Semua" />
                         </SelectTrigger>
                         <SelectContent className="border-[#3d2b5e] bg-white text-black">
@@ -452,7 +457,7 @@ export default function DashboardPage() {
                           }))
                         }
                       >
-                        <SelectTrigger className="border-[#3d2b5e] bg-white text-black">
+                        <SelectTrigger className="h-10 border-[#3d2b5e] bg-white text-black">
                           <SelectValue placeholder="Semua" />
                         </SelectTrigger>
                         <SelectContent className="border-[#3d2b5e] bg-white text-black">
@@ -482,10 +487,10 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Buttons */}
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <div className="mt-6 flex justify-end gap-3">
                   <Button
                     variant="outline"
-                    className="border-white/20 bg-transparent text-white hover:bg-white/10"
+                    className="h-10 border-white/20 bg-transparent text-white hover:bg-white/10"
                     onClick={() => setFiltersDraft({})}
                   >
                     Reset
