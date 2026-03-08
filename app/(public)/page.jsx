@@ -76,14 +76,14 @@ export default function HomePage() {
             <div className="mt-8 flex flex-wrap gap-4">
 
               <Link
-                href="/public/product"
+                href="/product"
                 className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition shadow-lg shadow-purple-900/30"
               >
                 Jelajahi Katalog
               </Link>
 
               <Link
-                href="/public/faq"
+                href="/faq"
                 className="px-6 py-3 border border-purple-500 rounded-lg text-purple-400 hover:bg-purple-500/10 transition"
               >
                 Informasi Lebih Lanjut
