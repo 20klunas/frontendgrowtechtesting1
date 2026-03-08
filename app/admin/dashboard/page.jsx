@@ -177,17 +177,23 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
 
             <Select value={rangeDraft} onValueChange={(v) => setRangeDraft(v)}>
-              <SelectTrigger className="h-10 w-[140px] border-[#3d2b5e] bg-[#2d1b4e] text-white">
-                <SelectValue placeholder="Range" />
+
+              <SelectTrigger className="h-10 w-[120px] rounded-lg border border-[#3d2b5e] bg-[#2d1b4e] text-white hover:bg-[#3a2462] transition">
+                <SelectValue />
               </SelectTrigger>
 
-              <SelectContent className="border-[#3d2b5e] bg-[#1a1a2e] text-white">
+              <SelectContent
+                position="popper"
+                sideOffset={6}
+                className="border-[#3d2b5e] bg-[#1a1a2e] text-white"
+              >
                 {RANGE_PRESETS.map((f) => (
                   <SelectItem key={f.value} value={f.value}>
                     {f.label}
                   </SelectItem>
                 ))}
               </SelectContent>
+
             </Select>
 
             <Button
@@ -205,7 +211,7 @@ export default function DashboardPage() {
               setFiltersDraft(filtersApplied || {});
               setOpenFilter(true);
             }}
-            className="h-10 bg-[#2d1b4e] border border-[#3d2b5e] text-white hover:bg-[#3a2462]"
+            className="h-10 bg-[#2d1b4e] border border-[#3d2b5e] text-[#2d1b4e] hover:bg-[#3a2462]"
           >
             <Filter className="mr-2 h-4 w-4" />
             Filter
