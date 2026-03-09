@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Cookies from "js-cookie"
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -11,44 +12,50 @@ export default function AdminAuditLogsPage() {
   const [q, setQ] = useState("")
   const [page, setPage] = useState(1)
 
-    const fetchLogs = async () => {
+  const fetchLogs = async () => {
     try {
 
-        setLoading(true)
+      setLoading(true)
 
-        const res = await fetch(
-        `${API}/api/v1/admin/audit-logs?q=${q}&page=${page}`,
-        {
-            credentials: "include",
-            headers: {
-            Accept: "application/json"
-            }
-        }
-        )
+      const token = Cookies.get("token")
 
-        if (res.status === 401) {
-        console.error("Unauthenticated")
+      if (!token) {
+        console.error("Token tidak ditemukan")
         return
+      }
+
+      const res = await fetch(
+        `${API}/admin/audit-logs?q=${q}&page=${page}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
+          }
         }
+      )
 
-        const json = await res.json()
+      console.log("status:", res.status)
 
-        if (json?.success) {
+      const json = await res.json()
+
+      console.log("response:", json)
+
+      if (json?.success) {
         setLogs(json.data.data)
-        } else {
+      } else {
         setLogs([])
-        }
+      }
 
     } catch (err) {
 
-        console.error(err)
+      console.error("Fetch error:", err)
 
     } finally {
 
-        setLoading(false)
+      setLoading(false)
 
     }
-    }
+  }
 
   useEffect(() => {
     fetchLogs()
