@@ -43,6 +43,8 @@
 :root:not(.dark) .text-purple-400,
 :root:not(.dark) .text-purple-500,
 :root:not(.dark) .text-purple-600,
+:root:not(.dark) .text-white,
+:root:not(.dark) .text-gray-400,
 :root:not(.dark) .text-purple-700 {
   color: #2a2a2a !important;
 }
