@@ -47,7 +47,6 @@ export default function AuditLogDetailPage() {
     if (id) fetchLog()
   }, [id])
 
-
   if (loading) {
     return (
       <div className="p-6 text-white">
@@ -64,197 +63,256 @@ export default function AuditLogDetailPage() {
     )
   }
 
-  const changes = log.meta?.changes || {}
+  const meta = log.meta || {}
 
   return (
-    <div className="p-6 text-white max-w-6xl mx-auto space-y-6">
+    <div className="p-6 text-white max-w-7xl mx-auto space-y-6">
 
       {/* HEADER */}
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
 
         <div>
           <h1 className="text-2xl font-bold">
             Audit Log Detail
           </h1>
-
-          <p className="text-gray-400 text-sm mt-1">
-            ID #{log.id}
+          <p className="text-gray-400 text-sm">
+            Log ID #{log.id}
           </p>
         </div>
 
         <button
           onClick={() => router.back()}
-          className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-sm"
+          className="bg-purple-600 hover:bg-purple-700 transition px-4 py-2 rounded-lg text-sm shadow-lg"
         >
           ← Kembali
         </button>
 
       </div>
 
-      {/* MAIN INFO */}
+
+      {/* MAIN CARDS */}
       <div className="grid md:grid-cols-2 gap-6">
 
-        {/* LEFT CARD */}
-        <div className="bg-slate-900 border border-purple-600 rounded-xl p-6 space-y-4">
+        <Card title="Informasi Aktivitas">
 
-          <h2 className="text-lg font-semibold mb-2">
-            Informasi Aktivitas
-          </h2>
+          <Info label="Tanggal">
+            {new Date(log.created_at).toLocaleString()}
+          </Info>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <Info label="Action">
+            {log.action}
+          </Info>
 
-            <Info label="Tanggal">
-              {new Date(log.created_at).toLocaleString()}
-            </Info>
+          <Info label="Entity">
+            {log.entity}
+          </Info>
 
-            <Info label="Module">
-              {log.module}
-            </Info>
+          <Info label="Entity ID">
+            {log.entity_id}
+          </Info>
 
-            <Info label="Action">
-              {log.action}
-            </Info>
+          <Info label="Module">
+            {log.module}
+          </Info>
 
-            <Info label="Entity">
-              {log.entity}
-            </Info>
+          <Info label="Scope">
+            {log.scope}
+          </Info>
 
-            <Info label="Entity ID">
-              {log.entity_id}
-            </Info>
+          <Info label="Status">
+            <span className={
+              log.status === "success"
+                ? "bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs"
+                : "bg-red-500/20 text-red-400 px-2 py-1 rounded text-xs"
+            }>
+              {log.status}
+            </span>
+          </Info>
 
-            <Info label="Scope">
-              {log.scope}
-            </Info>
+          <Info label="Summary">
+            {log.summary}
+          </Info>
 
-            <Info label="Status">
-              <span
-                className={
-                  log.status === "success"
-                    ? "px-2 py-1 text-xs rounded bg-green-500/20 text-green-400"
-                    : "px-2 py-1 text-xs rounded bg-red-500/20 text-red-400"
-                }
-              >
-                {log.status}
-              </span>
-            </Info>
-
-          </div>
-
-          <div className="pt-3 border-t border-slate-700">
-            <p className="text-gray-400 text-sm">Summary</p>
-            <p className="mt-1">{log.summary}</p>
-          </div>
-
-        </div>
+        </Card>
 
 
-        {/* USER CARD */}
-        <div className="bg-slate-900 border border-purple-600 rounded-xl p-6 space-y-4">
+        <Card title="Admin User">
 
-          <h2 className="text-lg font-semibold mb-2">
-            Admin User
-          </h2>
+          <Info label="Full Name">
+            {log.user?.full_name}
+          </Info>
 
-          <div className="space-y-3 text-sm">
+          <Info label="Username">
+            {log.user?.name}
+          </Info>
 
-            <Info label="Full Name">
-              {log.user?.full_name}
-            </Info>
+          <Info label="Email">
+            {log.user?.email}
+          </Info>
 
-            <Info label="Username">
-              {log.user?.name}
-            </Info>
-
-            <Info label="Email">
-              {log.user?.email}
-            </Info>
-
-          </div>
-
-        </div>
+        </Card>
 
       </div>
 
 
-      {/* TARGET */}
-      {log.target && (
-        <div className="bg-slate-900 border border-purple-600 rounded-xl p-6">
 
-          <h2 className="text-lg font-semibold mb-4">
-            Target Entity
-          </h2>
+      {/* REQUEST */}
+      {meta.request && (
+        <Card title="Request Info">
 
-          <pre className="bg-black p-4 rounded text-sm overflow-auto border border-slate-700">
-            {JSON.stringify(log.target, null, 2)}
-          </pre>
+          <Info label="Method">
+            {meta.request.method}
+          </Info>
+
+          <Info label="Route">
+            {meta.request.route}
+          </Info>
+
+          <Info label="Path">
+            {meta.request.path}
+          </Info>
+
+        </Card>
+      )}
+
+
+      {/* CONTEXT */}
+      {meta.context && (
+        <Card title="Request Context">
+
+          <Info label="IP Address">
+            {meta.context.ip}
+          </Info>
+
+          <Info label="User Agent">
+            <span className="text-xs text-gray-400 break-all">
+              {meta.context.user_agent}
+            </span>
+          </Info>
+
+        </Card>
+      )}
+
+
+
+      {/* TARGET ENTITY */}
+      {meta.target && (
+        <ObjectTable
+          title="Target Entity"
+          data={meta.target}
+        />
+      )}
+
+
+
+      {/* BEFORE AFTER SNAPSHOT */}
+      {(meta.before || meta.after) && (
+        <div className="grid md:grid-cols-2 gap-6">
+
+          {meta.before && (
+            <ObjectTable
+              title="Before Data"
+              data={meta.before}
+              color="red"
+            />
+          )}
+
+          {meta.after && (
+            <ObjectTable
+              title="After Data"
+              data={meta.after}
+              color="green"
+            />
+          )}
 
         </div>
       )}
 
 
-      {/* CHANGES */}
-      {Object.keys(changes).length > 0 && (
-        <div className="bg-slate-900 border border-purple-600 rounded-xl p-6">
+
+      {/* CHANGES DIFF */}
+      {meta.changes && (
+        <div className="bg-slate-900 border border-purple-600 rounded-xl p-6 hover:shadow-xl transition">
 
           <h2 className="text-lg font-semibold mb-4">
-            Perubahan Data
+            Changes
           </h2>
 
-          <div className="space-y-4">
+          <div className="overflow-x-auto">
 
-            {Object.entries(changes).map(([field, diff]) => (
+            <table className="w-full text-sm">
 
-              <div
-                key={field}
-                className="border border-slate-700 rounded-lg p-4"
-              >
+              <thead className="text-gray-400 border-b border-slate-700">
+                <tr>
+                  <th className="text-left p-2">Field</th>
+                  <th className="text-left p-2 text-red-400">Before</th>
+                  <th className="text-left p-2 text-green-400">After</th>
+                </tr>
+              </thead>
 
-                <p className="font-semibold mb-3">
-                  {field}
-                </p>
+              <tbody>
 
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                {Object.entries(meta.changes).map(([key, val]) => (
 
-                  <div>
-                    <p className="text-gray-400 mb-1">Before</p>
+                  <tr
+                    key={key}
+                    className="border-b border-slate-800 hover:bg-slate-800 transition"
+                  >
 
-                    <pre className="bg-black p-3 rounded border border-red-500/30 text-red-300">
-                      {JSON.stringify(diff.before, null, 2)}
-                    </pre>
-                  </div>
+                    <td className="p-2 font-semibold">
+                      {key}
+                    </td>
 
-                  <div>
-                    <p className="text-gray-400 mb-1">After</p>
+                    <td className="p-2 text-red-300">
+                      {typeof val.before === "object"
+                        ? JSON.stringify(val.before)
+                        : val.before}
+                    </td>
 
-                    <pre className="bg-black p-3 rounded border border-green-500/30 text-green-300">
-                      {JSON.stringify(diff.after, null, 2)}
-                    </pre>
-                  </div>
+                    <td className="p-2 text-green-300">
+                      {typeof val.after === "object"
+                        ? JSON.stringify(val.after)
+                        : val.after}
+                    </td>
 
-                </div>
+                  </tr>
 
-              </div>
+                ))}
 
-            ))}
+              </tbody>
+
+            </table>
 
           </div>
 
         </div>
       )}
 
+    </div>
+  )
+}
 
-      {/* META */}
-      <div className="bg-slate-900 border border-purple-600 rounded-xl p-6">
 
-        <h2 className="text-lg font-semibold mb-4">
-          Meta Data
-        </h2>
 
-        <pre className="bg-black p-4 rounded text-sm overflow-auto border border-slate-700">
-          {JSON.stringify(log.meta, null, 2)}
-        </pre>
+/* CARD */
+function Card({ title, children }) {
 
+  return (
+    <div className="
+      bg-slate-900
+      border border-purple-600
+      rounded-xl
+      p-6
+      hover:shadow-xl
+      transition
+    ">
+
+      <h2 className="text-lg font-semibold mb-4">
+        {title}
+      </h2>
+
+      <div className="grid md:grid-cols-2 gap-4 text-sm">
+        {children}
       </div>
 
     </div>
@@ -262,16 +320,89 @@ export default function AuditLogDetailPage() {
 }
 
 
-/* COMPONENT */
+
+/* INFO */
 function Info({ label, children }) {
+
   return (
-    <div>
+    <div className="hover:bg-slate-800 p-2 rounded transition">
+
       <p className="text-gray-400 text-xs mb-1">
         {label}
       </p>
+
       <div className="font-medium">
         {children || "-"}
       </div>
+
+    </div>
+  )
+}
+
+
+
+/* OBJECT TABLE */
+function ObjectTable({ title, data, color }) {
+
+  const border =
+    color === "red"
+      ? "border-red-500/40"
+      : color === "green"
+      ? "border-green-500/40"
+      : "border-purple-600"
+
+  return (
+    <div className={`
+      bg-slate-900
+      border ${border}
+      rounded-xl
+      p-6
+      hover:shadow-xl
+      transition
+    `}>
+
+      <h2 className="text-lg font-semibold mb-4">
+        {title}
+      </h2>
+
+      <div className="overflow-x-auto">
+
+        <table className="w-full text-sm">
+
+          <tbody>
+
+            {Object.entries(data).map(([key, value]) => (
+
+              <tr
+                key={key}
+                className="border-b border-slate-800 hover:bg-slate-800 transition"
+              >
+
+                <td className="p-2 text-gray-400 w-48">
+                  {key}
+                </td>
+
+                <td className="p-2">
+
+                  {typeof value === "object"
+                    ? <pre className="text-xs bg-black p-2 rounded overflow-auto">
+                        {JSON.stringify(value, null, 2)}
+                      </pre>
+                    : value?.toString()
+                  }
+
+                </td>
+
+              </tr>
+
+            ))}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
     </div>
   )
 }
