@@ -15,14 +15,20 @@ export default function AdminAuditLogsPage() {
     try {
       setLoading(true)
 
-      const res = await fetch(
-        `${API}/api/v1/admin/audit-logs?q=${q}&page=${page}`,
-        {
-          credentials: "include"
-        }
-      )
+        const token = localStorage.getItem("token")
 
-      const json = await res.json()
+        const res = await fetch(`${API}/api/v1/admin/audit-logs?q=${q}&page=${page}`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
+        }
+        })
+
+        console.log("status:", res.status)
+
+        const json = await res.json()
+        console.log("response:", json)
+
 
       if (json?.data?.data) {
         setLogs(json.data.data)
