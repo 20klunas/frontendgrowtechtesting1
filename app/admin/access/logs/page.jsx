@@ -11,38 +11,44 @@ export default function AdminAuditLogsPage() {
   const [q, setQ] = useState("")
   const [page, setPage] = useState(1)
 
-  const fetchLogs = async () => {
+    const fetchLogs = async () => {
     try {
-      setLoading(true)
 
-        const token = localStorage.getItem("token")
+        setLoading(true)
 
-        const res = await fetch(`${API}/api/v1/admin/audit-logs?q=${q}&page=${page}`, {
-        headers: {
-            Authorization: `Bearer ${token}`,
+        const res = await fetch(
+        `${API}/api/v1/admin/audit-logs?q=${q}&page=${page}`,
+        {
+            credentials: "include",
+            headers: {
             Accept: "application/json"
+            }
         }
-        })
+        )
 
-        console.log("status:", res.status)
+        if (res.status === 401) {
+        console.error("Unauthenticated")
+        return
+        }
 
         const json = await res.json()
-        console.log("response:", json)
 
-
-      if (json?.data?.data) {
+        if (json?.success) {
         setLogs(json.data.data)
-      } else {
+        } else {
         setLogs([])
-      }
+        }
 
     } catch (err) {
-      console.error("Failed load audit logs", err)
-      setLogs([])
+
+        console.error(err)
+
     } finally {
-      setLoading(false)
+
+        setLoading(false)
+
     }
-  }
+    }
 
   useEffect(() => {
     fetchLogs()
