@@ -25,7 +25,7 @@ export default function AdminAuditLogsPage() {
       }
 
       const res = await fetch(
-        `${API}/admin/audit-logs?q=${q}&page=${page}`,
+        `${API}/api/v1/admin/audit-logs?q=${q}&page=${page}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
