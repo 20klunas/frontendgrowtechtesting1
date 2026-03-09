@@ -49,6 +49,54 @@
   color: #2a2a2a !important;
 }
 
+/* ================= SIDEBAR TEXT LIGHT MODE ================= */
+
+:root:not(.dark) .text-gray-600,
+:root:not(.dark) .text-gray-400,
+:root:not(.dark) .text-gray-300 {
+  color: #111111 !important;
+}
+
+:root:not(.dark) .text-purple-700\/70 {
+  color: #111111 !important;
+}
+
+/* dropdown sidebar */
+:root:not(.dark) .hover\:bg-purple-800\/40:hover {
+  background: #f1f1f1 !important;
+  color: #000 !important;
+}
+
+/* ================= DASHBOARD CARD LIGHT MODE ================= */
+
+:root:not(.dark) .bg-gradient-to-r,
+:root:not(.dark) .bg-gradient-to-br {
+  background: #f3f4f6 !important;
+}
+
+:root:not(.dark) .shadow-purple-900\/30 {
+  box-shadow: none !important;
+}
+
+/* stat card background */
+:root:not(.dark) .bg-green-500\/20,
+:root:not(.dark) .bg-purple-500\/20,
+:root:not(.dark) .bg-red-500\/20,
+:root:not(.dark) .bg-blue-500\/20,
+:root:not(.dark) .bg-yellow-500\/20 {
+  background: #f3f4f6 !important;
+}
+
+/* icon circle */
+:root:not(.dark) .bg-green-500,
+:root:not(.dark) .bg-purple-500,
+:root:not(.dark) .bg-red-500,
+:root:not(.dark) .bg-blue-500,
+:root:not(.dark) .bg-yellow-500 {
+  background: #e5e7eb !important;
+  color: #111 !important;
+}
+
 :root:not(.dark) .border-purple-700,
 :root:not(.dark) .border-purple-800 {
   border-color: #e5e5e5 !important;
