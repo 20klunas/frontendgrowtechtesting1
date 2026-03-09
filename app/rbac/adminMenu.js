@@ -9,6 +9,7 @@ import {
   Settings,
   FileText,
   ShieldCheck,
+  Shield,
 } from "lucide-react"
 
 export const adminMenu = [
