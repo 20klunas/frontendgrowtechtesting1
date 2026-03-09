@@ -15,7 +15,7 @@
 
 /* ================= LIGHT MODE OVERRIDE ================= */
 
-:root:not(.dark) {
+.admin:not(.dark) {
 
   /* warna utama */
   --primary: #2a2a2a;
@@ -27,93 +27,93 @@
 }
 
 /* override komponen tailwind purple */
-:root:not(.dark) .bg-purple-700,
-:root:not(.dark) .bg-purple-600,
-:root:not(.dark) .bg-purple-800 {
+.admin:not(.dark) .bg-purple-700,
+.admin:not(.dark) .bg-purple-600,
+.admin:not(.dark) .bg-purple-800 {
   background-color: #2a2a2a !important;
 }
 
-:root:not(.dark) .hover\:bg-purple-600:hover,
-:root:not(.dark) .hover\:bg-purple-700:hover,
-:root:not(.dark) .hover\:bg-purple-800:hover {
+.admin:not(.dark) .hover\:bg-purple-600:hover,
+.admin:not(.dark) .hover\:bg-purple-700:hover,
+.admin:not(.dark) .hover\:bg-purple-800:hover {
   background-color: #2a2a2a !important;
 }
 
-:root:not(.dark) .text-purple-300,
-:root:not(.dark) .text-purple-400,
-:root:not(.dark) .text-purple-500,
-:root:not(.dark) .text-purple-600,
-:root:not(.dark) .text-white,
-:root:not(.dark) .text-gray-400,
-:root:not(.dark) .text-purple-700 {
+.admin:not(.dark) .text-purple-300,
+.admin:not(.dark) .text-purple-400,
+.admin:not(.dark) .text-purple-500,
+.admin:not(.dark) .text-purple-600,
+.admin:not(.dark) .text-white,
+.admin:not(.dark) .text-gray-400,
+.admin:not(.dark) .text-purple-700 {
   color: #2a2a2a !important;
 }
 
 /* ================= SIDEBAR TEXT LIGHT MODE ================= */
 
-:root:not(.dark) .text-gray-600,
-:root:not(.dark) .text-gray-400,
-:root:not(.dark) .text-gray-300 {
+.admin:not(.dark) .text-gray-600,
+.admin:not(.dark) .text-gray-400,
+.admin:not(.dark) .text-gray-300 {
   color: #111111 !important;
 }
 
-:root:not(.dark) .text-purple-700\/70 {
+.admin:not(.dark) .text-purple-700\/70 {
   color: #111111 !important;
 }
 
 /* dropdown sidebar */
-:root:not(.dark) .hover\:bg-purple-800\/40:hover {
+.admin:not(.dark) .hover\:bg-purple-800\/40:hover {
   background: #f1f1f1 !important;
   color: #000 !important;
 }
 
 /* ================= DASHBOARD CARD LIGHT MODE ================= */
 
-:root:not(.dark) .bg-gradient-to-r,
-:root:not(.dark) .bg-gradient-to-br {
+.admin:not(.dark) .bg-gradient-to-r,
+.admin:not(.dark) .bg-gradient-to-br {
   background: #f3f4f6 !important;
 }
 
-:root:not(.dark) .shadow-purple-900\/30 {
+.admin:not(.dark) .shadow-purple-900\/30 {
   box-shadow: none !important;
 }
 
 /* stat card background */
-:root:not(.dark) .bg-green-500\/20,
-:root:not(.dark) .bg-purple-500\/20,
-:root:not(.dark) .bg-red-500\/20,
-:root:not(.dark) .bg-blue-500\/20,
-:root:not(.dark) .bg-yellow-500\/20 {
+.admin:not(.dark) .bg-green-500\/20,
+.admin:not(.dark) .bg-purple-500\/20,
+.admin:not(.dark) .bg-red-500\/20,
+.admin:not(.dark) .bg-blue-500\/20,
+.admin:not(.dark) .bg-yellow-500\/20 {
   background: #f3f4f6 !important;
 }
 
 /* icon circle */
-:root:not(.dark) .bg-green-500,
-:root:not(.dark) .bg-purple-500,
-:root:not(.dark) .bg-red-500,
-:root:not(.dark) .bg-blue-500,
-:root:not(.dark) .bg-yellow-500 {
+.admin:not(.dark) .bg-green-500,
+.admin:not(.dark) .bg-purple-500,
+.admin:not(.dark) .bg-red-500,
+.admin:not(.dark) .bg-blue-500,
+.admin:not(.dark) .bg-yellow-500 {
   background: #e5e7eb !important;
   color: #111 !important;
 }
 
-:root:not(.dark) .border-purple-700,
-:root:not(.dark) .border-purple-800 {
+.admin:not(.dark) .border-purple-700,
+.admin:not(.dark) .border-purple-800 {
   border-color: #e5e5e5 !important;
 }
 
 /* hover menu sidebar */
-:root:not(.dark) .hover\:bg-purple-200\/40:hover {
+.admin:not(.dark) .hover\:bg-purple-200\/40:hover {
   background: #f3f3f3 !important;
 }
 
 /* dropdown hover */
-:root:not(.dark) .hover\:bg-purple-800\/40:hover {
+.admin:not(.dark) .hover\:bg-purple-800\/40:hover {
   background: #f3f3f3 !important;
 }
 
 /* table header */
-:root:not(.dark) table thead tr {
+.admin:not(.dark) table thead tr {
   background: #f7f7f7 !important;
 }
 

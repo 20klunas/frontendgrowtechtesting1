@@ -24,7 +24,7 @@ export default function AdminLayout({ children }) {
 
   return (
     <div
-      className="min-h-screen flex flex-col transition-colors"
+      className="admin min-h-screen flex flex-col transition-colors"
       style={{ background: "var(--background)", color: "var(--foreground)" }}
     >
       {/* NAVBAR */}
