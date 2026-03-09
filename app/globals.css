@@ -18,8 +18,8 @@
 :root:not(.dark) {
 
   /* warna utama */
-  --primary: #000000;
-  --primary-hover: #111111;
+  --primary: #2a2a2a;
+  --primary-hover: #2a2a2a;
 
   /* border */
   --border-main: #e5e5e5;
@@ -30,13 +30,13 @@
 :root:not(.dark) .bg-purple-700,
 :root:not(.dark) .bg-purple-600,
 :root:not(.dark) .bg-purple-800 {
-  background-color: #000000 !important;
+  background-color: #2a2a2a !important;
 }
 
 :root:not(.dark) .hover\:bg-purple-600:hover,
 :root:not(.dark) .hover\:bg-purple-700:hover,
 :root:not(.dark) .hover\:bg-purple-800:hover {
-  background-color: #111111 !important;
+  background-color: #2a2a2a !important;
 }
 
 :root:not(.dark) .text-purple-300,
@@ -44,7 +44,7 @@
 :root:not(.dark) .text-purple-500,
 :root:not(.dark) .text-purple-600,
 :root:not(.dark) .text-purple-700 {
-  color: #000000 !important;
+  color: #2a2a2a !important;
 }
 
 :root:not(.dark) .border-purple-700,
