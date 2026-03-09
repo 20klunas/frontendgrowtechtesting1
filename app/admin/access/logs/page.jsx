@@ -16,7 +16,7 @@ export default function AdminAuditLogsPage() {
       setLoading(true)
 
       const res = await fetch(
-        `${API}/audit-logs?q=${q}&page=${page}`,
+        `${API}/api/v1/admin/audit-logs?q=${q}&page=${page}`,
         {
           credentials: "include"
         }
