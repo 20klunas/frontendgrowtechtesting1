@@ -104,6 +104,12 @@ export const adminMenu = [
         icon: ShieldCheck,
         permission: "manage_admins",
       },
+      {
+        label: "Audit Logs",
+        icon: Shield,
+        href: "/admin/access/logs",
+        permission: "rbac.manage"
+      }
     ],
   },
 ]
