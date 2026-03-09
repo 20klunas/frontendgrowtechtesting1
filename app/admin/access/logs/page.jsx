@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Cookies from "js-cookie"
+import Link from "next/link"
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -93,82 +94,92 @@ export default function AdminAuditLogsPage() {
 
         <table className="w-full text-sm">
 
-          <thead className="bg-slate-900">
-            <tr className="text-left">
-              <th className="p-3">Tanggal</th>
-              <th className="p-3">User</th>
-              <th className="p-3">Action</th>
-              <th className="p-3">Entity</th>
-              <th className="p-3">Module</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Summary</th>
-            </tr>
-          </thead>
+            <thead className="bg-slate-900">
+                <tr className="text-left">
+                <th className="p-3">Tanggal</th>
+                <th className="p-3">User</th>
+                <th className="p-3">Action</th>
+                <th className="p-3">Entity</th>
+                <th className="p-3">Module</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Summary</th>
+                <th className="p-3">Detail</th>
+                </tr>
+            </thead>
 
-          <tbody>
+            <tbody>
 
             {loading && (
-              <tr>
-                <td colSpan="7" className="p-6 text-center">
-                  Loading audit logs...
+            <tr>
+                <td colSpan="8" className="p-6 text-center">
+                Loading audit logs...
                 </td>
-              </tr>
+            </tr>
             )}
 
             {!loading && logs.length === 0 && (
-              <tr>
-                <td colSpan="7" className="p-6 text-center text-gray-400">
-                  Tidak ada data log
+            <tr>
+                <td colSpan="8" className="p-6 text-center text-gray-400">
+                Tidak ada data log
                 </td>
-              </tr>
+            </tr>
             )}
 
             {!loading && logs.map((log) => (
-              <tr
+            <tr
                 key={log.id}
-                className="border-t border-slate-800 hover:bg-slate-900 cursor-pointer"
-              >
+                className="border-t border-slate-800 hover:bg-slate-900"
+            >
 
                 <td className="p-3">
-                  {new Date(log.created_at).toLocaleString()}
+                {new Date(log.created_at).toLocaleString()}
                 </td>
 
                 <td className="p-3">
-                  {log.user?.full_name || log.user?.name || "-"}
+                {log.user?.full_name || log.user?.name || "-"}
                 </td>
 
                 <td className="p-3 capitalize">
-                  {log.action}
+                {log.action}
                 </td>
 
                 <td className="p-3">
-                  {log.entity}
+                {log.entity}
                 </td>
 
                 <td className="p-3">
-                  {log.module || "-"}
+                {log.module || "-"}
                 </td>
 
                 <td className="p-3">
-                  <span
+                <span
                     className={
-                      log.status === "success"
+                    log.status === "success"
                         ? "text-green-400 font-semibold"
                         : "text-red-400 font-semibold"
                     }
-                  >
+                >
                     {log.status}
-                  </span>
+                </span>
                 </td>
 
                 <td className="p-3">
-                  {log.summary || "-"}
+                {log.summary || "-"}
                 </td>
 
-              </tr>
+                <td className="p-3">
+                <Link
+                    href={`/admin/access/logs/${log.id}`}
+                    className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-sm"
+                >
+                    Detail
+                </Link>
+                </td>
+
+            </tr>
             ))}
 
-          </tbody>
+            </tbody>
 
         </table>
 
