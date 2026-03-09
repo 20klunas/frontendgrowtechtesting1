@@ -126,17 +126,17 @@ export default function MonitoringReferralPage() {
             <tbody>
               {users.map((u) => (
                 <tr key={u.id} className="border-b border-gray-800">
-                  <td className="py-3">
+                  <td className="py-3 text-center">
                     {u.name}<br />
-                    <span className="text-gray-400 text-xs">
+                    <span className="text-gray-400 text-center text-xs">
                       {u.referral_code}
                     </span>
                   </td>
-                  <td>{u.total_referral}</td>
-                  <td>{u.valid}</td>
-                  <td>{u.pending}</td>
-                  <td>{u.invalid}</td>
-                  <td className="text-green-400 font-semibold">
+                  <td className="py-3 text-center">{u.total_referral}</td>
+                  <td className="py-3 text-center">{u.valid}</td>
+                  <td className="py-3 text-center">{u.pending}</td>
+                  <td className="py-3 text-center">{u.invalid}</td>
+                  <td className="text-green-400 font-semibold text-center">
                     Rp {Number(u.total_komisi).toLocaleString('id-ID')}
                   </td>
                   <td>

@@ -394,25 +394,25 @@ export default function ApprovalWDPage() {
             {withdraws.map(w=>(
             <tr key={w.id} className="border-b border-gray-800">
 
-              <td className="py-3">{w.id}</td>
+              <td className="py-3 text-center">{w.id}</td>
 
-              <td>{w.user?.name}</td>
+              <td className="py-3 text-center">{w.user?.name}</td>
 
-              <td className="text-gray-400 text-xs">
+              <td className="text-gray-400 text-xs text-center">
                 {w.user?.email}
               </td>
 
-              <td className="text-green-400">
+              <td className="text-green-400 text-center">
                 Rp {Number(w.amount).toLocaleString()}
               </td>
 
-              <td>{w.status}</td>
+              <td className="py-3 text-center">{w.status}</td>
 
-              <td>
+              <td className="py-3 text-center">
                 {new Date(w.created_at).toLocaleDateString()}
               </td>
 
-              <td className="flex gap-2">
+              <td className="flex gap-2 text-center justify-center">
 
                 {w.status==="pending"&&(
                 <>
@@ -428,7 +428,7 @@ export default function ApprovalWDPage() {
 
                   <button
                     onClick={()=>rejectWithdraw(w.id)}
-                    className="bg-red-600 px-3 py-1 rounded"
+                    className="bg-red-600 px-3 py-1 rounded justify-center flex items-center"
                   >
                     <X size={14}/>
                   </button>
@@ -438,7 +438,7 @@ export default function ApprovalWDPage() {
                 {w.status==="approved"&&(
                 <button
                   onClick={()=>markPaid(w.id)}
-                  className="bg-blue-600 px-3 py-1 rounded"
+                  className="bg-blue-600 px-3 py-1 rounded justify-center flex items-center"
                 >
                   <DollarSign size={14}/>
                 </button>

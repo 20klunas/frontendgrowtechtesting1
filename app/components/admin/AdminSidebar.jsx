@@ -37,7 +37,7 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
         />
       )}
 
-      <aside
+      {/* <aside
         className={`
           fixed left-0 top-14 z-40
           h-[calc(100vh-56px)]
@@ -51,6 +51,22 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
           dark:to-[#12001f]
 
           border-r border-purple-200 dark:border-purple-800/40
+          transition-all duration-300
+
+          ${open ? "translate-x-0" : "-translate-x-full"}
+        `}
+      > */}
+      <aside
+        className={`
+          fixed left-0 top-14 z-40
+          h-[calc(100vh-56px)]
+          ${collapsed ? "w-20" : "w-64"}
+
+          bg-[var(--card)]
+          border-r border-[var(--card-border)]
+          backdrop-blur-lg
+          shadow-lg
+
           transition-all duration-300
 
           ${open ? "translate-x-0" : "-translate-x-full"}
