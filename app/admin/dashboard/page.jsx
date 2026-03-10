@@ -198,7 +198,7 @@ export default function DashboardPage() {
 
             <Button
               onClick={() => setRangeApplied(rangeDraft)}
-              className="h-10 bg-purple-700 hover:bg-purple-600"
+              className="h-10 bg-[#2d1b4e] border border-[#3d2b5e] text-[#2d1b4e] hover:bg-[#3a2462]"
             >
               Terapkan
             </Button>
