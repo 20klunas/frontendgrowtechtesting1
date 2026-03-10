@@ -142,7 +142,7 @@ html:not(.dark) .admin .input-primary {
 }
 
 html:not(.dark) .admin .input-primary::placeholder {
-  color: #6b7280 !important;
+  color: #ffffff !important;
 }
 
 .dark {
