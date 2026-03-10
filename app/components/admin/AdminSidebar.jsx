@@ -125,7 +125,7 @@ function SidebarItem({ label, href, icon: Icon, pathname, collapsed }) {
         transition-all duration-200
         ${
           active
-            ? "bg-purple-600 text-white shadow-sm shadow-purple-900/30"
+            ? "bg-blue-600 text-white shadow-sm shadow-purple-900/30"
             : "text-gray-600 dark:text-gray-300 hover:bg-purple-200/40 dark:hover:bg-purple-800/40"
         }
       `}
