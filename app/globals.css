@@ -113,7 +113,7 @@ html:not(.dark) .admin .bg-yellow-500 {
 
 html:not(.dark) .admin .border-purple-700,
 html:not(.dark) .admin .border-purple-800 {
-  border-color: #e5e5e5 !important;
+  border-color: #111 !important;
 }
 
 html:not(.dark) .admin .border-purple-600 {
