@@ -36,9 +36,7 @@ html:not(.dark) .admin .sidebar-active {
 
 /* override komponen tailwind purple */
 html:not(.dark) .admin .bg-purple-700,
-html:not(.dark) .admin .bg-purple-600 {
-  background-color: #2a2a2a !important;
-}
+html:not(.dark) .admin .bg-purple-600,
 html:not(.dark) .admin .bg-purple-800 {
   background-color: #ffffff !important;
   border: 2px solid #2a2a2a !important;
