@@ -35,6 +35,12 @@ html:not(.dark) .admin .bg-purple-800 {
   background-color: #ffffff !important;
   border: 2px solid #2a2a2a !important;
 }
+html:not(.dark) .admin .sidebar-active {
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
 
 html:not(.dark) .admin .hover\:bg-purple-600:hover,
 html:not(.dark) .admin .hover\:bg-purple-700:hover,

@@ -157,7 +157,7 @@ function SidebarDropdown({ label, icon: Icon, pathname, items }) {
           w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg transition
           ${
             isAnyActive
-              ? "bg-purple-700/40 text-white"
+              ? "bg-purple-700/40 sidebar-active text-white"
               : "text-gray-300 hover:bg-purple-800/40 hover:text-white"
           }
         `}
