@@ -742,6 +742,10 @@ table th {
   @apply py-3 text-purple-300 font-semibold;
 }
 
+html:not(.dark) .admin table th {
+  @apply py-3 text-black font-semibold;
+}
+
 table tbody tr {
   transition: all 0.25s ease;
 }
