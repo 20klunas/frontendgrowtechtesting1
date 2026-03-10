@@ -26,6 +26,14 @@ html:not(.dark) .admin {
 
 }
 
+
+html:not(.dark) .admin .sidebar-active {
+  background: #ffffff;
+  border: 2.5px solid #111827;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
 /* override komponen tailwind purple */
 html:not(.dark) .admin .bg-purple-700,
 html:not(.dark) .admin .bg-purple-600 {
@@ -34,12 +42,6 @@ html:not(.dark) .admin .bg-purple-600 {
 html:not(.dark) .admin .bg-purple-800 {
   background-color: #ffffff !important;
   border: 2px solid #2a2a2a !important;
-}
-html:not(.dark) .admin .sidebar-active {
-  background: #ffffff;
-  border: 2.5px solid #111827;
-  color: #111827;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 html:not(.dark) .admin .hover\:bg-purple-600:hover,
