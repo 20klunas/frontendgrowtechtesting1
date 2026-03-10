@@ -49,7 +49,7 @@ export const adminMenu = [
   },
 
   {
-    group: "Manajemen Pengguna",
+    group: "Manajemen User",
     dropdown: true,
     icon: Users,
     items: [
@@ -69,7 +69,7 @@ export const adminMenu = [
   },
 
   {
-    group: "Manajemen Keuangan",
+    group: "Manajemen Uang",
     dropdown: true,
     icon: CreditCard,
     items: [
