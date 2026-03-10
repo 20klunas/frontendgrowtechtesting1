@@ -171,7 +171,7 @@ export default function FAQSection() {
               name="question"
               value={form.question}
               onChange={handleChange}
-              className="w-full mt-1 p-2 rounded bg-gray-800 border border-gray-700"
+              className="w-full mt-1 p-2 rounded text-[#ffffff] bg-gray-800 border border-gray-700"
               required
             />
           </div>
@@ -183,7 +183,7 @@ export default function FAQSection() {
               value={form.answer}
               onChange={handleChange}
               rows={4}
-              className="w-full mt-1 p-2 rounded bg-gray-800 border border-gray-700"
+              className="w-full mt-1 p-2 rounded text-[#ffffff] bg-gray-800 border border-gray-700"
               required
             />
           </div>
@@ -195,7 +195,7 @@ export default function FAQSection() {
               name="sort_order"
               value={form.sort_order}
               onChange={handleChange}
-              className="w-full mt-1 p-2 rounded bg-gray-800 border border-gray-700"
+              className="w-full mt-1 p-2 rounded text-[#ffffff] bg-gray-800 border border-gray-700"
               min="1"
             />
           </div>
