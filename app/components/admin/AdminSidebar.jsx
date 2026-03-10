@@ -186,7 +186,7 @@ function SidebarDropdown({ label, icon: Icon, pathname, items }) {
                   block px-3 py-2 rounded-md transition
                   ${
                     active
-                      ? "bg-purple-600 text-white"
+                      ? "bg-purple-600 sidebar-active text-white"
                       : "text-gray-300 hover:bg-purple-800/30 hover:text-white"
                   }
                 `}
