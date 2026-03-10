@@ -49,7 +49,9 @@ export const adminMenu = [
   },
 
   {
-    group: "Management",
+    group: "Manajemen Pengguna",
+    dropdown: true,
+    icon: Users,
     items: [
       {
         label: "Pengguna",
@@ -57,6 +59,20 @@ export const adminMenu = [
         icon: Users,
         permission: "manage_users",
       },
+      {
+        label: "Referral",
+        href: "/admin/referral",
+        icon: Share2,
+        permission: "manage_referrals",
+      },
+    ],
+  },
+
+  {
+    group: "Manajemen Keuangan",
+    dropdown: true,
+    icon: CreditCard,
+    items: [
       {
         label: "Transaksi",
         href: "/admin/datatransaksi",
@@ -75,17 +91,13 @@ export const adminMenu = [
         icon: Ticket,
         permission: "manage_vouchers",
       },
-      {
-        label: "Referral",
-        href: "/admin/referral",
-        icon: Share2,
-        permission: "manage_referrals",
-      },
     ],
   },
 
   {
-    group: "System",
+    group: "Manajemen Sistem",
+    dropdown: true,
+    icon: Settings,
     items: [
       {
         label: "Konfigurasi",
