@@ -63,7 +63,8 @@ html:not(.dark) .admin .text-purple-700 {
 
 html:not(.dark) .admin .text-gray-600,
 html:not(.dark) .admin .text-gray-400,
-html:not(.dark) .admin .text-gray-300 {
+html:not(.dark) .admin .text-gray-300,
+html:not(.dark) .admin .text-white {
   color: #111111 !important;
 }
 
