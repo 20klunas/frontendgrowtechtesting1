@@ -135,6 +135,16 @@ html:not(.dark) .admin table thead tr {
   background: #f7f7f7 !important;
 }
 
+html:not(.dark) .admin .input-primary {
+  background: #ffffff !important;
+  border: 2px solid #111827 !important;
+  color: #111827 !important;
+}
+
+html:not(.dark) .admin .input-primary::placeholder {
+  color: #6b7280 !important;
+}
+
 .dark {
   --background: #020617;
   --foreground: #c4c9d3;

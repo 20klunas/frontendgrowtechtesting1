@@ -205,10 +205,10 @@ export default function KategoriPage() {
             <div className="w-full max-w-md rounded-2xl border border-purple-600/60 bg-black p-6">
               {mode === 'delete' ? (
                 <>
-                  <h3 className="text-xl font-semibold text-white mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                     Hapus Kategori
                   </h3>
-                  <p className="text-gray-300 mb-6">
+                  <p className="text-black dark:text-gray-300 mb-6">
                     Yakin ingin menghapus <b>{selected?.name}</b>?
                   </p>
 
@@ -227,7 +227,7 @@ export default function KategoriPage() {
                 </>
               ) : (
                 <form onSubmit={handleSubmit}>
-                  <h3 className="text-xl font-semibold text-white mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                     {mode === 'edit' ? 'Edit' : 'Tambah'} Kategori
                   </h3>
 
