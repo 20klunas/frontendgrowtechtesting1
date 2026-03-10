@@ -116,6 +116,10 @@ html:not(.dark) .admin .border-purple-800 {
   border-color: #e5e5e5 !important;
 }
 
+html:not(.dark) .admin .border-purple-600 {
+  border-color: #111 !important;
+}
+
 /* hover menu sidebar */
 html:not(.dark) .admin .hover\:bg-purple-200\/40:hover {
   background: #f3f3f3 !important;
