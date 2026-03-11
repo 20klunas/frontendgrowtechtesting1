@@ -8,7 +8,7 @@ import { useAuth } from "../../../app/hooks/useAuth";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setUser } = useAuth();
+  // const { setUser } = useAuth();
   const API = process.env.NEXT_PUBLIC_API_URL;
 
   const [form, setForm] = useState({
@@ -41,13 +41,14 @@ export default function RegisterPage() {
     try {
       const res = await fetch(`${API}/api/v1/auth/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       })
 
-      const json = await res.json()
+      const text = await res.text()
+      console.log(text)
+
+      const json = JSON.parse(text)
 
       if (!json.success) {
         throw new Error(json.message || "Register gagal")
