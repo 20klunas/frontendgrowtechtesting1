@@ -29,13 +29,13 @@ export default function RegisterPage() {
   };
 
   const handleRegister = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
 
     if (form.password !== form.password_confirmation) {
-      alert("Password dan konfirmasi tidak sama");
-      setLoading(false);
-      return;
+      alert("Password dan konfirmasi tidak sama")
+      setLoading(false)
+      return
     }
 
     try {
@@ -45,46 +45,25 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(form),
-      });
+      })
 
-      const json = await res.json();
+      const json = await res.json()
 
-      if (!res.ok) {
-        throw new Error(json.message || "Register gagal");
+      if (!json.success) {
+        throw new Error(json.message || "Register gagal")
       }
 
-      /**
-       * =========================
-       * 🔥 AUTO LOGIN SETELAH REGISTER
-       * =========================
-       */
-      if (json.data?.token && json.data?.user) {
-        Cookies.set("token", json.data.token, {
-          path: "/",
-          sameSite: "lax",
-        });
-
-        // 🔥 SET USER KE CONTEXT (INI KUNCI)
-        setUser(json.data.user);
-
-        router.replace("/customer");
-        return;
+      if (json.data?.requires_2fa) {
+        router.push(`/verify-otp?challenge_id=${json.data.challenge_id}`)
+        return
       }
-
-      // Kalau backend tidak auto-login
-      alert("Register berhasil, silakan login");
-      router.push("/login");
 
     } catch (err) {
-      if (err instanceof TypeError) {
-        alert("Gagal terhubung ke server");
-      } else {
-        alert(err.message || "Register gagal");
-      }
+      alert(err.message || "Register gagal")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <main className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 pt-16">

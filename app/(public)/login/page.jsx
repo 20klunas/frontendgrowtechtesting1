@@ -29,36 +29,16 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       })
 
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.message || "Login gagal")
+      const json = await res.json()
+
+      if (!json.success) {
+        throw new Error(json.message || "Login gagal")
       }
 
-      const json = await res.json()
-      const token = json.data.token
-
-      Cookies.set("token", token, {
-        path: "/",
-        sameSite: "lax",
-      })
-
-      const profileRes = await fetch(`${API}/api/v1/auth/me/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!profileRes.ok) throw new Error("Gagal mengambil profile")
-
-      const profileJson = await profileRes.json()
-
-      setUser(profileJson.data)
-
-      if (profileJson.data.role === "admin") {
-        router.replace("/admin/dashboard")
-      } else {
-        router.replace("/customer")
+      // Backend mengirim challenge_id
+      if (json.data.requires_2fa) {
+        router.push(`/verify-otp?challenge_id=${json.data.challenge_id}`)
+        return
       }
 
     } catch (err) {

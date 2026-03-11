@@ -31,58 +31,33 @@ function OAuthCallbackHandler() {
       return
     }
 
-    const exchangeCode = async () => {
-      try {
-        const res = await fetch(`${API}/api/v1/auth/social/exchange`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({ code }),
-        })
+  const exchangeCode = async () => {
+    try {
+      const res = await fetch(`${API}/api/v1/auth/social/exchange`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ code }),
+      })
 
-        const json = await res.json()
+      const json = await res.json()
 
-        if (!json.success) {
-          throw new Error(json.message || "Exchange code gagal")
-        }
-
-        const token = json.data.token
-
-        Cookies.set("token", token, {
-          path: "/",
-          sameSite: "lax",
-        })
-
-        const profileRes = await fetch(`${API}/api/v1/auth/me/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
-
-        if (!profileRes.ok) {
-          throw new Error("Gagal mengambil profile")
-        }
-
-        const profileJson = await profileRes.json()
-        const user = profileJson.data
-
-        setUser(user)
-
-        if (user.role === "admin") {
-          router.replace("/admin/dashboard")
-        } else {
-          router.replace("/customer")
-        }
-
-      } catch (err) {
-        console.error("OAuth error:", err.message)
-        Cookies.remove("token")
-        router.replace("/login?error=oauth_failed")
+      if (!json.success) {
+        throw new Error(json.message || "Exchange code gagal")
       }
+
+      if (json.data.requires_2fa) {
+        router.replace(`/verify-otp?challenge_id=${json.data.challenge_id}`)
+        return
+      }
+
+    } catch (err) {
+      console.error("OAuth error:", err.message)
+      router.replace("/login?error=oauth_failed")
     }
+  }
 
     exchangeCode()
 
