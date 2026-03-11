@@ -242,7 +242,7 @@ export default function KategoriPage() {
                   <div className="flex justify-end gap-2">
                     <button
                       type="button"
-                      className="btn-cancel"
+                      className="modal-text btn-cancel"
                       onClick={closeModal}
                     >
                       Batal
