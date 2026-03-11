@@ -128,7 +128,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Referral */}
-          <div className="md:col-span-2">
+          {/* <div className="md:col-span-2">
             <label className="text-sm text-purple-300">Kode Referral</label>
             <input
               name="referral_code"
@@ -137,7 +137,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               className="mt-1 w-full rounded-lg border border-purple-400/50 bg-black px-4 py-2 text-white outline-none"
             />
-          </div>
+          </div> */}
 
           <div className="md:col-span-2">
             <button
