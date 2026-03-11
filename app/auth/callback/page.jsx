@@ -1,67 +1,96 @@
 'use client'
 
-import { Suspense, useEffect } from "react"
+import { useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Cookies from "js-cookie"
-import { useAuth } from "../../../app/hooks/useAuth"
+import { useAuth } from "../../hooks/useAuth"
 
 function OAuthCallbackHandler() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setUser } = useAuth()
 
-  useEffect(() => {
-    const token = searchParams.get("token")
+  const API = process.env.NEXT_PUBLIC_API_URL
 
-    if (!token) {
-      router.replace("/login?error=oauth_no_token")
+  useEffect(() => {
+    const code = searchParams.get("code")
+    const error = searchParams.get("error")
+
+    if (error) {
+      console.error("Social login gagal:", error)
+      router.replace("/login?error=social_login_failed")
       return
     }
 
-    // ✅ Simpan token ke cookie
-    Cookies.set("token", token, {
-      path: "/",
-      sameSite: "lax",
-    })
+    if (!code) {
+      router.replace("/login?error=no_code")
+      return
+    }
 
-    // ✅ Ambil data user biar context terisi
-    const fetchProfile = async () => {
+    const exchangeCode = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me/profile`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        )
-
-        if (!res.ok) throw new Error("Unauthorized")
+        // 1️⃣ Exchange code → token
+        const res = await fetch(`${API}/api/v1/auth/social/exchange`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ code }),
+        })
 
         const json = await res.json()
-        const user = json.data
 
+        if (!json.success) {
+          throw new Error(json.message || "Exchange code gagal")
+        }
+
+        const token = json.data.token
+
+        // 2️⃣ Simpan token ke cookie
+        Cookies.set("token", token, {
+          path: "/",
+          sameSite: "lax",
+        })
+
+        // 3️⃣ Ambil profile user
+        const profileRes = await fetch(`${API}/api/v1/auth/me/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+
+        if (!profileRes.ok) {
+          throw new Error("Gagal mengambil profile")
+        }
+
+        const profileJson = await profileRes.json()
+        const user = profileJson.data
+
+        // 4️⃣ Set ke AuthContext
         setUser(user)
 
-        // Redirect sesuai role
+        // 5️⃣ Redirect sesuai role
         if (user.role === "admin") {
           router.replace("/admin/dashboard")
         } else {
           router.replace("/customer")
         }
+
       } catch (err) {
-        console.error("OAuth fetch profile error:", err)
+        console.error("OAuth error:", err.message)
         Cookies.remove("token")
         router.replace("/login?error=oauth_failed")
       }
     }
 
-    fetchProfile()
-  }, [searchParams, router, setUser])
+    exchangeCode()
+
+  }, [searchParams, router, setUser, API])
 
   return (
-    <div className="min-h-screen flex items-center justify-center text-white">
+    <div className="flex min-h-screen items-center justify-center text-white">
       Logging you in...
     </div>
   )
@@ -69,7 +98,13 @@ function OAuthCallbackHandler() {
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-white">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center text-white">
+          Loading...
+        </div>
+      }
+    >
       <OAuthCallbackHandler />
     </Suspense>
   )
