@@ -142,7 +142,17 @@ html:not(.dark) .admin .input-primary {
 }
 
 html:not(.dark) .admin .input-primary::placeholder {
-  color: #ffffff !important;
+  color: #6b7280 !important;
+}
+
+/* ================= MODAL FIX LIGHT MODE ================= */
+
+html:not(.dark) .admin .modal-title {
+  color: #111827 !important;
+}
+
+html:not(.dark) .admin .modal-text {
+  color: #374151 !important;
 }
 
 .dark {
