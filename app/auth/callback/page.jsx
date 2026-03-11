@@ -11,14 +11,12 @@ function OAuthCallbackHandler() {
   const { setUser } = useAuth()
 
   const API = process.env.NEXT_PUBLIC_API_URL
-
   const executed = useRef(false)
 
   useEffect(() => {
     if (executed.current) return
     executed.current = true
 
-  useEffect(() => {
     const code = searchParams.get("code")
     const error = searchParams.get("error")
 
@@ -35,7 +33,6 @@ function OAuthCallbackHandler() {
 
     const exchangeCode = async () => {
       try {
-        // 1️⃣ Exchange code → token
         const res = await fetch(`${API}/api/v1/auth/social/exchange`, {
           method: "POST",
           headers: {
@@ -53,13 +50,11 @@ function OAuthCallbackHandler() {
 
         const token = json.data.token
 
-        // 2️⃣ Simpan token ke cookie
         Cookies.set("token", token, {
           path: "/",
           sameSite: "lax",
         })
 
-        // 3️⃣ Ambil profile user
         const profileRes = await fetch(`${API}/api/v1/auth/me/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -74,10 +69,8 @@ function OAuthCallbackHandler() {
         const profileJson = await profileRes.json()
         const user = profileJson.data
 
-        // 4️⃣ Set ke AuthContext
         setUser(user)
 
-        // 5️⃣ Redirect sesuai role
         if (user.role === "admin") {
           router.replace("/admin/dashboard")
         } else {
@@ -93,7 +86,7 @@ function OAuthCallbackHandler() {
 
     exchangeCode()
 
-  }, [searchParams, router, setUser, API])
+  }, []) // hanya sekali
 
   return (
     <div className="flex min-h-screen items-center justify-center text-white">
