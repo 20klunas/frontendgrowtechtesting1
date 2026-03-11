@@ -571,7 +571,7 @@ export default function LicensesPage() {
             onChange={(e) => setBulkText(e.target.value)}
             className="input"
           />
-          <button onClick={handleBulkUpload} className="btn-success">
+          <button onClick={handleBulkUpload} className="modal-text btn-success">
             Upload
           </button>
         </Modal>
@@ -586,7 +586,7 @@ export default function LicensesPage() {
             onChange={(e) => setBulkText(e.target.value)}
             className="input"
           />
-          <button onClick={handleCheckDuplicate} className="btn-info">
+          <button onClick={handleCheckDuplicate} className="modal-text btn-info">
             Check
           </button>
         </Modal>
