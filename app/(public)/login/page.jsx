@@ -128,7 +128,7 @@ export default function LoginPage() {
 
             <div className="relative mt-1">
               <input
-                type={showPassword ? "text" : "password"}   // ✅ TOGGLE
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="********"

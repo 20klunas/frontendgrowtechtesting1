@@ -30,7 +30,7 @@ function OAuthCallbackHandler() {
     const exchangeCode = async () => {
       try {
         // 1️⃣ Exchange code → token
-        const res = await fetch(`${API}/api/v1/auth/social/exchange`, {
+        const res = await fetch(`${API}/api/auth/social/exchange`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
