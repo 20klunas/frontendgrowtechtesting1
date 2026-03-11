@@ -440,7 +440,7 @@ export default function SubKategoriPage() {
                 </select>
 
                 <input
-                  className="input-primary mb-3"
+                  className="modal-text input-primary mb-3"
                   placeholder="Nama"
                   value={form.name}
                   onChange={(e) => {
@@ -457,14 +457,14 @@ export default function SubKategoriPage() {
                 <input className="input-primary mb-3" placeholder="Slug" value={form.slug} readOnly />
 
                 <input
-                  className="input-primary mb-3"
+                  className="modal-text input-primary mb-3"
                   placeholder="Provider"
                   value={form.provider}
                   onChange={(e) => setForm({ ...form, provider: e.target.value })}
                 />
 
                 <input
-                  className="input-primary mb-3"
+                  className="modal-text input-primary mb-3"
                   placeholder="Description"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -472,7 +472,7 @@ export default function SubKategoriPage() {
 
                 <input
                   type="file"
-                  className="mb-3"
+                  className="modal-text mb-3"
                   accept="image/*"
                   onChange={(e) => handleImageUpload(e.target.files?.[0])}
                 />
@@ -485,7 +485,7 @@ export default function SubKategoriPage() {
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <p className="text-xs text-purple-300 mt-1">Uploading... {progress}%</p>
+                    <p className="modal-text text-xs text-purple-300 mt-1">Uploading... {progress}%</p>
                   </div>
                 )}
 
