@@ -145,14 +145,32 @@ html:not(.dark) .admin .input-primary::placeholder {
   color: #6b7280 !important;
 }
 
-/* ================= MODAL FIX LIGHT MODE ================= */
+/* ================= MODAL CARD ================= */
+
+.modal-card {
+  background: #000;
+  border: 1px solid rgba(168,85,247,0.6);
+}
+
+html:not(.dark) .admin .modal-card {
+  background: #ffffff;
+  border: 2px solid #2a2a2a;
+}
+
+.modal-title {
+  color: white;
+}
+
+.modal-text {
+  color: #d1d5db;
+}
 
 html:not(.dark) .admin .modal-title {
-  color: #111827 !important;
+  color: #111827;
 }
 
 html:not(.dark) .admin .modal-text {
-  color: #374151 !important;
+  color: #374151;
 }
 
 .dark {

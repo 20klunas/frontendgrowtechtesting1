@@ -202,7 +202,7 @@ export default function KategoriPage() {
         {/* ================= MODAL ================= */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-            <div className="w-full max-w-md rounded-2xl border border-purple-600/60 bg-black p-6">
+            <div className="modal-card w-full max-w-md rounded-2xl p-6">
               {mode === 'delete' ? (
                 <>
                   <h3 className="modal-title text-xl font-semibold mb-4">
@@ -227,7 +227,7 @@ export default function KategoriPage() {
                 </>
               ) : (
                 <form onSubmit={handleSubmit}>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  <h3 className="modal-title text-xl font-semibold mb-4">
                     {mode === 'edit' ? 'Edit' : 'Tambah'} Kategori
                   </h3>
 
