@@ -15,8 +15,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     password_confirmation: "",
-    name: "",
-    referral_code: "",
+    name: ""
   });
 
   const [loading, setLoading] = useState(false);
