@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
 
     fetchMe()
 
-  }, [API, router, user])
+  }, [])
 
   const logout = async () => {
     const token = Cookies.get("token")

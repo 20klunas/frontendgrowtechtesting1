@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, Suspense } from "react"
+import { useEffect, Suspense, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Cookies from "js-cookie"
 import { useAuth } from "../../hooks/useAuth"
@@ -11,6 +11,12 @@ function OAuthCallbackHandler() {
   const { setUser } = useAuth()
 
   const API = process.env.NEXT_PUBLIC_API_URL
+
+  const executed = useRef(false)
+
+  useEffect(() => {
+    if (executed.current) return
+    executed.current = true
 
   useEffect(() => {
     const code = searchParams.get("code")
@@ -30,7 +36,7 @@ function OAuthCallbackHandler() {
     const exchangeCode = async () => {
       try {
         // 1️⃣ Exchange code → token
-        const res = await fetch(`${API}/api/auth/social/exchange`, {
+        const res = await fetch(`${API}/api/v1/auth/social/exchange`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
