@@ -555,7 +555,7 @@ export default function LicensesPage() {
             onChange={(e) => setNote(e.target.value)}
             className="input"
           />
-          <button onClick={handleSingleInsert} className="btn-success">
+          <button onClick={handleSingleInsert} className="modal-text btn-success">
             Simpan
           </button>
         </Modal>
