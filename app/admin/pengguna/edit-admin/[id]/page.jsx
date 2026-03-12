@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useParams } from "next/navigation"
-import { PERMISSIONS } from "../../../lib/permissions"
+import { PERMISSIONS } from "../../../../lib/permissions"
 
 export default function EditAdminPage() {
 
