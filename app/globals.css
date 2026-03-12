@@ -221,6 +221,17 @@ html:not(.dark) .admin .btn-danger {
 html:not(.dark) .admin .btn-outline {
   border: 2px solid #000;
   color: #000;
+  background: transparent;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+html:not(.dark) .admin .btn-outline:hover {
+  background: #000;
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 html:not(.dark) .admin .btn-danger:hover {
