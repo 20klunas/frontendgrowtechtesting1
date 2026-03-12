@@ -26,6 +26,9 @@ export default function LicensesPage() {
   const [bulkText, setBulkText] = useState("");
   const [proofs, setProofs] = useState([]);
   const [showProofModal, setShowProofModal] = useState(false);
+  const [duplicateResult, setDuplicateResult] = useState(null);
+  const [bulkResult, setBulkResult] = useState(null);
+  const [singleResult, setSingleResult] = useState(null)
 
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -78,76 +81,70 @@ export default function LicensesPage() {
 
   // ================= SINGLE INSERT =================
   const handleSingleInsert = async () => {
+
     if (!licenseKey) {
-      showToast("error", "License key wajib diisi");
-      return;
+      showToast("error", "License key wajib diisi")
+      return
     }
 
     try {
-        await licenseService.createSingle(id, {
-            license_key: licenseKey,
-            data_other: null,
-            note
-        });
 
-      showToast("success", "License berhasil ditambahkan");
-      setShowSingleModal(false);
-      setLicenseKey("");
-      setNote("");
-      loadData();
+      const res = await licenseService.createSingle(id, {
+        license_key: licenseKey,
+        data_other: null,
+        note
+      })
+
+      setSingleResult(res.data)
+
+      loadData()
 
     } catch {
-      showToast("error", "Gagal tambah license");
+      showToast("error", "Gagal tambah license")
     }
+
   };
 
   // ================= BULK UPLOAD =================
   const handleBulkUpload = async () => {
+
     if (!bulkText) {
-      showToast("error", "Bulk text kosong");
-      return;
+      showToast("error", "Bulk text kosong")
+      return
     }
 
     try {
-      const res = await licenseService.uploadBulk(id, bulkText);
 
-      showToast(
-        "success",
-        `Masuk: ${res.data.inserted}, Duplikat: ${res.data.duplicate}`
-      );
+      const res = await licenseService.uploadBulk(id, bulkText)
 
-      setShowBulkModal(false);
-      setBulkText("");
-      loadData();
+      setBulkResult(res.data)
 
-    } catch {
-      showToast("error", err.message);
+      loadData()
+
+    } catch (err) {
+      showToast("error", err.message)
     }
+
   };
 
   // ================= CHECK DUPLICATES =================
   const handleCheckDuplicate = async () => {
+
     if (!bulkText.trim()) {
-        showToast("error", "Isi bulk text dulu");
-        return;
+      showToast("error", "Isi bulk text dulu")
+      return
     }
 
     try {
-        const res = await licenseService.checkDuplicates(id, bulkText);
 
-        console.log("DUPLICATE RESULT:", res);
+      const res = await licenseService.checkDuplicates(id, bulkText)
 
-        const total = res.data?.total_lines ?? 0;
-        const duplicates = res.data?.duplicates ?? 0;
-        const newItems = total - duplicates;
+      const result = res.data
 
-        showToast(
-        "success",
-        `Baru: ${newItems}, Duplikat: ${duplicates}`
-        );
+      setDuplicateResult(result)
 
     } catch (err) {
-        showToast("error", err.message);
+      showToast("error", err.message)
     }
   };
 
@@ -533,53 +530,160 @@ export default function LicensesPage() {
 
       {/* SINGLE MODAL */}
       {showSingleModal && (
-        <Modal onClose={() => setShowSingleModal(false)} title="Tambah License">
+        <Modal onClose={() => {
+          setShowSingleModal(false)
+          setSingleResult(null)
+        }} title="Tambah License">
+
           <input
             placeholder="License Key"
             value={licenseKey}
             onChange={(e) => setLicenseKey(e.target.value)}
             className="input"
           />
+
           <input
             placeholder="Note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className="input"
           />
-          <button onClick={handleSingleInsert} className="modal-text btn-success">
+
+          <button
+            onClick={handleSingleInsert}
+            className="modal-text btn-success"
+          >
             Simpan
           </button>
+
+          {singleResult && (
+            <div className="mt-3 border border-green-600/30 rounded-lg p-3 text-sm">
+
+              <p className="text-green-400 font-semibold">
+                License berhasil ditambahkan
+              </p>
+
+              <p className="text-gray-400 text-xs mt-1">
+                {singleResult.license_key}
+              </p>
+
+            </div>
+          )}
+
         </Modal>
       )}
 
       {/* BULK MODAL */}
       {showBulkModal && (
-        <Modal onClose={() => setShowBulkModal(false)} title="Bulk Upload">
+        <Modal onClose={() => {
+          setShowBulkModal(false)
+          setBulkResult(null)
+        }} title="Bulk Upload License">
+
           <textarea
             rows="6"
-            placeholder="1 key per baris..."
+            placeholder="1 license per baris..."
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
             className="input"
           />
-          <button onClick={handleBulkUpload} className="modal-text btn-success">
+
+          <button
+            onClick={handleBulkUpload}
+            className="modal-text btn-success"
+          >
             Upload
           </button>
+
+          {bulkResult && (
+            <div className="mt-4 border border-purple-600/30 rounded-lg p-3 text-sm">
+
+              <p className="text-purple-400 font-semibold mb-2">
+                Hasil Upload
+              </p>
+
+              <p className="text-green-400">
+                Berhasil Ditambahkan: {bulkResult.inserted}
+              </p>
+
+              <p className="text-yellow-400">
+                Duplicate: {bulkResult.duplicate}
+              </p>
+
+              <p className="text-gray-400">
+                Total Diproses: {bulkResult.total}
+              </p>
+
+            </div>
+          )}
+
         </Modal>
       )}
 
       {/* DUPLICATE MODAL */}
       {showDuplicateModal && (
-        <Modal onClose={() => setShowDuplicateModal(false)} title="Check Duplicate">
+        <Modal onClose={() => {
+          setShowDuplicateModal(false)
+          setDuplicateResult(null)
+        }} title="Check Duplicate License">
+
           <textarea
             rows="6"
+            placeholder="1 license per baris..."
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
             className="input"
           />
-          <button onClick={handleCheckDuplicate} className="modal-text btn-info">
+
+          <button
+            onClick={handleCheckDuplicate}
+            className="modal-text btn-info"
+          >
             Check
           </button>
+
+          {/* RESULT */}
+          {duplicateResult && (
+            <div className="mt-4 border border-purple-600/30 rounded-lg p-3 text-sm">
+
+              <p className="text-purple-400 font-semibold mb-2">
+                Hasil Pemeriksaan
+              </p>
+
+              <p className="text-gray-400">
+                Total Input: {duplicateResult.total_lines}
+              </p>
+
+              <p className="text-green-400">
+                License Baru: {duplicateResult.new_items}
+              </p>
+
+              <p className="text-red-400">
+                Duplicate: {duplicateResult.duplicates}
+              </p>
+
+              {/* DUPLICATE LIST */}
+              {duplicateResult.duplicate_items?.length > 0 && (
+                <div className="mt-3">
+
+                  <p className="text-red-400 text-xs mb-1">
+                    License yang Duplicate:
+                  </p>
+
+                  <div className="max-h-40 overflow-y-auto border border-red-500/20 rounded p-2 text-xs">
+                    {duplicateResult.duplicate_items.map((l, i) => (
+                      <div key={i} className="text-red-300">
+                        {l}
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+          )}
+
         </Modal>
       )}
 
