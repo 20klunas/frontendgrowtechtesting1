@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Cookies from "js-cookie"
 import PermissionGate from "../../components/admin/PermissionGate"
+import toast from "react-hot-toast"
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -73,14 +74,31 @@ export default function AksesAdminPage() {
 
     if(!selected) return
 
-    await fetch(`${API}/api/v1/admin/admin-users/${selected.id}/apply-role`,{
-      method:"POST",
-      headers,
-      body:JSON.stringify({admin_role_id:roleId})
-    })
+    try {
 
-    openAdmin(selected.id)
-    loadAdmins()
+      const res = await fetch(`${API}/api/v1/admin/admin-users/${selected.id}/apply-role`,{
+        method:"POST",
+        headers,
+        body:JSON.stringify({admin_role_id:roleId})
+      })
+
+      const json = await res.json()
+
+      if(!json.success){
+        throw new Error(json.message || "Gagal mengubah role")
+      }
+
+      toast.success("Role berhasil diterapkan")
+
+      openAdmin(selected.id)
+      loadAdmins()
+
+    } catch(err){
+
+      toast.error(err.message)
+
+    }
+
   }
 
   // =============================
@@ -91,14 +109,31 @@ export default function AksesAdminPage() {
 
     if(!selected) return
 
-    await fetch(`${API}/api/v1/admin/admin-users/${selected.id}/permissions`,{
-      method:"POST",
-      headers,
-      body:JSON.stringify({permission_keys:keys})
-    })
+    try {
 
-    openAdmin(selected.id)
-    loadAdmins()
+      const res = await fetch(`${API}/api/v1/admin/admin-users/${selected.id}/permissions`,{
+        method:"POST",
+        headers,
+        body:JSON.stringify({permission_keys:keys})
+      })
+
+      const json = await res.json()
+
+      if(!json.success){
+        throw new Error(json.message || "Gagal menyimpan permission")
+      }
+
+      toast.success("Permission berhasil disimpan")
+
+      openAdmin(selected.id)
+      loadAdmins()
+
+    } catch(err) {
+
+      toast.error(err.message)
+
+    }
+
   }
 
   // =============================

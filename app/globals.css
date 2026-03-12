@@ -182,6 +182,10 @@ html:not(.dark) .admin table tbody tr:hover span {
   color: #ffffff !important;
 }
 
+html:not(.dark) .admin detail-button:hover {
+  color: #000 !important;
+}
+
 html:not(.dark) .admin table tbody tr:hover a {
   color: #ffffff !important;
 }

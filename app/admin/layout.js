@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import AdminNavbar from "../components/admin/AdminNavbar"
 import AdminSidebar from "../components/admin/AdminSidebar"
 import AdminFooter from "../components/admin/AdminFooter"
+import { Toaster } from "react-hot-toast"
 
 export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -57,6 +58,16 @@ export default function AdminLayout({ children }) {
           {/* PAGE CONTENT */}
           <div className="flex-1 p-4 lg:p-6 text-zinc-900 dark:text-zinc-100">
             {children}
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: "#1e1b4b",
+                  color: "#fff",
+                  border: "1px solid #7c3aed"
+                }
+              }}
+            />
           </div>
 
           {/* FOOTER */}

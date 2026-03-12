@@ -170,7 +170,7 @@ export default function AdminAuditLogsPage() {
                 <td className="p-3">
                 <Link
                     href={`/admin/access/logs/${log.id}`}
-                    className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-sm"
+                    className="detail-button bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-sm"
                 >
                     Detail
                 </Link>
