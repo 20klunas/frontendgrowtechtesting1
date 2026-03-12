@@ -81,6 +81,11 @@ html:not(.dark) .admin .hover\:bg-purple-800\/40:hover {
   color: #000 !important;
 }
 
+html:not(.dark) .admin .bg-purple-900\/40 {
+  background: #f1f1f1 !important;
+  color: #000 !important;
+}
+
 /* ================= DASHBOARD CARD LIGHT MODE ================= */
 
 html:not(.dark) .admin .bg-gradient-to-r,
