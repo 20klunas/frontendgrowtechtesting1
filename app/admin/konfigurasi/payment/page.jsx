@@ -6,13 +6,13 @@ import SectionCard from '../../../components/admin/SectionCard'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
-export default function PaymentPage() {
+export default function PaymentPage(){
 
 const token = Cookies.get('token')
 
-/* =========================================================
-GLOBAL FEE STATE
-========================================================= */
+/* ======================================================
+GLOBAL FEE
+====================================================== */
 
 const [loading,setLoading] = useState(true)
 const [percent,setPercent] = useState(null)
@@ -20,9 +20,9 @@ const [editPercent,setEditPercent] = useState('')
 const [isPublic,setIsPublic] = useState(true)
 const [savingPercent,setSavingPercent] = useState(false)
 
-/* =========================================================
-GATEWAY STATES
-========================================================= */
+/* ======================================================
+GATEWAY STATE
+====================================================== */
 
 const [gateways,setGateways] = useState([])
 const [gatewayLoading,setGatewayLoading] = useState(true)
@@ -35,17 +35,17 @@ const [lastPage,setLastPage] = useState(1)
 const [toast,setToast] = useState(null)
 const [error,setError] = useState(null)
 
-/* =========================================================
-MODAL STATE
-========================================================= */
+/* ======================================================
+MODAL
+====================================================== */
 
 const [showModal,setShowModal] = useState(false)
 const [editingGateway,setEditingGateway] = useState(null)
 const [savingGateway,setSavingGateway] = useState(false)
 
-/* =========================================================
-FORM STATE
-========================================================= */
+/* ======================================================
+FORM
+====================================================== */
 
 const emptyForm = {
 
@@ -69,32 +69,26 @@ fee_value:0,
 
 sort_order:0,
 
-config:{
-simulate:false
-},
+config:{},
 
-secret_config:{
-server_key:'',
-client_key:'',
-merchant_id:''
-}
+secret_config:{}
 
 }
 
 const [form,setForm] = useState(emptyForm)
 
-/* =========================================================
-FETCH INITIAL
-========================================================= */
+/* ======================================================
+INIT
+====================================================== */
 
 useEffect(()=>{
 fetchSetting()
 fetchGateways()
 },[])
 
-/* =========================================================
+/* ======================================================
 FETCH GLOBAL FEE
-========================================================= */
+====================================================== */
 
 const fetchSetting = async () => {
 
@@ -126,20 +120,16 @@ setIsPublic(setting.is_public ?? true)
 }
 
 }catch(err){
-
 console.error(err)
-
-}finally{
+}
 
 setLoading(false)
 
 }
 
-}
-
-/* =========================================================
+/* ======================================================
 FETCH GATEWAYS
-========================================================= */
+====================================================== */
 
 const fetchGateways = async () => {
 
@@ -160,8 +150,7 @@ const res = await fetch(
 headers:{
 Authorization:`Bearer ${token}`
 }
-}
-)
+})
 
 const json = await res.json()
 
@@ -173,9 +162,7 @@ setLastPage(json.data.last_page)
 }
 
 }catch(err){
-
 console.error(err)
-
 }
 
 setGatewayLoading(false)
@@ -186,9 +173,9 @@ useEffect(()=>{
 fetchGateways()
 },[search,scope,page])
 
-/* =========================================================
+/* ======================================================
 SAVE GLOBAL FEE
-========================================================= */
+====================================================== */
 
 const handleSavePercent = async () => {
 
@@ -219,8 +206,7 @@ key:'fee_percent',
 value:{percent:numeric},
 is_public:isPublic
 })
-}
-)
+})
 
 const json = await res.json()
 
@@ -232,63 +218,126 @@ showToast('Fee berhasil disimpan')
 }
 
 }catch(err){
-
 console.error(err)
-
 }
 
 setSavingPercent(false)
 
 }
 
-/* =========================================================
-FORM HANDLERS
-========================================================= */
+/* ======================================================
+FORM
+====================================================== */
 
 const setField = (key,val)=>{
+
 setForm(prev=>({...prev,[key]:val}))
+
 }
 
-const setSecret = (key,val)=>{
-setForm(prev=>({
-...prev,
-secret_config:{
-...prev.secret_config,
+/* ======================================================
+CONFIG HANDLERS
+====================================================== */
+
+const updateConfigKey = (oldKey,newKey)=>{
+
+const updated = {...form.config}
+
+updated[newKey] = updated[oldKey]
+
+delete updated[oldKey]
+
+setForm({...form,config:updated})
+
+}
+
+const updateConfigValue = (key,val)=>{
+
+setForm({
+...form,
+config:{
+...form.config,
 [key]:val
 }
-}))
-}
-
-/* =========================================================
-PROVIDER AUTO CONFIG
-========================================================= */
-
-const handleProviderChange = (provider)=>{
-
-let driver = provider
-
-let config = { simulate:false }
-
-if(provider === 'duitku'){
-driver = 'duitku'
-}
-
-if(provider === 'midtrans'){
-driver = 'midtrans'
-}
-
-setForm(prev=>({
-...prev,
-provider,
-driver,
-config
-}))
+})
 
 }
 
-/* =========================================================
-CREATE / UPDATE
-========================================================= */
+const addConfig = ()=>{
+
+setForm({
+...form,
+config:{
+...form.config,
+new_key:''
+}
+})
+
+}
+
+const removeConfig = (key)=>{
+
+const updated = {...form.config}
+
+delete updated[key]
+
+setForm({...form,config:updated})
+
+}
+
+/* ======================================================
+SECRET CONFIG
+====================================================== */
+
+const updateSecretKey = (oldKey,newKey)=>{
+
+const updated = {...form.secret_config}
+
+updated[newKey] = updated[oldKey]
+
+delete updated[oldKey]
+
+setForm({...form,secret_config:updated})
+
+}
+
+const updateSecretValue = (key,val)=>{
+
+setForm({
+...form,
+secret_config:{
+...form.secret_config,
+[key]:val
+}
+})
+
+}
+
+const addSecret = ()=>{
+
+setForm({
+...form,
+secret_config:{
+...form.secret_config,
+new_secret:''
+}
+})
+
+}
+
+const removeSecret = (key)=>{
+
+const updated = {...form.secret_config}
+
+delete updated[key]
+
+setForm({...form,secret_config:updated})
+
+}
+
+/* ======================================================
+SAVE GATEWAY
+====================================================== */
 
 const saveGateway = async () => {
 
@@ -300,7 +349,7 @@ const url = editingGateway
 ? `${API}/api/v1/admin/payment-gateways/${editingGateway.code}`
 : `${API}/api/v1/admin/payment-gateways`
 
-const method = editingGateway ? 'PATCH' : 'POST'
+const method = editingGateway ? 'PATCH':'POST'
 
 const res = await fetch(url,{
 method,
@@ -320,24 +369,24 @@ showToast('Gateway berhasil disimpan')
 fetchGateways()
 
 setShowModal(false)
+
 setForm(emptyForm)
+
 setEditingGateway(null)
 
 }
 
 }catch(err){
-
 console.error(err)
-
 }
 
 setSavingGateway(false)
 
 }
 
-/* =========================================================
+/* ======================================================
 DELETE
-========================================================= */
+====================================================== */
 
 const deleteGateway = async (code)=>{
 
@@ -365,16 +414,14 @@ fetchGateways()
 }
 
 }catch(err){
-
 console.error(err)
-
 }
 
 }
 
-/* =========================================================
+/* ======================================================
 EDIT
-========================================================= */
+====================================================== */
 
 const editGateway = async (gateway) => {
 
@@ -400,30 +447,14 @@ setShowModal(true)
 }
 
 }catch(err){
-
 console.error(err)
-
 }
 
 }
 
-/* =========================================================
-INLINE FEE EDIT
-========================================================= */
-
-const updateFee = (id,val)=>{
-
-setGateways(prev =>
-prev.map(g =>
-g.id === id ? {...g,fee_value:val} : g
-)
-)
-
-}
-
-/* =========================================================
+/* ======================================================
 TOAST
-========================================================= */
+====================================================== */
 
 const showToast = (msg)=>{
 
@@ -435,131 +466,28 @@ setToast(null)
 
 }
 
-/* =========================================================
-COPY KEY
-========================================================= */
-
-const copyKey = (text)=>{
-
-navigator.clipboard.writeText(text)
-
-showToast('Copied')
-
-}
-
-/* =========================================================
-MASK SECRET
-========================================================= */
-
-const mask = (str)=>{
-
-if(!str) return ''
-
-return str.slice(0,4) + '****' + str.slice(-4)
-
-}
-
-/* =========================================================
+/* ======================================================
 UI
-========================================================= */
+====================================================== */
 
-return (
+return(
 
 <div className="space-y-8 pb-16">
 
-{/* =========================================================
-GLOBAL FEE
-========================================================= */}
-
-<SectionCard title="Payment Fee Configuration">
-
-{loading ? (
-
-<div className="animate-pulse h-20 bg-gray-200 dark:bg-gray-700 rounded"/>
-
-):(
-
-<div className="space-y-6">
-
-<div>
-
-<p className="text-sm text-gray-500 dark:text-gray-400">
-Current Fee
-</p>
-
-<p className="text-3xl font-bold text-gray-900 dark:text-white">
-{percent}%
-</p>
-
-</div>
-
-<div className="flex flex-wrap gap-3 items-center">
-
-<input
-type="number"
-value={editPercent}
-onChange={(e)=>setEditPercent(e.target.value)}
-className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded w-32"
-/>
-
-<label className="flex items-center gap-2 text-sm">
-
-<input
-type="checkbox"
-checked={isPublic}
-onChange={(e)=>setIsPublic(e.target.checked)}
-/>
-
-Public
-
-</label>
-
-<button
-onClick={handleSavePercent}
-disabled={savingPercent}
-className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
-
->
-
-{savingPercent ? 'Saving...' : 'Save'}
-
-</button>
-
-</div>
-
-</div>
-
-)}
-
-</SectionCard>
-
-{/* =========================================================
+{/* ======================================================
 PAYMENT GATEWAYS
-========================================================= */}
+====================================================== */}
 
 <SectionCard title="Payment Gateways">
 
-<div className="flex flex-wrap gap-3 mb-6">
+<div className="flex justify-between mb-6">
 
 <input
 placeholder="Search gateway..."
 value={search}
 onChange={(e)=>setSearch(e.target.value)}
-className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
+className="border px-3 py-2 rounded bg-transparent"
 />
-
-<select
-value={scope}
-onChange={(e)=>setScope(e.target.value)}
-className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
-
->
-
-<option value="">All Scope</option>
-<option value="order">Order</option>
-<option value="topup">Topup</option>
-
-</select>
 
 <button
 onClick={()=>{
@@ -569,60 +497,37 @@ setEditingGateway(null)
 setShowModal(true)
 
 }}
-className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-
+className="bg-green-600 text-white px-4 py-2 rounded"
 >
-
 Add Gateway
-
 </button>
 
 </div>
 
-{/* TABLE */}
-
-<div className="overflow-x-auto">
-
 <table className="w-full text-sm">
 
 <thead>
-
-<tr className="border-b border-gray-200 dark:border-gray-700">
-
+<tr className="border-b">
 <th className="text-left py-2">Name</th>
 <th>Provider</th>
 <th>Fee</th>
 <th>Status</th>
-<th>Default</th>
 <th></th>
-
 </tr>
-
 </thead>
 
 <tbody>
 
-{gatewayLoading && (
+{gateways.map(g=>(
+<tr key={g.id} className="border-b">
 
-<tr>
-<td colSpan="6" className="py-10 text-center text-gray-400">
-Loading...
-</td>
-</tr>
+<td className="py-2">
 
-)}
-
-{gateways.map(g => (
-
-<tr key={g.id} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-
-<td className="py-3">
-
-<div className="font-medium text-gray-900 dark:text-white">
+<div className="font-medium">
 {g.name}
 </div>
 
-<div className="text-xs text-gray-500">
+<div className="text-xs opacity-60">
 {g.code}
 </div>
 
@@ -631,175 +536,165 @@ Loading...
 <td>{g.provider}</td>
 
 <td>
-
-<input
-type="number"
-value={g.fee_value}
-onChange={(e)=>updateFee(g.id,e.target.value)}
-className="w-20 border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1 rounded"
-/>
-
-{g.fee_type === 'percent' ? '%' : ' IDR'}
-
+{g.fee_value}{g.fee_type === 'percent' ? '%' : ' IDR'}
 </td>
 
 <td>
-
-<span className={`px-2 py-1 text-xs rounded
-${g.is_active
-? 'bg-green-600 text-white'
-: 'bg-gray-500 text-white'}`}>
-{g.is_active ? 'Active':'Disabled'} </span>
-
-</td>
-
-<td>
-
-{g.is_default_order && ( <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded mr-1">
-Order </span>
-)}
-
-{g.is_default_topup && ( <span className="text-xs bg-purple-600 text-white px-2 py-1 rounded">
-Topup </span>
-)}
-
+{g.is_active ? 'Active':'Disabled'}
 </td>
 
 <td className="space-x-2">
 
 <button
 onClick={()=>editGateway(g)}
-className="text-blue-500 hover:underline"
-
+className="text-blue-500"
 >
-
 Edit
-
 </button>
 
 <button
 onClick={()=>deleteGateway(g.code)}
-className="text-red-500 hover:underline"
-
+className="text-red-500"
 >
-
 Delete
-
 </button>
 
 </td>
 
 </tr>
-
 ))}
 
 </tbody>
 
 </table>
 
-</div>
-
 </SectionCard>
 
-{/* =========================================================
+{/* ======================================================
 MODAL
-========================================================= */}
+====================================================== */}
 
 {showModal && (
 
-<div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+<div className="fixed inset-0 bg-black/60 flex items-center justify-center">
 
-<div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-2xl overflow-y-auto max-h-[90vh] shadow-xl">
+<div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-3xl">
 
-<h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-{editingGateway ? 'Edit Gateway' : 'Create Gateway'}
+<h3 className="text-xl font-semibold mb-4">
+
+{editingGateway ? 'Edit Gateway':'Create Gateway'}
+
 </h3>
 
-<div className="space-y-4">
+<div className="space-y-3">
 
 <input
 placeholder="Code"
 value={form.code}
 onChange={(e)=>setField('code',e.target.value)}
-className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
+className="w-full border px-3 py-2 rounded"
 />
 
 <input
 placeholder="Name"
 value={form.name}
 onChange={(e)=>setField('name',e.target.value)}
-className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
+className="w-full border px-3 py-2 rounded"
 />
 
-<select
-value={form.provider}
-onChange={(e)=>handleProviderChange(e.target.value)}
-className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
+{/* CONFIG */}
 
->
-
-<option value="midtrans">Midtrans</option>
-<option value="duitku">Duitku</option>
-
-</select>
-
-<input
-placeholder="Driver"
-value={form.driver}
-onChange={(e)=>setField('driver',e.target.value)}
-className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
-/>
-
-{/* SECRET */}
-
-<h4 className="font-semibold text-gray-900 dark:text-white">
-Secret Config
+<h4 className="font-semibold mt-4">
+Config
 </h4>
 
-<div className="flex gap-2">
+{Object.entries(form.config).map(([k,v])=>(
+<div key={k} className="flex gap-2">
 
 <input
-placeholder="Server Key"
-value={form.secret_config.server_key}
-onChange={(e)=>setSecret('server_key',e.target.value)}
-className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
+value={k}
+onChange={(e)=>updateConfigKey(k,e.target.value)}
+className="border px-2 py-1 w-40"
+/>
+
+<input
+value={v}
+onChange={(e)=>updateConfigValue(k,e.target.value)}
+className="border px-2 py-1 flex-1"
 />
 
 <button
-onClick={()=>copyKey(form.secret_config.server_key)}
-className="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded"
-
+onClick={()=>removeConfig(k)}
+className="text-red-500"
 >
-
-Copy
-
+X
 </button>
 
 </div>
+))}
+
+<button
+onClick={addConfig}
+className="text-sm text-blue-500"
+>
++ Add Config
+</button>
+
+{/* SECRET CONFIG */}
+
+<h4 className="font-semibold mt-4">
+Secret Config
+</h4>
+
+{Object.entries(form.secret_config).map(([k,v])=>(
+<div key={k} className="flex gap-2">
+
+<input
+value={k}
+onChange={(e)=>updateSecretKey(k,e.target.value)}
+className="border px-2 py-1 w-40"
+/>
+
+<input
+value={v}
+onChange={(e)=>updateSecretValue(k,e.target.value)}
+className="border px-2 py-1 flex-1"
+/>
+
+<button
+onClick={()=>removeSecret(k)}
+className="text-red-500"
+>
+X
+</button>
 
 </div>
+))}
 
-<div className="flex gap-3 pt-6">
+<button
+onClick={addSecret}
+className="text-sm text-blue-500"
+>
++ Add Secret
+</button>
+
+<div className="flex gap-3 pt-4">
 
 <button
 onClick={saveGateway}
-className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-
+className="bg-blue-600 text-white px-4 py-2 rounded"
 >
-
 Save
-
 </button>
 
 <button
 onClick={()=>setShowModal(false)}
-className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-
+className="bg-gray-500 text-white px-4 py-2 rounded"
 >
-
 Cancel
-
 </button>
+
+</div>
 
 </div>
 
@@ -809,18 +704,10 @@ Cancel
 
 )}
 
-{/* =========================================================
-TOAST
-========================================================= */}
-
 {toast && (
-
-<div className="fixed bottom-6 right-6 bg-green-600 text-white px-4 py-2 rounded shadow-lg animate-bounce">
-
+<div className="fixed bottom-6 right-6 bg-green-600 text-white px-4 py-2 rounded">
 {toast}
-
 </div>
-
 )}
 
 </div>
