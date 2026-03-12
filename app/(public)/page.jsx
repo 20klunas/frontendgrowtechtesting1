@@ -136,7 +136,7 @@ export default function HomePage() {
       {/* BANNER SECTION */}
       {/* ============================================ */}
 
-      <section className="w-full py-20 bg-gradient-to-b from-black via-purple-950/20 to-black">
+      <section className="w-full pt-12 pb-6 bg-gradient-to-b from-black via-purple-950/20 to-black">
 
         <BannerCarousel
           banners={banners || []}
