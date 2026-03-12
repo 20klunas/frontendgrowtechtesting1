@@ -88,7 +88,12 @@ export default function VerifyOtpClient() {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <div className="w-14 h-14 rounded-xl bg-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-purple-700/40">
-            GT
+            <Image
+              src="/logoherosection.png"
+              alt="Growtech"
+              fill
+              priority
+            />
           </div>
         </div>
 
