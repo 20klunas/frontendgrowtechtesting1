@@ -701,18 +701,25 @@ export default function ProdukPage() {
             >
               <motion.div
                 onClick={(e) => e.stopPropagation()}
-                initial={{ scale: 0.92, opacity: 0 }}
+                initial={{ scale: 0.94, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.92, opacity: 0 }}
+                exit={{ scale: 0.94, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                className="modal-card w-full max-w-lg rounded-2xl shadow-[0_0_45px_rgba(168,85,247,0.25)] overflow-hidden"
+                className="modal-card w-full max-w-xl rounded-2xl shadow-[0_0_45px_rgba(168,85,247,0.25)] overflow-hidden"
               >
 
                 {/* HEADER */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-purple-800/30">
-                  <h2 className="modal-title font-semibold text-lg">
-                    Edit Produk
-                  </h2>
+                <div className="flex items-start justify-between px-6 py-5 border-b border-purple-800/30">
+
+                  <div>
+                    <h2 className="modal-title text-lg font-semibold">
+                      Edit Produk
+                    </h2>
+
+                    <p className="modal-text text-xs mt-1">
+                      Perbarui informasi produk dan harga paket
+                    </p>
+                  </div>
 
                   <button
                     onClick={() => setShowEditModal(false)}
@@ -720,93 +727,141 @@ export default function ProdukPage() {
                   >
                     ✕
                   </button>
+
                 </div>
 
                 {/* BODY */}
-                <div className="px-6 py-5 space-y-4">
+                <div className="px-6 py-6 space-y-6">
 
-                  <div>
-                    <label className="modal-text text-sm mb-1 block">
-                      Nama Produk
-                    </label>
+                  {/* PRODUCT INFO */}
+                  <div className="space-y-4">
 
-                    <input
-                      value={editForm.name}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, name: e.target.value })
-                      }
-                      className="input-primary"
-                    />
+                    <div>
+                      <label className="modal-text text-sm mb-1 block">
+                        Nama Produk
+                      </label>
+
+                      <input
+                        value={editForm.name}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, name: e.target.value })
+                        }
+                        className="input-primary"
+                        placeholder="Contoh: Netflix Premium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="modal-text text-sm mb-1 block">
+                        Durasi Paket
+                      </label>
+
+                      <input
+                        type="number"
+                        value={editForm.duration_days}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            duration_days: e.target.value
+                          })
+                        }
+                        className="input-primary"
+                        placeholder="Jumlah hari"
+                      />
+
+                      <p className="modal-text text-xs mt-1">
+                        Contoh: 30 hari, 90 hari, atau 365 hari
+                      </p>
+                    </div>
+
                   </div>
 
-                  <div>
-                    <label className="modal-text text-sm mb-1 block">
-                      Durasi (hari)
-                    </label>
-
-                    <input
-                      type="number"
-                      value={editForm.duration_days}
-                      onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          duration_days: e.target.value
-                        })
-                      }
-                      className="input-primary"
-                    />
-                  </div>
 
                   {/* PRICE SECTION */}
                   <div>
-                    <label className="modal-text text-sm mb-2 block">
-                      Harga
-                    </label>
+
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="modal-title text-sm font-semibold">
+                        Harga Paket
+                      </h3>
+
+                      <span className="modal-text text-xs">
+                        Format Rupiah
+                      </span>
+                    </div>
 
                     <div className="grid grid-cols-3 gap-3">
-                      {["member_price", "reseller_price", "vip_price"].map((field) => (
-                        <div key={field} className="relative">
 
-                          <span className="absolute left-3 top-2 text-gray-500 text-sm">
-                            Rp
-                          </span>
+                      {[
+                        { key: "member_price", label: "Member" },
+                        { key: "reseller_price", label: "Reseller" },
+                        { key: "vip_price", label: "VIP" }
+                      ].map((price) => (
 
-                          <input
-                            value={editForm[field]}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                [field]: formatRupiah(e.target.value)
-                              })
-                            }
-                            className="input-primary pl-10"
-                          />
+                        <div key={price.key} className="space-y-1">
+
+                          <label className="modal-text text-xs">
+                            {price.label}
+                          </label>
+
+                          <div className="relative">
+
+                            <span className="absolute left-3 top-2 text-gray-500 text-sm">
+                              Rp
+                            </span>
+
+                            <input
+                              value={editForm[price.key]}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  [price.key]: formatRupiah(e.target.value)
+                                })
+                              }
+                              className="input-primary pl-10"
+                              placeholder="0"
+                            />
+
+                          </div>
+
                         </div>
+
                       ))}
+
                     </div>
+
                   </div>
 
                 </div>
 
+
                 {/* FOOTER */}
-                <div className="flex justify-end gap-3 px-6 py-4 border-t border-purple-800/30">
+                <div className="flex justify-between items-center px-6 py-4 border-t border-purple-800/30">
 
-                  <button
-                    disabled={isSaving}
-                    onClick={() => setShowEditModal(false)}
-                    className="btn-secondary disabled:opacity-40"
-                  >
-                    Batal
-                  </button>
+                  <p className="modal-text text-xs">
+                    Pastikan harga sesuai dengan paket produk
+                  </p>
 
-                  <button
-                    disabled={isSaving}
-                    onClick={handleEditSubmit}
-                    className="btn-primary disabled:opacity-40 flex items-center gap-2"
-                  >
-                    {isSaving && <Spinner />}
-                    {isSaving ? "Menyimpan..." : "Simpan"}
-                  </button>
+                  <div className="flex gap-3">
+
+                    <button
+                      disabled={isSaving}
+                      onClick={() => setShowEditModal(false)}
+                      className="btn-secondary disabled:opacity-40"
+                    >
+                      Batal
+                    </button>
+
+                    <button
+                      disabled={isSaving}
+                      onClick={handleEditSubmit}
+                      className="btn-primary disabled:opacity-40 flex items-center gap-2"
+                    >
+                      {isSaving && <Spinner />}
+                      {isSaving ? "Menyimpan..." : "Simpan"}
+                    </button>
+
+                  </div>
 
                 </div>
 
