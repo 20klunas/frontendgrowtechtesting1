@@ -156,6 +156,36 @@ html:not(.dark) .admin .input-primary::placeholder {
   color: #6b7280 !important;
 }
 
+/* SEARCH INPUT LIGHT MODE */
+
+html:not(.dark) .admin .audit-search {
+  background: #ffffff !important;
+  border: 2px solid #111827 !important;
+  color: #111827 !important;
+}
+
+html:not(.dark) .admin .audit-search::placeholder {
+  color: #6b7280 !important;
+}
+
+/* ================= AUDIT TABLE HOVER FIX ================= */
+
+html:not(.dark) .admin table tbody tr:hover {
+  background: #0f172a !important; /* slate-900 */
+}
+
+html:not(.dark) .admin table tbody tr:hover td {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .admin table tbody tr:hover span {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .admin table tbody tr:hover a {
+  color: #ffffff !important;
+}
+
 /* ================= MODAL CARD ================= */
 
 .modal-card {

@@ -91,7 +91,7 @@ export default function VerifyOtpClient() {
           <div className="
             w-16 h-16
             rounded-xl
-            bg-gradient-to-br from-purple-600 to-purple-700
+            bg-transparent
             flex items-center justify-center
             shadow-lg shadow-purple-900/40
           ">

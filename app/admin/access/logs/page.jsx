@@ -75,7 +75,7 @@ export default function AdminAuditLogsPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Cari action / user / module..."
-          className="bg-slate-900 border border-purple-600 rounded px-3 py-2 w-80"
+          className="audit-search bg-slate-900 border border-purple-600 rounded px-3 py-2 w-80"
         />
 
         <button
