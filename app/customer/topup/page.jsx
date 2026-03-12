@@ -10,6 +10,8 @@ import Script from 'next/script'
 
 /* ================= DATA ================= */
 
+const API = process.env.NEXT_PUBLIC_API_URL
+
 const PRESETS = [
   { label: "Rp 10K", value: 10000 },
   { label: "Rp 25K", value: 25000 },
@@ -108,10 +110,6 @@ export default function TopUpPage() {
 
   },[token])
 
-
-
-  const API = process.env.NEXT_PUBLIC_API_URL
-
   const defaultOptions = {
     headers: {
       "Content-Type": "application/json",
@@ -127,18 +125,15 @@ export default function TopUpPage() {
   })
 
   const handleTopup = async () => {
+
     if (!token) {
       alert("Silakan login ulang")
       router.push("/login")
       return
     }
 
-    if (!window.snap) {
-      alert("Midtrans belum siap, refresh halaman")
-      return
-    }
-
     try {
+
       const res = await fetch(`${API}/api/v1/wallet/topups/init`, {
         method: "POST",
         headers: getAuthHeaders(),
@@ -149,31 +144,74 @@ export default function TopUpPage() {
       })
 
       const data = await res.json()
-      if (!data.success) throw new Error("Topup init gagal")
 
-      window.snap.pay(data.data.snap_token, {
-        onSuccess: async function() {
-          await fetchWalletSummary()
-          setShowSuccess(true)
-        },
-        onPending: function() {
-          alert("Menunggu pembayaran")
-        },
-        onError: function() {
-          alert("Pembayaran gagal")
-        },
-        onClose: function() {
-          console.log("User menutup popup")
+      if (!data.success) {
+        throw new Error(data.message || "Topup gagal")
+      }
+
+      const snapToken = data.data.snap_token
+      const redirectUrl = data.data.redirect_url
+
+      /* MIDTRANS SNAP */
+
+      if (snapToken && window.snap) {
+
+        window.snap.pay(snapToken, {
+          onSuccess: async () => {
+            await fetchWalletSummary()
+            await fetchLedger()
+            setShowSuccess(true)
+          },
+          onPending: () => alert("Menunggu pembayaran"),
+          onError: () => alert("Pembayaran gagal"),
+          onClose: () => console.log("User menutup popup")
+        })
+
+        return
+      }
+
+      /* REDIRECT GATEWAY */
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl
+        return
+      }
+
+      alert("Gateway tidak memberikan metode pembayaran")
+
+    } catch (err) {
+
+      console.error("TOPUP ERROR:", err)
+      alert("Topup gagal")
+
+    }
+
+  }
+
+  const fetchLedger = async () => {
+
+    if(!token) return
+
+    try{
+
+      const res = await fetch(`${API}/api/v1/wallet/ledger`,{
+        headers:{
+          Accept:"application/json",
+          Authorization:`Bearer ${token}`
         }
       })
 
-    } catch (err) {
-      console.error("TOPUP ERROR:", err)
-      alert("Topup gagal")
+      const data = await res.json()
+
+      if(data.success){
+        setHistory(data.data || [])
+      }
+
+    }catch(err){
+      console.error("Ledger fetch error",err)
     }
+
   }
-
-
 
   const fetchWalletSummary = async () => {
     if (!token) return
@@ -190,17 +228,12 @@ export default function TopUpPage() {
 
       if (data.success) {
         setWallet(data.data.wallet)
-        setHistory(data.data.last_entries || [])
       }
 
     } catch (err) {
       console.error("Wallet fetch error:", err)
     }
   }
-
-  useEffect(() => {
-    if (token) fetchWalletSummary()
-  }, [token])
 
   const fee =
     paymentMethod?.feeType === "percent"
@@ -301,6 +334,7 @@ export default function TopUpPage() {
 
             <button
               // onClick={() => setShowConfirm(true)}
+              disabled={!paymentMethod}
               onClick={handleTopup}
               className="mt-6 w-full rounded-xl border border-purple-500 py-3 font-semibold hover:bg-purple-500/10"
             >
