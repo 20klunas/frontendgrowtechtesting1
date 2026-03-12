@@ -646,27 +646,39 @@ export default function ProdukPage() {
               exit={{ opacity: 0 }}
               onClick={() => !isDeleting && setShowDeleteModal(false)}
               className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50"
-            >R
+            >
+
               <motion.div
                 onClick={(e) => e.stopPropagation()}
                 initial={{ scale: 0.85, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.85, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 280, damping: 22 }}
-                className="bg-gradient-to-b from-purple-950 to-black border border-purple-500/20 rounded-2xl p-8 w-[420px] shadow-[0_0_45px_rgba(168,85,247,0.35)]">
+                className="modal-card rounded-2xl p-8 w-[420px] shadow-[0_0_45px_rgba(168,85,247,0.35)]"
+              >
+
+                {/* ICON */}
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-500 text-3xl">
                   ✖
                 </div>
 
-                <h2 className="text-white text-xl font-semibold text-center">
+                {/* TITLE */}
+                <h2 className="modal-title text-xl font-semibold text-center">
                   Hapus Produk
                 </h2>
 
-                <p className="text-gray-400 text-sm text-center mt-2 mb-6">
-                  Produk <span className="text-purple-400">{selectedProduct?.name}</span> akan dihapus permanen
+                {/* DESCRIPTION */}
+                <p className="modal-text text-sm text-center mt-2 mb-6">
+                  Produk{" "}
+                  <span className="font-semibold text-purple-500">
+                    {selectedProduct?.name}
+                  </span>{" "}
+                  akan dihapus permanen
                 </p>
 
+                {/* BUTTON */}
                 <div className="flex justify-center gap-3">
+
                   <button
                     disabled={isDeleting}
                     onClick={() => setShowDeleteModal(false)}
@@ -683,8 +695,11 @@ export default function ProdukPage() {
                     {isDeleting && <Spinner />}
                     {isDeleting ? "Menghapus..." : "Hapus"}
                   </button>
+
                 </div>
+
               </motion.div>
+
             </motion.div>
           )}
         </AnimatePresence>

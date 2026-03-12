@@ -305,15 +305,6 @@ export default function LicensesPage() {
           >
             Check Duplicate
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowProofModal(true)}
-            className="btn-purple w-full md:w-auto"
-          >
-            Stock Proofs
-          </motion.button>
-
         </div>
       </div>
 
