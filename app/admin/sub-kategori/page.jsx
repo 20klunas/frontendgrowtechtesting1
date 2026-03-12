@@ -403,101 +403,218 @@ export default function SubKategoriPage() {
         {/* MODAL */}
         {showModal && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closeModal}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-md bg-black p-6 rounded-2xl border border-purple-600/60 shadow-[0_0_40px_rgba(168,85,247,0.25)]"
+              className="
+                relative
+                w-full max-w-md
+                rounded-2xl
+                border border-purple-600/60
+                bg-black
+                shadow-[0_0_40px_rgba(168,85,247,0.25)]
+                overflow-hidden
+              "
             >
+
+              {/* CLOSE BUTTON */}
               <button
                 type="button"
                 onClick={closeModal}
-                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-purple-600 transition text-white"
+                className="
+                  absolute
+                  top-3
+                  right-3
+                  w-8
+                  h-8
+                  flex
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-white/10
+                  hover:bg-purple-600
+                  transition
+                  text-white
+                "
               >
                 <X size={18} />
               </button>
 
-              <form onSubmit={handleSubmit}>
-                <select
-                  className="input-primary mb-3"
-                  value={form.category_id}
-                  onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-                  required
-                >
-                  <option value="">Pilih kategori</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+              {/* HEADER */}
+              <div className="px-6 py-4 border-b border-purple-900/40">
+                <h3 className="text-lg font-semibold text-white">
+                  Tambah Produk
+                </h3>
+                <p className="modal-text text-sm text-gray-400 mt-1">
+                  Tambahkan produk baru ke dalam katalog
+                </p>
+              </div>
 
-                <input
-                  className="modal-text input-primary mb-3"
-                  placeholder="Nama"
-                  value={form.name}
-                  onChange={(e) => {
-                    const name = e.target.value
-                    setForm({
-                      ...form,
-                      name,
-                      slug: generateSlug(name),
-                    })
-                  }}
-                  required
-                />
+              {/* FORM */}
+              <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
 
-                <input className="input-primary mb-3" placeholder="Slug" value={form.slug} readOnly />
+                {/* CATEGORY */}
+                <div>
+                  <label className="modal-text text-sm block mb-1">
+                    Kategori
+                  </label>
 
-                <input
-                  className="modal-text input-primary mb-3"
-                  placeholder="Provider"
-                  value={form.provider}
-                  onChange={(e) => setForm({ ...form, provider: e.target.value })}
-                />
+                  <select
+                    className="input-primary"
+                    value={form.category_id}
+                    onChange={(e) =>
+                      setForm({ ...form, category_id: e.target.value })
+                    }
+                    required
+                  >
+                    <option value="">Pilih kategori</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <input
-                  className="modal-text input-primary mb-3"
-                  placeholder="Description"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                />
+                {/* NAME */}
+                <div>
+                  <label className="modal-text text-sm block mb-1">
+                    Nama Produk
+                  </label>
 
-                <input
-                  type="file"
-                  className="modal-text mb-3"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e.target.files?.[0])}
-                />
+                  <input
+                    className="modal-text input-primary"
+                    placeholder="Nama produk"
+                    value={form.name}
+                    onChange={(e) => {
+                      const name = e.target.value
+                      setForm({
+                        ...form,
+                        name,
+                        slug: generateSlug(name),
+                      })
+                    }}
+                    required
+                  />
+                </div>
 
+                {/* SLUG */}
+                <div>
+                  <label className="modal-text text-sm block mb-1">
+                    Slug
+                  </label>
+
+                  <input
+                    className="input-primary"
+                    placeholder="Slug"
+                    value={form.slug}
+                    readOnly
+                  />
+                </div>
+
+                {/* PROVIDER */}
+                <div>
+                  <label className="modal-text text-sm block mb-1">
+                    Provider
+                  </label>
+
+                  <input
+                    className="modal-text input-primary"
+                    placeholder="Provider"
+                    value={form.provider}
+                    onChange={(e) =>
+                      setForm({ ...form, provider: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* DESCRIPTION */}
+                <div>
+                  <label className="modal-text text-sm block mb-1">
+                    Description
+                  </label>
+
+                  <input
+                    className="modal-text input-primary"
+                    placeholder="Deskripsi produk"
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm({ ...form, description: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* IMAGE UPLOAD */}
+                <div>
+                  <label className="modal-text text-sm block mb-2">
+                    Gambar Produk
+                  </label>
+
+                  <input
+                    type="file"
+                    className="modal-text"
+                    accept="image/*"
+                    onChange={(e) =>
+                      handleImageUpload(e.target.files?.[0])
+                    }
+                  />
+                </div>
+
+                {/* UPLOAD PROGRESS */}
                 {uploading && (
-                  <div className="mb-3">
-                    <div className="w-full bg-purple-900/40 rounded h-2">
+                  <div>
+                    <div className="w-full bg-purple-900/40 rounded h-2 overflow-hidden">
                       <div
-                        className="bg-purple-500 h-2 rounded transition-all"
+                        className="bg-purple-500 h-2 transition-all"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <p className="modal-text text-xs text-purple-300 mt-1">Uploading... {progress}%</p>
+
+                    <p className="modal-text text-xs text-purple-300 mt-1">
+                      Uploading... {progress}%
+                    </p>
                   </div>
                 )}
 
+                {/* IMAGE PREVIEW */}
                 {preview && (
-                  <div className="mb-3">
-                    <NextImage src={preview} width={80} height={80} alt="preview" />
+                  <div className="flex items-center gap-3 border border-purple-900/30 rounded-lg p-3">
+                    <NextImage
+                      src={preview}
+                      width={70}
+                      height={70}
+                      alt="preview"
+                      className="rounded-md object-cover"
+                    />
+
+                    <div className="modal-text text-sm text-gray-400">
+                      Preview gambar produk
+                    </div>
                   </div>
                 )}
 
-                <button className="btn-add w-full" disabled={submitting || uploading}>
-                  {submitting ? 'Menyimpan...' : uploading ? 'Uploading...' : 'Simpan'}
-                </button>
+                {/* FOOTER BUTTON */}
+                <div className="pt-3 border-t border-purple-900/30">
+                  <button
+                    className="btn-add w-full"
+                    disabled={submitting || uploading}
+                  >
+                    {submitting
+                      ? "Menyimpan..."
+                      : uploading
+                      ? "Uploading..."
+                      : "Simpan Produk"}
+                  </button>
+                </div>
+
               </form>
             </motion.div>
           </motion.div>
