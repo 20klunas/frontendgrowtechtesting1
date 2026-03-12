@@ -267,7 +267,7 @@ export default function DataDepositPage() {
         {/* ================= TABS ================= */}
         <div className="flex gap-3 mb-6">
           <button onClick={() => setActiveTab('topups')}
-            className={activeTab === 'topups' ? 'btn-primary' : 'btn-outline'}>
+            className={activeTab === 'topups' ? 'btn-primary' : ' btn-outline'}>
             User Deposit
           </button>
           <button onClick={() => setActiveTab('ledger')}
