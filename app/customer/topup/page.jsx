@@ -55,22 +55,27 @@ export default function TopUpPage() {
 
   const fetchGateways = async () => {
 
-    try{
+    try {
 
       const res = await fetch(
         `${API}/api/v1/payment-gateways/available?scope=topup`,
         {
-          headers:{
-            Accept:"application/json"
+          headers: {
+            Accept: "application/json"
           }
         }
       )
 
       const data = await res.json()
 
-      if(data.success){
+      if (data.success) {
 
-        const rows = data.data || []
+        const rows =
+          Array.isArray(data.data)
+            ? data.data
+            : Array.isArray(data.data?.items)
+            ? data.data.items
+            : []
 
         const mapped = rows.map(g => ({
           id: g.code,
@@ -82,14 +87,14 @@ export default function TopUpPage() {
 
         setGateways(mapped)
 
-        if(mapped.length>0){
+        if (mapped.length > 0) {
           setPaymentMethod(mapped[0])
         }
 
       }
 
-    }catch(err){
-      console.error("Gateway fetch error",err)
+    } catch (err) {
+      console.error("Gateway fetch error", err)
     }
 
   }
@@ -204,7 +209,7 @@ export default function TopUpPage() {
       const data = await res.json()
 
       if(data.success){
-        setHistory(data.data || [])
+        setHistory(Array.isArray(data.data) ? data.data : [])
       }
 
     }catch(err){
