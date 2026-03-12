@@ -802,18 +802,13 @@ onChange={(e)=>setField('description',e.target.value)}
 className="w-full border px-3 py-2 rounded"
 />
 
-<select
+<input
+type="text"
+placeholder="Provider (midtrans, duitku, xendit, dll)"
 value={form.provider}
 onChange={(e)=>setField('provider',e.target.value)}
 className="w-full border px-3 py-2 rounded"
-
->
-
-<option value="midtrans">Midtrans</option>
-<option value="duitku">Duitku</option>
-<option value="xendit">Xendit</option>
-
-</select>
+/>
 
 <input
 placeholder="Driver"
