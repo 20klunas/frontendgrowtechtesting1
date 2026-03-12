@@ -126,7 +126,7 @@ export default function EditAdminPage() {
       {/* HEADER */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold modal-title">
-          Edit Admin #{email}
+          Edit Admin
         </h1>
 
         <p className="modal-text text-sm mt-1">
