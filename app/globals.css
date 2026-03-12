@@ -287,7 +287,8 @@ html, body {
 html:not(.dark) .admin .btn-primary {
   background: #ffffff;
   color: #000000;
-  border: 2px solid #111827;
+  border: 3px solid #111827;
+  box-shadow: #000;
 }
 
 html:not(.dark) .admin .btn-primary:hover {
