@@ -697,66 +697,100 @@ export default function ProdukPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => !isSaving && setShowEditModal(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50"
+              className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 px-4"
             >
               <motion.div
                 onClick={(e) => e.stopPropagation()}
-                initial={{ scale: 0.9, opacity: 0 }}
+                initial={{ scale: 0.92, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
+                exit={{ scale: 0.92, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                className="bg-gradient-to-b from-purple-950 to-black border border-purple-500/20 rounded-2xl p-6 w-[480px] shadow-[0_0_45px_rgba(168,85,247,0.25)]">
-                <div className="flex justify-between mb-4">
-                  <h2 className="text-white font-semibold text-lg">
+                className="modal-card w-full max-w-lg rounded-2xl shadow-[0_0_45px_rgba(168,85,247,0.25)] overflow-hidden"
+              >
+
+                {/* HEADER */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-purple-800/30">
+                  <h2 className="modal-title font-semibold text-lg">
                     Edit Produk
                   </h2>
 
                   <button
                     onClick={() => setShowEditModal(false)}
-                    className="text-gray-400 hover:text-red-400"
+                    className="text-gray-400 hover:text-red-400 transition"
                   >
                     ✕
                   </button>
                 </div>
 
-                <div className="space-y-3">
-                  <input
-                    value={editForm.name}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, name: e.target.value })
-                    }
-                    className="input"
-                  />
+                {/* BODY */}
+                <div className="px-6 py-5 space-y-4">
 
-                  <input
-                    type="number"
-                    value={editForm.duration_days}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, duration_days: e.target.value })
-                    }
-                    className="input"
-                  />
+                  <div>
+                    <label className="modal-text text-sm mb-1 block">
+                      Nama Produk
+                    </label>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    {["member_price", "reseller_price", "vip_price"].map((field) => (
-                      <div key={field} className="relative">
-                        {/* <span className="absolute left-3 top-2 text-gray-500">Rp</span> */}
-                        <input
-                          value={editForm[field]}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              [field]: formatRupiah(e.target.value)
-                            })
-                          }
-                          className="input pl-10"
-                        />
-                      </div>
-                    ))}
+                    <input
+                      value={editForm.name}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, name: e.target.value })
+                      }
+                      className="input-primary"
+                    />
                   </div>
+
+                  <div>
+                    <label className="modal-text text-sm mb-1 block">
+                      Durasi (hari)
+                    </label>
+
+                    <input
+                      type="number"
+                      value={editForm.duration_days}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          duration_days: e.target.value
+                        })
+                      }
+                      className="input-primary"
+                    />
+                  </div>
+
+                  {/* PRICE SECTION */}
+                  <div>
+                    <label className="modal-text text-sm mb-2 block">
+                      Harga
+                    </label>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {["member_price", "reseller_price", "vip_price"].map((field) => (
+                        <div key={field} className="relative">
+
+                          <span className="absolute left-3 top-2 text-gray-500 text-sm">
+                            Rp
+                          </span>
+
+                          <input
+                            value={editForm[field]}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                [field]: formatRupiah(e.target.value)
+                              })
+                            }
+                            className="input-primary pl-10"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
 
-                <div className="flex justify-end gap-3 mt-6">
+                {/* FOOTER */}
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-purple-800/30">
+
                   <button
                     disabled={isSaving}
                     onClick={() => setShowEditModal(false)}
@@ -773,7 +807,9 @@ export default function ProdukPage() {
                     {isSaving && <Spinner />}
                     {isSaving ? "Menyimpan..." : "Simpan"}
                   </button>
+
                 </div>
+
               </motion.div>
             </motion.div>
           )}
