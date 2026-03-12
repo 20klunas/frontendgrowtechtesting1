@@ -210,6 +210,14 @@ html, body {
   @apply bg-purple-700 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-medium transition;
 }
 
+.input-primary:focus {
+  box-shadow: 0 0 0 2px rgba(168,85,247,0.25);
+}
+
+.modal-card:hover {
+  box-shadow: 0 0 55px rgba(168,85,247,0.3);
+}
+
 html:not(.dark) .admin .btn-primary {
   background: #ffffff;
   color: #000000;
