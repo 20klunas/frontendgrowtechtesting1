@@ -18,7 +18,7 @@ export default function ReferralTabs() {
     <div className="w-full mt-6 mb-8 overflow-x-auto scrollbar-hide">
       
       {/* capsule wrapper */}
-      <div className="inline-flex bg-black/50 backdrop-blur-lg border border-purple-600/40 rounded-full p-1 shadow-[0_0_25px_rgba(168,85,247,0.25)]">
+      <div className="referral-tabs inline-flex rounded-full p-1">
 
         {tabs.map((tab) => {
           const active = pathname === tab.href

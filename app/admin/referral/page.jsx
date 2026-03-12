@@ -165,11 +165,19 @@ export default function ReferralSettingsPage() {
 
   if (loading) {
     return (
-      <div className="px-4 md:px-8 py-6 text-white max-w-full overflow-x-hidden">
-        <h1 className="text-2xl md:text-4xl font-bold mb-2">Admin Referral</h1>
+      <div className="admin px-4 md:px-8 py-6 max-w-7xl mx-auto">
+        <div className="flex flex-col gap-2 mb-6">
+          <h1 className="text-3xl md:text-4xl font-bold modal-title">
+            Admin Referral
+          </h1>
+
+          <p className="modal-text text-sm">
+            Kelola komisi referral dan aturan withdrawal sistem
+          </p>
+        </div>
         <ReferralTabs />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
           {[1, 2].map((i) => (
             <div
               key={i}
@@ -189,7 +197,7 @@ export default function ReferralSettingsPage() {
 
   return (
     <PermissionGate permission="manage_referrals">
-      <div className="px-4 md:px-8 py-6 text-white max-w-full overflow-x-hidden">
+      <div className="admin px-4 md:px-8 py-6 max-w-7xl mx-auto">
         <div className="max-w-6xl mx-auto">
           {toast && (
             <div
@@ -201,107 +209,156 @@ export default function ReferralSettingsPage() {
             </div>
           )}
 
-          <h1 className="text-2xl md:text-4xl font-bold mb-2">Admin Referral</h1>
+          <div className="flex flex-col gap-2 mb-6">
+            <h1 className="text-3xl md:text-4xl font-bold modal-title">
+              Admin Referral
+            </h1>
+
+            <p className="modal-text text-sm">
+              Kelola komisi referral dan aturan withdrawal sistem
+            </p>
+          </div>
           <ReferralTabs />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
             {/* Komisi */}
             <motion.div
-              className="rounded-2xl border border-purple-600/60 bg-black p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              className="modal-card rounded-2xl p-6 md:p-8 transition-all"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <h2 className="text-xl font-semibold mb-4">Persentase Komisi Referral</h2>
 
-              <div className="flex flex-wrap gap-4 mb-4">
-                <label className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold mb-4 modal-title">
+                Persentase Komisi Referral
+              </h2>
+
+              <div className="flex flex-wrap gap-4 mb-4 modal-text">
+
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    name="tipe"
                     checked={commissionType === 'percent'}
                     onChange={() => setCommissionType('percent')}
                   />
                   Persentase (%)
                 </label>
-                <label className="flex items-center gap-2">
+
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    name="tipe"
                     checked={commissionType === 'fixed'}
                     onChange={() => setCommissionType('fixed')}
                   />
                   Rupiah (Rp)
                 </label>
+
               </div>
 
               <input
                 type="text"
                 value={commissionValue}
-                onChange={(e) => setCommissionValue(e.target.value.replace(/\D/g, ''))}
-                className="w-full bg-white text-black rounded-lg px-4 py-2 mb-3 text-center md:text-left"
+                onChange={(e) =>
+                  setCommissionValue(e.target.value.replace(/\D/g, ''))
+                }
+                className="input-primary w-full mb-3"
               />
 
-              <p className="text-sm text-gray-300 mb-3">
-                Komisi akan diterapkan untuk semua produk. Nilai saat ini:{' '}
-                {commissionType === 'percent'
-                  ? `${commissionValue}%`
-                  : `Rp ${Number(commissionValue || 0).toLocaleString('id-ID')}`}
+              <p className="modal-text text-sm mb-4">
+                Komisi berlaku untuk semua produk.
+                Nilai saat ini:
+                <span className="font-semibold ml-1">
+                  {commissionType === 'percent'
+                    ? `${commissionValue}%`
+                    : `Rp ${Number(commissionValue || 0).toLocaleString('id-ID')}`}
+                </span>
               </p>
 
-              <div className="bg-white text-black p-3 rounded-lg text-sm mb-4">
-                <b>Contoh Perhitungan:</b><br />
-                Jika pembelian Rp 100.000 dengan komisi {commissionValue}
-                {commissionType === 'percent' ? '%' : ' (Rp)'} ={' '}
-                {commissionType === 'percent'
-                  ? `Rp ${(100000 * (commissionValue || 0) / 100).toLocaleString('id-ID')}`
-                  : `Rp ${Number(commissionValue || 0).toLocaleString('id-ID')}`}
+              <div className="p-4 rounded-lg border border-purple-700/40 text-sm modal-text mb-5">
+
+                <b>Contoh Perhitungan</b>
+
+                <div className="mt-1">
+                  Pembelian Rp 100.000 dengan komisi {commissionValue}
+                  {commissionType === 'percent' ? '%' : ' (Rp)'} =
+                  <span className="font-semibold ml-1">
+                    {commissionType === 'percent'
+                      ? `Rp ${(100000 * (commissionValue || 0) / 100).toLocaleString('id-ID')}`
+                      : `Rp ${Number(commissionValue || 0).toLocaleString('id-ID')}`}
+                  </span>
+                </div>
+
               </div>
 
               <button
                 onClick={handleSaveCommission}
                 disabled={savingCommission}
-                className="w-full bg-purple-700 hover:bg-purple-600 py-2 rounded-lg disabled:opacity-50"
+                className="btn-primary w-full"
               >
                 {savingCommission ? 'Menyimpan...' : 'Simpan Perubahan'}
               </button>
+
             </motion.div>
 
             {/* Minimum WD */}
             <motion.div
-              className="rounded-2xl border border-purple-600/60 bg-black p-6 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              className="modal-card rounded-2xl p-6 md:p-8 transition-all"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <h2 className="text-xl font-semibold mb-4">Minimum Saldo Withdrawal</h2>
 
-              <div className="flex mb-3 w-full">
-                <span className="bg-purple-800 px-3 py-2 rounded-l-lg">Rp</span>
+              <h2 className="text-xl font-semibold mb-4 modal-title">
+                Minimum Saldo Withdrawal
+              </h2>
+
+              <div className="flex w-full mb-4">
+
+                <span className="
+                  flex items-center
+                  px-4
+                  border border-purple-700
+                  rounded-l-lg
+                  modal-text
+                ">
+                  Rp
+                </span>
 
                 <input
                   type="text"
                   value={minWithdrawal}
-                  onChange={(e) => setMinWithdrawal(formatRupiah(e.target.value))}
-                  className="flex-1 min-w-0 bg-white text-black px-3 py-2 rounded-r-lg"
+                  onChange={(e) =>
+                    setMinWithdrawal(formatRupiah(e.target.value))
+                  }
+                  className="input-primary flex-1 rounded-l-none"
                 />
+
               </div>
 
-              <p className="text-sm text-gray-300 mb-3">
-                User hanya bisa withdraw jika saldo komisi lebih dari nilai ini.
+              <p className="modal-text text-sm mb-4">
+                User hanya dapat melakukan withdrawal jika saldo komisi
+                melebihi nilai minimum ini.
               </p>
 
-              <div className="bg-white text-black p-3 rounded-lg text-sm mb-4">
-                <b>Informasi:</b><br />
-                User dengan saldo komisi lebih dari Rp{' '}
-                {Number(unformatRupiah(minWithdrawal || '0')).toLocaleString('id-ID')} dapat melakukan withdraw.
+              <div className="p-4 border border-purple-700/40 rounded-lg text-sm modal-text mb-5">
+
+                <b>Informasi</b>
+
+                <div className="mt-1">
+                  Withdrawal tersedia jika saldo komisi lebih dari
+                  <span className="font-semibold ml-1">
+                    Rp {Number(unformatRupiah(minWithdrawal || '0')).toLocaleString('id-ID')}
+                  </span>
+                </div>
+
               </div>
 
               <button
                 onClick={handleSaveWithdrawal}
                 disabled={savingWithdrawal}
-                className="w-full bg-purple-700 hover:bg-purple-600 py-2 rounded-lg disabled:opacity-50"
+                className="btn-primary w-full"
               >
                 {savingWithdrawal ? 'Menyimpan...' : 'Simpan Perubahan'}
               </button>
+
             </motion.div>
           </div>
         </div>

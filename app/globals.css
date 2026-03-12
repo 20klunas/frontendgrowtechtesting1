@@ -173,6 +173,17 @@ html:not(.dark) .admin .modal-text {
   color: #374151;
 }
 
+html:not(.dark) .admin .referral-tabs {
+  background: #ffffff;
+  border: 2px solid #111827;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+html:not(.dark) .admin .referral-tab-active {
+  background: #2a2a2a;
+  color: #ffffff;
+}
+
 .dark {
   --background: #020617;
   --foreground: #c4c9d3;
@@ -866,4 +877,16 @@ table tbody tr:hover {
 }
 .footer-link:hover {
   color: #a855f7;
+}
+
+@media (max-width: 768px) {
+
+  .modal-card {
+    padding: 20px;
+  }
+
+  .modal-title {
+    font-size: 20px;
+  }
+
 }
