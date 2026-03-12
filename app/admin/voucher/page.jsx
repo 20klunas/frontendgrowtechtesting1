@@ -86,7 +86,7 @@ export default function VoucherPage() {
 
   return (
     <PermissionGate permission="manage_vouchers">
-      <div className="min-h-screen bg-black text-white">
+      <div className="admin min-h-screen bg-black text-white transition-colors">
 
         {/* ================= CONTAINER ================= */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -95,7 +95,7 @@ export default function VoucherPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row md:justify-between md:items-center gap-6 mb-10"
+            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
           >
             <div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
@@ -111,25 +111,16 @@ export default function VoucherPage() {
                 setSelected(null)
                 setOpenModal(true)
               }}
-              className="
-                w-full md:w-auto
-                px-5 py-2.5
-                rounded-xl
-                bg-gradient-to-r from-purple-600 to-purple-500
-                hover:from-purple-500 hover:to-purple-400
-                shadow-[0_0_20px_rgba(168,85,247,0.4)]
-                transition-all duration-300
-                font-medium
-              "
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all duration-300 font-medium text-sm sm:text-base"
             >
               + Tambah Voucher
             </button>
           </motion.div>
 
           {/* ================= FILTER SECTION ================= */}
-          <div className="bg-gradient-to-b from-purple-950/30 to-black border border-purple-600/30 rounded-2xl p-4 sm:p-6 mb-8">
+          <div className="voucher-filter bg-gradient-to-b from-purple-950/30 to-black border border-purple-600/30 rounded-2xl p-4 sm:p-6 mb-8">
 
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 
               {/* Tabs scrollable mobile */}
               <div className="overflow-x-auto">
@@ -142,6 +133,7 @@ export default function VoucherPage() {
               <div className="relative w-full lg:w-80">
                 <input
                   className="
+                    voucher-search
                     w-full
                     h-11
                     rounded-xl
@@ -215,14 +207,7 @@ export default function VoucherPage() {
 /* ================= EMPTY STATE ================= */
 function EmptyState({ text }) {
   return (
-    <div className="
-      text-center
-      py-16
-      text-gray-400
-      border border-purple-900/40
-      rounded-2xl
-      bg-purple-950/10
-    ">
+    <div className="text-center py-12 sm:py-16 px-4 text-gray-400 border border-purple-900/40 rounded-2xl bg-purple-950/10">
       {text}
     </div>
   )

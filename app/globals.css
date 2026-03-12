@@ -239,6 +239,39 @@ html:not(.dark) .admin .btn-danger:hover {
   color: #ffffff;
 }
 
+/* ================= VOUCHER PAGE LIGHT MODE ================= */
+
+html:not(.dark) .admin {
+  background: #f8fafc;
+  color: #111827;
+}
+
+/* filter card */
+html:not(.dark) .admin .voucher-filter {
+  background: #ffffff !important;
+  border: 2px solid #111827 !important;
+}
+
+/* search */
+html:not(.dark) .admin .voucher-search {
+  background: #ffffff !important;
+  border: 2px solid #111827 !important;
+  color: #111827 !important;
+}
+
+html:not(.dark) .admin .voucher-search::placeholder {
+  color: #6b7280;
+}
+
+/* empty state */
+html:not(.dark) .admin .bg-purple-950\/10 {
+  background: #f3f4f6 !important;
+}
+
+html:not(.dark) .admin .border-purple-900\/40 {
+  border: 2px solid #111827 !important;
+}
+
 /* ================= VOUCHER MODAL LIGHT MODE ================= */
 
 html:not(.dark) .admin .voucher-modal {
