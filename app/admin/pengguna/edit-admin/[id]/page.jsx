@@ -1,7 +1,12 @@
 'use client'
 
 import { useRouter, useParams } from "next/navigation"
+import { useEffect, useState } from "react"
+import Cookies from "js-cookie"
 import { PERMISSIONS } from "../../../../lib/permissions"
+import { email } from "zod"
+
+const API = process.env.NEXT_PUBLIC_API_URL
 
 export default function EditAdminPage() {
 
@@ -11,13 +16,117 @@ export default function EditAdminPage() {
 
   const permissionList = Object.values(PERMISSIONS)
 
+  const [loading, setLoading] = useState(true)
+
+  const [form, setForm] = useState({
+    email: "",
+    full_name: "",
+    name: "",
+    role: "admin",
+    permissions: []
+  })
+
+  useEffect(() => {
+    if (id) {
+      fetchAdmin()
+    }
+  }, [id])
+
+  async function fetchAdmin() {
+    try {
+
+      const token = Cookies.get("token")
+
+      const res = await fetch(`${API}/api/v1/admin/users/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const json = await res.json()
+
+      if (json.success) {
+
+        const admin = json.data
+
+        setForm({
+          email: admin.email || "",
+          full_name: admin.full_name || "",
+          name: admin.name || "",
+          role: admin.role || "admin",
+          permissions: admin.permissions || []
+        })
+
+      }
+
+    } catch (err) {
+      console.error("GET ADMIN ERROR:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handlePermissionChange(permission) {
+
+    if (form.permissions.includes(permission)) {
+
+      setForm({
+        ...form,
+        permissions: form.permissions.filter(p => p !== permission)
+      })
+
+    } else {
+
+      setForm({
+        ...form,
+        permissions: [...form.permissions, permission]
+      })
+
+    }
+
+  }
+
+  async function handleSubmit() {
+
+    try {
+
+      const token = Cookies.get("token")
+
+      await fetch(`${API}/api/v1/admin/users/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(form)
+      })
+
+      alert("Admin berhasil diperbarui")
+
+      router.push("/admin/pengguna")
+
+    } catch (err) {
+      console.error(err)
+      alert("Gagal update admin")
+    }
+
+  }
+
+  if (loading) {
+    return (
+      <div className="admin px-6 py-10">
+        <p className="modal-text">Loading admin data...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="admin px-6 py-10 max-w-6xl">
 
       {/* HEADER */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold modal-title">
-          Edit Admin
+          Edit Admin #{email}
         </h1>
 
         <p className="modal-text text-sm mt-1">
@@ -26,18 +135,9 @@ export default function EditAdminPage() {
       </div>
 
       {/* CARD */}
-      <div className="
-        modal-card
-        rounded-2xl
-        border
-        p-8
-        shadow-[0_0_30px_rgba(168,85,247,0.15)]
-      ">
+      <div className="modal-card rounded-2xl p-8 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
 
-        {/* ======================
-            INFORMASI ADMIN
-        ====================== */}
-
+        {/* INFORMASI ADMIN */}
         <h3 className="font-semibold text-lg mb-4 modal-title">
           Informasi Admin
         </h3>
@@ -51,7 +151,10 @@ export default function EditAdminPage() {
 
             <input
               className="input-primary"
-              defaultValue="growtech@central.id"
+              value={form.email}
+              onChange={(e) =>
+                setForm({ ...form, email: e.target.value })
+              }
             />
           </div>
 
@@ -62,7 +165,10 @@ export default function EditAdminPage() {
 
             <input
               className="input-primary"
-              defaultValue="Ono Suno"
+              value={form.full_name}
+              onChange={(e) =>
+                setForm({ ...form, full_name: e.target.value })
+              }
             />
           </div>
 
@@ -73,7 +179,10 @@ export default function EditAdminPage() {
 
             <input
               className="input-primary"
-              defaultValue="ono"
+              value={form.name}
+              onChange={(e) =>
+                setForm({ ...form, name: e.target.value })
+              }
             />
           </div>
 
@@ -82,7 +191,13 @@ export default function EditAdminPage() {
               Role
             </label>
 
-            <select className="input-primary">
+            <select
+              className="input-primary"
+              value={form.role}
+              onChange={(e) =>
+                setForm({ ...form, role: e.target.value })
+              }
+            >
               <option value="admin">Admin</option>
               <option value="superadmin">Super Admin</option>
             </select>
@@ -90,17 +205,10 @@ export default function EditAdminPage() {
 
         </div>
 
-        {/* ======================
-            PERMISSIONS
-        ====================== */}
-
+        {/* PERMISSIONS */}
         <h3 className="font-semibold text-lg mb-4 modal-title">
           Hak Akses Sistem
         </h3>
-
-        <p className="modal-text text-sm mb-4">
-          Pilih hak akses yang dapat digunakan oleh admin ini
-        </p>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
 
@@ -108,24 +216,13 @@ export default function EditAdminPage() {
 
             <label
               key={p}
-              className="
-                flex
-                items-center
-                gap-3
-                border
-                border-purple-700/40
-                rounded-lg
-                px-4
-                py-3
-                cursor-pointer
-                hover:bg-purple-700/10
-                transition
-              "
+              className="flex items-center gap-3 border border-purple-700/40 rounded-lg px-4 py-3 cursor-pointer hover:bg-purple-700/10"
             >
 
               <input
                 type="checkbox"
-                defaultChecked
+                checked={form.permissions.includes(p)}
+                onChange={() => handlePermissionChange(p)}
                 className="accent-purple-600"
               />
 
@@ -139,37 +236,19 @@ export default function EditAdminPage() {
 
         </div>
 
-        {/* ======================
-            ACTION BUTTON
-        ====================== */}
-
+        {/* BUTTON */}
         <div className="flex justify-end gap-3">
 
           <button
             onClick={() => router.back()}
-            className="
-              px-6
-              py-2
-              rounded-lg
-              border
-              border-gray-500
-              modal-text
-              hover:bg-gray-700/20
-            "
+            className="px-6 py-2 rounded-lg border border-gray-500 modal-text hover:bg-gray-700/20"
           >
             Batal
           </button>
 
           <button
-            className="
-              px-6
-              py-2
-              rounded-lg
-              bg-purple-700
-              hover:bg-purple-600
-              text-white
-              font-semibold
-            "
+            onClick={handleSubmit}
+            className="px-6 py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-semibold"
           >
             Update Admin
           </button>
