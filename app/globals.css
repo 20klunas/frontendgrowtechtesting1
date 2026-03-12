@@ -173,7 +173,8 @@ html:not(.dark) .admin .modal-text {
   color: #374151;
 }
 
-html:not(.dark) .admin .referral-tabs {
+html:not(.dark) .admin .referral-tabs,
+html:not(.dark) .admin .bg-zinc-900 {
   background: #ffffff;
   border: 2px solid #111827;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
