@@ -111,7 +111,7 @@ export default function VoucherPage() {
                 setSelected(null)
                 setOpenModal(true)
               }}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all duration-300 font-medium text-sm sm:text-base"
+              className="tambah-voucher w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all duration-300 font-medium text-sm sm:text-base"
             >
               + Tambah Voucher
             </button>
