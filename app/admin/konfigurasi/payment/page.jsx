@@ -11,7 +11,7 @@ export default function PaymentPage() {
 const token = Cookies.get('token')
 
 /* =========================================================
-GLOBAL FEE STATES
+GLOBAL FEE STATE
 ========================================================= */
 
 const [loading,setLoading] = useState(true)
@@ -36,7 +36,7 @@ const [toast,setToast] = useState(null)
 const [error,setError] = useState(null)
 
 /* =========================================================
-MODAL STATES
+MODAL STATE
 ========================================================= */
 
 const [showModal,setShowModal] = useState(false)
@@ -49,93 +49,91 @@ FORM STATE
 
 const emptyForm = {
 
-  code:'',
-  name:'',
-  provider:'midtrans',
-  driver:'midtrans',
-  description:'',
+code:'',
+name:'',
+provider:'midtrans',
+driver:'midtrans',
+description:'',
 
-  is_active:true,
-  is_default_order:false,
-  is_default_topup:false,
+is_active:true,
+is_default_order:false,
+is_default_topup:false,
 
-  supports_order:true,
-  supports_topup:true,
+supports_order:true,
+supports_topup:true,
 
-  sandbox_mode:true,
+sandbox_mode:true,
 
-  fee_type:'percent',
-  fee_value:0,
+fee_type:'percent',
+fee_value:0,
 
-  sort_order:0,
+sort_order:0,
 
-  config:{
-    simulate:false
-  },
+config:{
+simulate:false
+},
 
-  secret_config:{
-    server_key:'',
-    client_key:'',
-    merchant_id:''
-  }
+secret_config:{
+server_key:'',
+client_key:'',
+merchant_id:''
+}
 
 }
 
 const [form,setForm] = useState(emptyForm)
 
-  /* =========================================================
-  INIT
-  ========================================================= */
+/* =========================================================
+FETCH INITIAL
+========================================================= */
 
-  useEffect(()=>{
+useEffect(()=>{
+fetchSetting()
+fetchGateways()
+},[])
 
-    fetchSetting()
-    fetchGateways()
+/* =========================================================
+FETCH GLOBAL FEE
+========================================================= */
 
-  },[])
+const fetchSetting = async () => {
 
-  /* =========================================================
-  FETCH GLOBAL FEE
-  ========================================================= */
+try{
 
-  const fetchSetting = async () => {
+const res = await fetch(`${API}/api/v1/admin/settings`,{
+headers:{
+Authorization:`Bearer ${token}`,
+Accept:'application/json'
+}
+})
 
-  try{
+const json = await res.json()
 
-    const res = await fetch(`${API}/api/v1/admin/settings`,{
-      headers:{
-      Authorization:`Bearer ${token}`,
-      Accept:'application/json'
-      }
-    })
+if(json.success){
 
-    const json = await res.json()
+const setting = json.data.find(
+i => i.group === 'payment' && i.key === 'fee_percent'
+)
 
-    if(json.success){
+if(setting){
 
-        const setting = json.data.find(
-        i => i.group === 'payment' && i.key === 'fee_percent'
-      )
+setPercent(setting.value.percent)
+setEditPercent(setting.value.percent)
+setIsPublic(setting.is_public ?? true)
 
-      if(setting){
+}
 
-        setPercent(setting.value.percent)
-        setEditPercent(setting.value.percent)
-        setIsPublic(setting.is_public ?? true)
+}
 
-      }
+}catch(err){
 
-    }
+console.error(err)
 
-  }catch(err){
+}finally{
 
-  console.error(err)
+setLoading(false)
 
-  }finally{
-
-    setLoading(false)
-
-  }
+}
 
 }
 
@@ -149,21 +147,21 @@ setGatewayLoading(true)
 
 try{
 
-  const params = new URLSearchParams({
-    q:search,
-    scope:scope,
-    page:page,
-    per_page:10
-  })
+const params = new URLSearchParams({
+q:search,
+scope:scope,
+page:page,
+per_page:10
+})
 
-  const res = await fetch(
-    `${API}/api/v1/admin/payment-gateways?${params}`,
-  {
-    headers:{
-      Authorization:`Bearer ${token}`
-    }
+const res = await fetch(
+`${API}/api/v1/admin/payment-gateways?${params}`,
+{
+headers:{
+Authorization:`Bearer ${token}`
 }
-  )
+}
+)
 
 const json = await res.json()
 
@@ -183,10 +181,6 @@ console.error(err)
 setGatewayLoading(false)
 
 }
-
-/* =========================================================
-SEARCH EFFECT
-========================================================= */
 
 useEffect(()=>{
 fetchGateways()
@@ -252,31 +246,42 @@ FORM HANDLERS
 ========================================================= */
 
 const setField = (key,val)=>{
-
 setForm(prev=>({...prev,[key]:val}))
-
-}
-
-const setConfig = (key,val)=>{
-
-setForm(prev=>({
-...prev,
-config:{
-...prev.config,
-[key]:val
-}
-}))
-
 }
 
 const setSecret = (key,val)=>{
-
 setForm(prev=>({
 ...prev,
 secret_config:{
 ...prev.secret_config,
 [key]:val
 }
+}))
+}
+
+/* =========================================================
+PROVIDER AUTO CONFIG
+========================================================= */
+
+const handleProviderChange = (provider)=>{
+
+let driver = provider
+
+let config = { simulate:false }
+
+if(provider === 'duitku'){
+driver = 'duitku'
+}
+
+if(provider === 'midtrans'){
+driver = 'midtrans'
+}
+
+setForm(prev=>({
+...prev,
+provider,
+driver,
+config
 }))
 
 }
@@ -315,7 +320,6 @@ showToast('Gateway berhasil disimpan')
 fetchGateways()
 
 setShowModal(false)
-
 setForm(emptyForm)
 setEditingGateway(null)
 
@@ -404,6 +408,20 @@ console.error(err)
 }
 
 /* =========================================================
+INLINE FEE EDIT
+========================================================= */
+
+const updateFee = (id,val)=>{
+
+setGateways(prev =>
+prev.map(g =>
+g.id === id ? {...g,fee_value:val} : g
+)
+)
+
+}
+
+/* =========================================================
 TOAST
 ========================================================= */
 
@@ -414,6 +432,30 @@ setToast(msg)
 setTimeout(()=>{
 setToast(null)
 },3000)
+
+}
+
+/* =========================================================
+COPY KEY
+========================================================= */
+
+const copyKey = (text)=>{
+
+navigator.clipboard.writeText(text)
+
+showToast('Copied')
+
+}
+
+/* =========================================================
+MASK SECRET
+========================================================= */
+
+const mask = (str)=>{
+
+if(!str) return ''
+
+return str.slice(0,4) + '****' + str.slice(-4)
 
 }
 
@@ -433,7 +475,7 @@ GLOBAL FEE
 
 {loading ? (
 
-<p className="text-gray-400">Loading...</p>
+<div className="animate-pulse h-20 bg-gray-200 dark:bg-gray-700 rounded"/>
 
 ):(
 
@@ -441,11 +483,11 @@ GLOBAL FEE
 
 <div>
 
-<p className="text-sm text-gray-400">
+<p className="text-sm text-gray-500 dark:text-gray-400">
 Current Fee
 </p>
 
-<p className="text-3xl font-bold">
+<p className="text-3xl font-bold text-gray-900 dark:text-white">
 {percent}%
 </p>
 
@@ -457,7 +499,7 @@ Current Fee
 type="number"
 value={editPercent}
 onChange={(e)=>setEditPercent(e.target.value)}
-className="border px-3 py-2 rounded w-32 bg-transparent"
+className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded w-32"
 />
 
 <label className="flex items-center gap-2 text-sm">
@@ -475,11 +517,13 @@ Public
 <button
 onClick={handleSavePercent}
 disabled={savingPercent}
-className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
 
 >
 
-{savingPercent ? 'Saving...' : 'Save'} </button>
+{savingPercent ? 'Saving...' : 'Save'}
+
+</button>
 
 </div>
 
@@ -495,27 +539,26 @@ PAYMENT GATEWAYS
 
 <SectionCard title="Payment Gateways">
 
-{/* Filters */}
-
 <div className="flex flex-wrap gap-3 mb-6">
 
 <input
 placeholder="Search gateway..."
 value={search}
 onChange={(e)=>setSearch(e.target.value)}
-className="border px-3 py-2 rounded bg-transparent"
+className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
 />
 
 <select
 value={scope}
 onChange={(e)=>setScope(e.target.value)}
-className="border px-3 py-2 rounded bg-transparent"
+className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
 
 >
 
 <option value="">All Scope</option>
 <option value="order">Order</option>
 <option value="topup">Topup</option>
+
 </select>
 
 <button
@@ -530,11 +573,13 @@ className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
 
 >
 
-Add Gateway </button>
+Add Gateway
+
+</button>
 
 </div>
 
-{/* Table */}
+{/* TABLE */}
 
 <div className="overflow-x-auto">
 
@@ -542,7 +587,7 @@ Add Gateway </button>
 
 <thead>
 
-<tr className="border-b">
+<tr className="border-b border-gray-200 dark:border-gray-700">
 
 <th className="text-left py-2">Name</th>
 <th>Provider</th>
@@ -560,26 +605,24 @@ Add Gateway </button>
 {gatewayLoading && (
 
 <tr>
-
-<td colSpan="6" className="py-6 text-center">
+<td colSpan="6" className="py-10 text-center text-gray-400">
 Loading...
 </td>
-
 </tr>
 
 )}
 
 {gateways.map(g => (
 
-<tr key={g.id} className="border-b">
+<tr key={g.id} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
 
-<td className="py-2">
+<td className="py-3">
 
-<div className="font-medium">
+<div className="font-medium text-gray-900 dark:text-white">
 {g.name}
 </div>
 
-<div className="text-xs opacity-60">
+<div className="text-xs text-gray-500">
 {g.code}
 </div>
 
@@ -589,7 +632,13 @@ Loading...
 
 <td>
 
-{g.fee_value}
+<input
+type="number"
+value={g.fee_value}
+onChange={(e)=>updateFee(g.id,e.target.value)}
+className="w-20 border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1 rounded"
+/>
+
 {g.fee_type === 'percent' ? '%' : ' IDR'}
 
 </td>
@@ -597,7 +646,9 @@ Loading...
 <td>
 
 <span className={`px-2 py-1 text-xs rounded
-${g.is_active ? 'bg-green-600 text-white':'bg-gray-500 text-white'}`}>
+${g.is_active
+? 'bg-green-600 text-white'
+: 'bg-gray-500 text-white'}`}>
 {g.is_active ? 'Active':'Disabled'} </span>
 
 </td>
@@ -622,7 +673,9 @@ className="text-blue-500 hover:underline"
 
 >
 
-Edit </button>
+Edit
+
+</button>
 
 <button
 onClick={()=>deleteGateway(g.code)}
@@ -630,7 +683,9 @@ className="text-red-500 hover:underline"
 
 >
 
-Delete </button>
+Delete
+
+</button>
 
 </td>
 
@@ -644,47 +699,19 @@ Delete </button>
 
 </div>
 
-{/* Pagination */}
-
-<div className="flex gap-2 mt-6">
-
-<button
-disabled={page===1}
-onClick={()=>setPage(p=>p-1)}
-className="px-3 py-1 border rounded"
-
->
-
-Prev </button>
-
-<span className="px-2">
-Page {page} / {lastPage}
-</span>
-
-<button
-disabled={page===lastPage}
-onClick={()=>setPage(p=>p+1)}
-className="px-3 py-1 border rounded"
-
->
-
-Next </button>
-
-</div>
-
 </SectionCard>
 
 {/* =========================================================
-MODAL FORM
+MODAL
 ========================================================= */}
 
 {showModal && (
 
 <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
 
-<div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-2xl overflow-y-auto max-h-[90vh]">
+<div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-2xl overflow-y-auto max-h-[90vh] shadow-xl">
 
-<h3 className="text-xl font-semibold mb-4">
+<h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
 {editingGateway ? 'Edit Gateway' : 'Create Gateway'}
 </h3>
 
@@ -694,33 +721,25 @@ MODAL FORM
 placeholder="Code"
 value={form.code}
 onChange={(e)=>setField('code',e.target.value)}
-className="w-full border px-3 py-2 rounded"
+className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
 />
 
 <input
 placeholder="Name"
 value={form.name}
 onChange={(e)=>setField('name',e.target.value)}
-className="w-full border px-3 py-2 rounded"
-/>
-
-<input
-placeholder="Description"
-value={form.description}
-onChange={(e)=>setField('description',e.target.value)}
-className="w-full border px-3 py-2 rounded"
+className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
 />
 
 <select
 value={form.provider}
-onChange={(e)=>setField('provider',e.target.value)}
-className="w-full border px-3 py-2 rounded"
+onChange={(e)=>handleProviderChange(e.target.value)}
+className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
 
 >
 
 <option value="midtrans">Midtrans</option>
 <option value="duitku">Duitku</option>
-<option value="xendit">Xendit</option>
 
 </select>
 
@@ -728,73 +747,49 @@ className="w-full border px-3 py-2 rounded"
 placeholder="Driver"
 value={form.driver}
 onChange={(e)=>setField('driver',e.target.value)}
-className="w-full border px-3 py-2 rounded"
+className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
 />
 
-{/* Fee */}
+{/* SECRET */}
 
-<div className="grid grid-cols-2 gap-3">
-
-<select
-value={form.fee_type}
-onChange={(e)=>setField('fee_type',e.target.value)}
-className="border px-3 py-2 rounded"
-
->
-
-<option value="percent">Percent</option>
-<option value="fixed">Fixed</option>
-
-</select>
-
-<input
-type="number"
-value={form.fee_value}
-onChange={(e)=>setField('fee_value',e.target.value)}
-className="border px-3 py-2 rounded"
-/>
-
-</div>
-
-{/* Secret Config */}
-
-<h4 className="font-semibold mt-4">
+<h4 className="font-semibold text-gray-900 dark:text-white">
 Secret Config
 </h4>
+
+<div className="flex gap-2">
 
 <input
 placeholder="Server Key"
 value={form.secret_config.server_key}
 onChange={(e)=>setSecret('server_key',e.target.value)}
-className="w-full border px-3 py-2 rounded"
+className="flex-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 rounded"
 />
 
-<input
-placeholder="Client Key"
-value={form.secret_config.client_key}
-onChange={(e)=>setSecret('client_key',e.target.value)}
-className="w-full border px-3 py-2 rounded"
-/>
+<button
+onClick={()=>copyKey(form.secret_config.server_key)}
+className="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded"
 
-<input
-placeholder="Merchant ID"
-value={form.secret_config.merchant_id}
-onChange={(e)=>setSecret('merchant_id',e.target.value)}
-className="w-full border px-3 py-2 rounded"
-/>
+>
 
-{/* Buttons */}
+Copy
 
-<div className="flex gap-3 pt-4">
+</button>
+
+</div>
+
+</div>
+
+<div className="flex gap-3 pt-6">
 
 <button
 onClick={saveGateway}
-disabled={savingGateway}
 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
 
 >
 
-{savingGateway ? 'Saving...' : 'Save'} </button>
+Save
+
+</button>
 
 <button
 onClick={()=>setShowModal(false)}
@@ -802,9 +797,9 @@ className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
 
 >
 
-Cancel </button>
+Cancel
 
-</div>
+</button>
 
 </div>
 
@@ -820,8 +815,10 @@ TOAST
 
 {toast && (
 
-<div className="fixed bottom-6 right-6 bg-green-600 text-white px-4 py-2 rounded shadow-lg">
+<div className="fixed bottom-6 right-6 bg-green-600 text-white px-4 py-2 rounded shadow-lg animate-bounce">
+
 {toast}
+
 </div>
 
 )}
