@@ -28,7 +28,6 @@ export default function LicensesPage() {
   const [showProofModal, setShowProofModal] = useState(false);
   const [duplicateResult, setDuplicateResult] = useState(null);
   const [bulkResult, setBulkResult] = useState(null);
-  const [singleResult, setSingleResult] = useState(null)
 
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -81,28 +80,27 @@ export default function LicensesPage() {
 
   // ================= SINGLE INSERT =================
   const handleSingleInsert = async () => {
-
     if (!licenseKey) {
-      showToast("error", "License key wajib diisi")
-      return
+      showToast("error", "License key wajib diisi");
+      return;
     }
 
     try {
+        await licenseService.createSingle(id, {
+            license_key: licenseKey,
+            data_other: null,
+            note
+        });
 
-      const res = await licenseService.createSingle(id, {
-        license_key: licenseKey,
-        data_other: null,
-        note
-      })
-
-      setSingleResult(res.data)
-
-      loadData()
+      showToast("success", "License berhasil ditambahkan");
+      setShowSingleModal(false);
+      setLicenseKey("");
+      setNote("");
+      loadData();
 
     } catch {
-      showToast("error", "Gagal tambah license")
+      showToast("error", "Gagal tambah license");
     }
-
   };
 
   // ================= BULK UPLOAD =================
@@ -277,7 +275,7 @@ export default function LicensesPage() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <h1 className="text-xl md:text-3xl font-bold text-white">
-          Licenses Produk {productName}
+          Licenses Produk
         </h1>
 
         <div className="flex flex-wrap gap-2">
@@ -336,22 +334,6 @@ export default function LicensesPage() {
         >
           Take Stock
         </motion.button>
-        <button onClick={() => {
-            const blob = new Blob(["TEST"], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "test.txt";
-
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            URL.revokeObjectURL(url);
-            }}>
-            Test Download
-        </button>
       </div>
 
       {/* TABLE */}
@@ -530,93 +512,38 @@ export default function LicensesPage() {
 
       {/* SINGLE MODAL */}
       {showSingleModal && (
-        <Modal onClose={() => {
-          setShowSingleModal(false)
-          setSingleResult(null)
-        }} title="Tambah License">
-
+        <Modal onClose={() => setShowSingleModal(false)} title="Tambah License">
           <input
             placeholder="License Key"
             value={licenseKey}
             onChange={(e) => setLicenseKey(e.target.value)}
             className="input"
           />
-
           <input
             placeholder="Note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className="input"
           />
-
-          <button
-            onClick={handleSingleInsert}
-            className="modal-text btn-success"
-          >
+          <button onClick={handleSingleInsert} className="modal-text btn-success">
             Simpan
           </button>
-
-          {singleResult && (
-            <div className="mt-3 border border-green-600/30 rounded-lg p-3 text-sm">
-
-              <p className="text-green-400 font-semibold">
-                License berhasil ditambahkan
-              </p>
-
-              <p className="text-gray-400 text-xs mt-1">
-                {singleResult.license_key}
-              </p>
-
-            </div>
-          )}
-
         </Modal>
       )}
 
       {/* BULK MODAL */}
       {showBulkModal && (
-        <Modal onClose={() => {
-          setShowBulkModal(false)
-          setBulkResult(null)
-        }} title="Bulk Upload License">
-
+        <Modal onClose={() => setShowBulkModal(false)} title="Bulk Upload">
           <textarea
             rows="6"
-            placeholder="1 license per baris..."
+            placeholder="1 key per baris..."
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
             className="input"
           />
-
-          <button
-            onClick={handleBulkUpload}
-            className="modal-text btn-success"
-          >
+          <button onClick={handleBulkUpload} className="modal-text btn-success">
             Upload
           </button>
-
-          {bulkResult && (
-            <div className="mt-4 border border-purple-600/30 rounded-lg p-3 text-sm">
-
-              <p className="text-purple-400 font-semibold mb-2">
-                Hasil Upload
-              </p>
-
-              <p className="text-green-400">
-                Berhasil Ditambahkan: {bulkResult.inserted}
-              </p>
-
-              <p className="text-yellow-400">
-                Duplicate: {bulkResult.duplicate}
-              </p>
-
-              <p className="text-gray-400">
-                Total Diproses: {bulkResult.total}
-              </p>
-
-            </div>
-          )}
-
         </Modal>
       )}
 
