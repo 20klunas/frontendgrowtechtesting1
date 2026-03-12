@@ -19,22 +19,22 @@ const PRESETS = [
   { label: "Rp 300K", value: 300000 },
 ]
 
-const PAYMENT_METHODS = [
-  {
-    id: "midtrans",
-    name: "Midtrans",
-    desc: "Klik Untuk Pembayaran Instant",
-    fee: 35,
-    prefix: "MID",
-  },
-  {
-    id: "duitku",
-    name: "Duitku",
-    desc: "Klik Untuk Pembayaran Instant",
-    fee: 50,
-    prefix: "DKU",
-  },
-]
+// const PAYMENT_METHODS = [
+//   {
+//     id: "midtrans",
+//     name: "Midtrans",
+//     desc: "Klik Untuk Pembayaran Instant",
+//     fee: 35,
+//     prefix: "MID",
+//   },
+//   {
+//     id: "duitku",
+//     name: "Duitku",
+//     desc: "Klik Untuk Pembayaran Instant",
+//     fee: 50,
+//     prefix: "DKU",
+//   },
+// ]
 
 /* ================= PAGE ================= */
 
@@ -42,17 +42,71 @@ export default function TopUpPage() {
   const router = useRouter()
 
   const [amount, setAmount] = useState(10000)
-  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0])
   const [showConfirm, setShowConfirm] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
 
   const [wallet, setWallet] = useState(null)
   const [history, setHistory] = useState([])
   const [token, setToken] = useState(null)
+  const [gateways,setGateways] = useState([])
+  const [paymentMethod,setPaymentMethod] = useState(null)
 
-  useEffect(() => {
+  const fetchGateways = async () => {
+
+    try{
+
+      const res = await fetch(
+        `${API}/api/v1/payment-gateways/available?scope=topup`,
+        {
+          headers:{
+            Accept:"application/json"
+          }
+        }
+      )
+
+      const data = await res.json()
+
+      if(data.success){
+
+        const rows = data.data || []
+
+        const mapped = rows.map(g => ({
+          id: g.code,
+          name: g.name,
+          desc: "Klik untuk pembayaran",
+          fee: g.fee_value ?? 0,
+          feeType: g.fee_type ?? "fixed"
+        }))
+
+        setGateways(mapped)
+
+        if(mapped.length>0){
+          setPaymentMethod(mapped[0])
+        }
+
+      }
+
+    }catch(err){
+      console.error("Gateway fetch error",err)
+    }
+
+  }
+
+  useEffect(()=>{
+
     setToken(Cookies.get("token"))
-  }, [])
+
+  },[])
+
+  useEffect(()=>{
+
+    if(token){
+      fetchWalletSummary()
+      fetchLedger()
+      fetchGateways()
+    }
+
+  },[token])
 
 
 
@@ -88,7 +142,10 @@ export default function TopUpPage() {
       const res = await fetch(`${API}/api/v1/wallet/topups/init`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ amount })
+        body: JSON.stringify({
+          amount,
+          gateway_code: paymentMethod.id
+        })
       })
 
       const data = await res.json()
@@ -145,9 +202,14 @@ export default function TopUpPage() {
     if (token) fetchWalletSummary()
   }, [token])
 
+  const fee =
+    paymentMethod?.feeType === "percent"
+      ? Math.round(amount * paymentMethod.fee / 100)
+      : paymentMethod?.fee ?? 0
 
-  const fee = paymentMethod.fee
   const total = amount + fee
+
+
 
   // const saldoAwal = 500000
   // const saldoBaru = saldoAwal + amount
@@ -250,17 +312,18 @@ export default function TopUpPage() {
             <h3 className="font-semibold mb-4">Metode Pembayaran</h3>
 
             <div className="space-y-4">
-              {PAYMENT_METHODS.map((m) => (
+              {gateways.map((m) => (
                 <button
                   key={m.id}
                   onClick={() => setPaymentMethod(m)}
                   className={`w-full flex items-center gap-4 rounded-xl border p-4 transition
-                    ${paymentMethod.id === m.id
-                      ? "border-purple-500 bg-purple-500/20"
-                      : "border-purple-700 hover:bg-purple-700/10"}
-                  `}
+                  ${paymentMethod?.id === m.id
+                    ? "border-purple-500 bg-purple-500/20"
+                    : "border-purple-700 hover:bg-purple-700/10"}
+                `}
                 >
                   <span className="text-2xl">➜</span>
+
                   <div className="text-left">
                     <p className="font-semibold">{m.name}</p>
                     <p className="text-sm text-gray-400">{m.desc}</p>
