@@ -104,6 +104,7 @@ export default function VoucherModal({ open, onClose, onSaved, selected }) {
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             className="
+              voucher-modal
               w-full
               max-w-lg
               max-h-[90vh]

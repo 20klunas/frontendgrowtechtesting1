@@ -239,6 +239,44 @@ html:not(.dark) .admin .btn-danger:hover {
   color: #ffffff;
 }
 
+/* ================= VOUCHER MODAL LIGHT MODE ================= */
+
+html:not(.dark) .admin .voucher-modal {
+  background: #ffffff !important;
+  border: 2px solid #111827 !important;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+
+/* input */
+html:not(.dark) .admin .voucher-modal .premium-input {
+  background: #ffffff !important;
+  border: 2px solid #111827 !important;
+  color: #111827 !important;
+}
+
+html:not(.dark) .admin .voucher-modal .premium-input::placeholder {
+  color: #6b7280 !important;
+}
+
+html:not(.dark) .admin .voucher-modal .premium-input:focus {
+  border-color: #111827 !important;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+}
+
+/* label */
+html:not(.dark) .admin .voucher-modal label {
+  color: #374151 !important;
+}
+
+/* header text */
+html:not(.dark) .admin .voucher-modal h2 {
+  color: #111827 !important;
+}
+
+html:not(.dark) .admin .voucher-modal p {
+  color: #6b7280 !important;
+}
+
 .dark {
   --background: #020617;
   --foreground: #c4c9d3;
