@@ -204,7 +204,7 @@ export default function KategoriPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
 
             {/* MODAL CARD */}
-            <div className="w-full max-w-md rounded-2xl bg-[#0b0b12] border border-purple-500/30 shadow-2xl shadow-purple-900/30 overflow-hidden">
+            <div className="w-full max-w-md rounded-2xl bg-black border border-purple-500/30 shadow-2xl shadow-purple-900/30 overflow-hidden">
 
               {mode === "delete" ? (
                 <>
