@@ -201,60 +201,142 @@ export default function KategoriPage() {
 
         {/* ================= MODAL ================= */}
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-            <div className="modal-card w-full max-w-md rounded-2xl p-6">
-              {mode === 'delete' ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+
+            {/* MODAL CARD */}
+            <div className="w-full max-w-md rounded-2xl bg-[#0b0b12] border border-purple-500/30 shadow-2xl shadow-purple-900/30 overflow-hidden">
+
+              {mode === "delete" ? (
                 <>
-                  <h3 className="modal-title text-xl font-semibold mb-4">
-                    Hapus Kategori
-                  </h3>
-                  <p className="modal-text dark:text-gray-300 mb-6">
-                    Yakin ingin menghapus <b>{selected?.name}</b>?
-                  </p>
-
-                  <div className="flex justify-end gap-2">
-                    <button className="btn-cancel" onClick={closeModal}>
-                      Batal
-                    </button>
-                    <button
-                      className="btn-delete-sm"
-                      onClick={handleDelete}
-                      disabled={submitting}
-                    >
-                      {submitting ? 'Menghapus...' : 'Hapus'}
-                    </button>
+                  {/* HEADER */}
+                  <div className="px-6 py-5 border-b border-purple-900/40">
+                    <h3 className="text-lg font-semibold text-white">
+                      Hapus Kategori
+                    </h3>
                   </div>
-                </>
-              ) : (
-                <form onSubmit={handleSubmit}>
-                  <h3 className="modal-title text-xl font-semibold mb-4">
-                    {mode === 'edit' ? 'Edit' : 'Tambah'} Kategori
-                  </h3>
 
-                  <input
-                    className="input-primary mb-4"
-                    placeholder="Nama kategori"
-                    value={form.name}
-                    onChange={e => setForm({ name: e.target.value })}
-                    required
-                  />
+                  {/* BODY */}
+                  <div className="px-6 py-6 text-gray-300">
+                    <p>
+                      Yakin ingin menghapus kategori
+                      <span className="text-purple-400 font-semibold">
+                        {" "}
+                        {selected?.name}
+                      </span>
+                      ?
+                    </p>
+                  </div>
 
-                  <div className="flex justify-end gap-2">
+                  {/* FOOTER */}
+                  <div className="px-6 py-4 border-t border-purple-900/30 flex justify-end gap-3">
+
                     <button
-                      type="button"
-                      className="modal-text btn-cancel"
+                      className="
+                        px-4 py-2
+                        rounded-lg
+                        border border-gray-600
+                        text-gray-300
+                        hover:bg-gray-700/40
+                        transition
+                      "
                       onClick={closeModal}
                     >
                       Batal
                     </button>
+
                     <button
-                      type="submit"
-                      className="btn-add"
+                      className="
+                        px-4 py-2
+                        rounded-lg
+                        bg-red-600
+                        hover:bg-red-700
+                        text-white
+                        transition
+                        shadow-lg shadow-red-900/40
+                      "
+                      onClick={handleDelete}
                       disabled={submitting}
                     >
-                      {submitting ? 'Menyimpan...' : 'Simpan'}
+                      {submitting ? "Menghapus..." : "Hapus"}
                     </button>
+
                   </div>
+                </>
+              ) : (
+                <form onSubmit={handleSubmit}>
+
+                  {/* HEADER */}
+                  <div className="px-6 py-5 border-b border-purple-900/40">
+                    <h3 className="text-lg font-semibold text-white">
+                      {mode === "edit" ? "Edit Kategori" : "Tambah Kategori"}
+                    </h3>
+                  </div>
+
+                  {/* BODY */}
+                  <div className="px-6 py-6">
+
+                    <label className="block text-sm text-gray-400 mb-2">
+                      Nama Kategori
+                    </label>
+
+                    <input
+                      className="
+                        w-full
+                        px-4
+                        py-3
+                        rounded-lg
+                        bg-black/60
+                        border border-purple-500/30
+                        text-white
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-purple-500
+                        transition
+                      "
+                      placeholder="Masukkan nama kategori"
+                      value={form.name}
+                      onChange={(e) => setForm({ name: e.target.value })}
+                      required
+                    />
+
+                  </div>
+
+                  {/* FOOTER */}
+                  <div className="px-6 py-4 border-t border-purple-900/30 flex justify-end gap-3">
+
+                    <button
+                      type="button"
+                      className="
+                        px-4 py-2
+                        rounded-lg
+                        border border-gray-600
+                        text-gray-300
+                        hover:bg-gray-700/40
+                        transition
+                      "
+                      onClick={closeModal}
+                    >
+                      Batal
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="
+                        px-4 py-2
+                        rounded-lg
+                        bg-purple-600
+                        hover:bg-purple-700
+                        text-white
+                        transition
+                        shadow-lg shadow-purple-900/40
+                      "
+                      disabled={submitting}
+                    >
+                      {submitting ? "Menyimpan..." : "Simpan"}
+                    </button>
+
+                  </div>
+
                 </form>
               )}
             </div>
