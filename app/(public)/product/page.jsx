@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import ProductCard from "../../components/ProductCard";
 import { motion } from "framer-motion";
-
+import { publicFetch } from "../lib/publicFetch"
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ProductPage() {
@@ -42,7 +42,7 @@ export default function ProductPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`${API}/api/v1/categories`);
+      const res = await publicFetch(`/api/v1/categories`);
       const json = await res.json();
 
       if (json.success) {
@@ -62,7 +62,7 @@ export default function ProductPage() {
         ? `${API}/api/v1/categories/${categoryId}/subcategories`
         : `${API}/api/v1/subcategories`;
 
-      const res = await fetch(url);
+      const res = await publicFetch(url.replace(API,""));
       const json = await res.json();
 
       if (json.success) {

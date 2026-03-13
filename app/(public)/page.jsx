@@ -21,14 +21,14 @@ export default function HomePage() {
   /* ================= FETCH DATA ================= */
 
   useEffect(() => {
-    fetch(`${API}/api/v1/content/banners`)
+    publicFetch(`/api/v1/content/banners`)
       .then(res => res.json())
       .then(res => setBanners(res.data || []))
       .catch(console.error)
   }, [API])
 
   useEffect(() => {
-    fetch(`${API}/api/v1/content/settings?group=website`)
+    publicFetch(`/api/v1/content/settings?group=website`)
       .then(res => res.json())
       .then(res => {
         const data = normalizeSettings(res?.data)
