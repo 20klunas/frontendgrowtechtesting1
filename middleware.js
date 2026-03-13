@@ -15,22 +15,6 @@ export function middleware(request) {
 
   /*
   ==========================================================
-  INTERNAL / STATIC PATH
-  ==========================================================
-  */
-  const isInternalPath =
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
-    pathname === "/favicon.ico" ||
-    pathname.startsWith("/images") ||
-    pathname.startsWith("/img") ||
-    pathname.startsWith("/icons") ||
-    pathname.startsWith("/assets") ||
-    pathname.startsWith("/public") ||
-    /\.(png|jpg|jpeg|gif|svg|webp|ico|css|js|map|txt|xml|woff|woff2|ttf|otf)$/i.test(pathname)
-
-  /*
-  ==========================================================
   ROUTE DASAR
   ==========================================================
   */
@@ -50,13 +34,26 @@ export function middleware(request) {
   ==========================================================
   */
 
-  const isOtpRoute = pathname.startsWith("/verify-otp")
+  const maintenanceAllowedRoutes = [
+    "/maintenance",
+    "/login",
+    "/register",
+    "/verify-otp"
+  ]
 
   const allowedDuringMaintenance =
-    pathname === "/maintenance" ||
-    pathname === "/login" ||
-    pathname === "/register" ||
-    isOtpRoute
+    maintenanceAllowedRoutes.some(route => pathname.startsWith(route))
+
+  /*
+  ==========================================================
+  INTERNAL / STATIC PATH
+  ==========================================================
+  */
+
+  const isInternalPath =
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname === "/favicon.ico"
 
   /*
   ==========================================================
@@ -76,7 +73,7 @@ export function middleware(request) {
     maintenance &&
     !allowedDuringMaintenance &&
     !isInternalPath &&
-    !allowAdminBypass
+    !(allowAdminBypass && role === "admin")
   ) {
     return NextResponse.redirect(new URL("/maintenance", request.url))
   }
