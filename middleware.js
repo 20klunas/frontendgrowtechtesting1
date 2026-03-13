@@ -1,25 +1,23 @@
 import { NextResponse } from "next/server"
 
 export function middleware(request) {
+
   const token = request.cookies.get("token")?.value
   const role = request.cookies.get("role")?.value
   const { pathname } = request.nextUrl
 
-  /**
-   * =========================================================
-   * MAINTENANCE MODE
-   * =========================================================
-   * true  = maintenance aktif
-   * false = website normal
-   */
+  /*
+  ==========================================================
+  MAINTENANCE MODE
+  ==========================================================
+  */
   const maintenance = true
 
-  /**
-   * =========================================================
-   * INTERNAL / STATIC PATH
-   * =========================================================
-   * Jangan diganggu agar asset tetap bisa di-load.
-   */
+  /*
+  ==========================================================
+  INTERNAL / STATIC PATH
+  ==========================================================
+  */
   const isInternalPath =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
@@ -29,52 +27,51 @@ export function middleware(request) {
     pathname.startsWith("/icons") ||
     pathname.startsWith("/assets") ||
     pathname.startsWith("/public") ||
-    /\.(png|jpg|jpeg|gif|svg|webp|ico|css|js|map|txt|xml|woff|woff2|ttf|otf)$/i.test(
-      pathname
-    )
+    /\.(png|jpg|jpeg|gif|svg|webp|ico|css|js|map|txt|xml|woff|woff2|ttf|otf)$/i.test(pathname)
 
-  /**
-   * =========================================================
-   * ROUTE DASAR
-   * =========================================================
-   */
+  /*
+  ==========================================================
+  ROUTE DASAR
+  ==========================================================
+  */
+
   const isAdminRoute = pathname.startsWith("/admin")
   const isCustomerRoute = pathname.startsWith("/customer")
-  const isProtectedRoute = isAdminRoute || isCustomerRoute
-  const isAuthRoute = pathname === "/login" || pathname === "/register"
 
-  /**
-   * =========================================================
-   * ROUTE YANG TETAP BOLEH SAAT MAINTENANCE
-   * =========================================================
-   * Login dan register tetap dibuka.
-   */
-  const allowedDuringMaintenance =
-    pathname === "/maintenance" ||
+  const isProtectedRoute = isAdminRoute || isCustomerRoute
+
+  const isAuthRoute =
     pathname === "/login" ||
     pathname === "/register"
 
-  /**
-   * =========================================================
-   * OPTIONAL ADMIN BYPASS
-   * =========================================================
-   * Saat ini dimatikan.
-   * Kalau nanti admin mau tetap bisa masuk saat maintenance,
-   * ubah false menjadi:
-   * const allowAdminBypass = token && role === "admin"
-   */
+  /*
+  ==========================================================
+  ROUTE YANG BOLEH SAAT MAINTENANCE
+  ==========================================================
+  */
+
+  const isOtpRoute = pathname.startsWith("/verify-otp")
+
+  const allowedDuringMaintenance =
+    pathname === "/maintenance" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
+    isOtpRoute
+
+  /*
+  ==========================================================
+  OPTIONAL ADMIN BYPASS
+  ==========================================================
+  */
+
   const allowAdminBypass = false
 
-  /**
-   * =========================================================
-   * GLOBAL MAINTENANCE
-   * =========================================================
-   * Saat maintenance aktif:
-   * - login boleh
-   * - register boleh
-   * - maintenance page boleh
-   * - selain itu diarahkan ke /maintenance
-   */
+  /*
+  ==========================================================
+  GLOBAL MAINTENANCE
+  ==========================================================
+  */
+
   if (
     maintenance &&
     !allowedDuringMaintenance &&
@@ -84,23 +81,24 @@ export function middleware(request) {
     return NextResponse.redirect(new URL("/maintenance", request.url))
   }
 
-  /**
-   * =========================================================
-   * AUTH GUARD
-   * =========================================================
-   * Hanya berjalan saat maintenance TIDAK aktif.
-   */
+  /*
+  ==========================================================
+  AUTH GUARD
+  ==========================================================
+  */
+
   if (!maintenance && isProtectedRoute && !token) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  /**
-   * =========================================================
-   * SUDAH LOGIN
-   * =========================================================
-   * User yang sudah login tidak perlu masuk login/register lagi.
-   */
+  /*
+  ==========================================================
+  SUDAH LOGIN
+  ==========================================================
+  */
+
   if (!maintenance && isAuthRoute && token) {
+
     if (role === "admin") {
       return NextResponse.redirect(new URL("/admin", request.url))
     }
