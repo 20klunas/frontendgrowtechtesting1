@@ -22,6 +22,8 @@ async function checkBackendMaintenance({ request, token, role, pathname }) {
     pathname === "/register" ||
     pathname.startsWith("/verify-otp");
 
+  if (isAuthRoute) return null;
+
   const isAdminRoute = pathname.startsWith("/admin");
   const isCustomerRoute = pathname.startsWith("/customer");
 
@@ -30,14 +32,16 @@ async function checkBackendMaintenance({ request, token, role, pathname }) {
   }
 
   try {
+
+    // CUSTOMER AREA CHECK
     if (isCustomerRoute && token) {
       const res = await fetch(`${API}/api/v1/user/maintenance-check`, {
         method: "GET",
-        cache: "no-store",
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
+        next: { revalidate: 5 },
       });
 
       if (res.status === 503) {
@@ -61,13 +65,12 @@ async function checkBackendMaintenance({ request, token, role, pathname }) {
       return null;
     }
 
-    if (!isAdminRoute && !isCustomerRoute && !isAuthRoute) {
+    // PUBLIC AREA CHECK
+    if (!isAdminRoute && !isCustomerRoute && !isMaintenanceRoute) {
       const res = await fetch(`${API}/api/v1/maintenance/public-check`, {
         method: "GET",
-        cache: "no-store",
-        headers: {
-          Accept: "application/json",
-        },
+        headers: { Accept: "application/json" },
+        next: { revalidate: 5 },
       });
 
       if (res.status === 503) {
@@ -88,6 +91,7 @@ async function checkBackendMaintenance({ request, token, role, pathname }) {
         );
       }
     }
+
   } catch (error) {
     console.error("Maintenance check failed:", error);
   }
@@ -106,15 +110,17 @@ export async function middleware(request) {
 
   const isAuthRoute =
     pathname === "/login" ||
-    pathname === "/register";
+    pathname === "/register" ||
+    pathname.startsWith("/verify-otp");
 
-  const isOtpRoute = pathname.startsWith("/verify-otp");
   const isMaintenanceRoute = pathname.startsWith("/maintenance");
 
+  // AUTH GUARD
   if (isProtectedRoute && !token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // ROLE GUARD
   if (isAdminRoute && token && role !== "admin") {
     return NextResponse.redirect(new URL("/customer", request.url));
   }
@@ -123,6 +129,7 @@ export async function middleware(request) {
     return NextResponse.redirect(new URL("/admin/dashboard", request.url));
   }
 
+  // LOGIN PAGE WHEN ALREADY AUTH
   if (isAuthRoute && token) {
     if (role === "admin") {
       return NextResponse.redirect(new URL("/admin/dashboard", request.url));
@@ -131,22 +138,9 @@ export async function middleware(request) {
     if (role === "user" || role === "customer") {
       return NextResponse.redirect(new URL("/customer", request.url));
     }
-
-    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (isOtpRoute && token) {
-    if (role === "admin") {
-      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
-    }
-
-    if (role === "user" || role === "customer") {
-      return NextResponse.redirect(new URL("/customer", request.url));
-    }
-
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
+  // BACKEND MAINTENANCE CHECK
   const maintenanceRedirect = await checkBackendMaintenance({
     request,
     token,
@@ -158,36 +152,21 @@ export async function middleware(request) {
     return maintenanceRedirect;
   }
 
+  // PREVENT ACCESS TO MAINTENANCE PAGE WHEN NORMAL
   if (isMaintenanceRoute) {
     try {
-      const publicRes = await fetch(`${API}/api/v1/maintenance/public-check`, {
-        method: "GET",
-        cache: "no-store",
-        headers: {
-          Accept: "application/json",
-        },
+      const res = await fetch(`${API}/api/v1/maintenance/public-check`, {
+        headers: { Accept: "application/json" },
+        next: { revalidate: 5 },
       });
 
-      if (publicRes.ok) {
-        if (token && (role === "user" || role === "customer")) {
-          const userRes = await fetch(`${API}/api/v1/user/maintenance-check`, {
-            method: "GET",
-            cache: "no-store",
-            headers: {
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (userRes.ok) {
-            return NextResponse.redirect(new URL("/customer", request.url));
-          }
-        } else {
-          return NextResponse.redirect(new URL("/", request.url));
-        }
+      // kalau backend sudah normal → keluar dari maintenance
+      if (res.ok) {
+        return NextResponse.redirect(new URL("/", request.url));
       }
+
     } catch (error) {
-      console.error("Maintenance page re-check failed:", error);
+      console.error("Maintenance recheck failed:", error);
     }
   }
 
