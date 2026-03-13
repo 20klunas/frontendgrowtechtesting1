@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import ProductCard from "../../components/ProductCard";
 import { motion } from "framer-motion";
-import { publicFetch } from "../lib/publicFetch"
+import { publicFetch } from "../../lib/publicFetch"
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ProductPage() {

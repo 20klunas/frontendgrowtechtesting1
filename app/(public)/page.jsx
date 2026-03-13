@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import BannerCarousel from "../components/customer/BannerCarousel"
-
+import { publicFetch } from "../lib/publicFetch"
 const normalizeSettings = (rows = []) =>
   rows.reduce((acc, row) => {
     acc[row.key] = row.value
