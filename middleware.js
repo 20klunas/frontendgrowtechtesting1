@@ -4,6 +4,7 @@ export function middleware(request) {
 
   const token = request.cookies.get("token")?.value
   const { pathname } = request.nextUrl
+
   const maintenance = false
 
   /*
@@ -12,7 +13,12 @@ export function middleware(request) {
   =========================
   */
 
-  if (maintenance && pathname !== "/maintenance") {
+  const isInternal =
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname === "/favicon.ico"
+
+  if (maintenance && !isInternal && pathname !== "/maintenance") {
     return NextResponse.redirect(new URL("/maintenance", request.url))
   }
 
@@ -49,9 +55,10 @@ export function middleware(request) {
 
 export const config = {
   matcher: [
-    "/customer/:path*",
-    "/admin/:path*",
-    "/login",
-    "/register",
+    /*
+    Tangkap semua halaman
+    kecuali asset static
+    */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
   ],
 }
