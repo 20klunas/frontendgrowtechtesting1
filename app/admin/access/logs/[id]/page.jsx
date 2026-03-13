@@ -154,8 +154,6 @@ export default function AuditLogDetailPage() {
 
       </div>
 
-
-
       {/* REQUEST */}
       {meta.request && (
         <Card title="Request Info">
@@ -170,6 +168,39 @@ export default function AuditLogDetailPage() {
 
           <Info label="Path">
             {meta.request.path}
+          </Info>
+
+          <Info label="Full URL">
+            <span className="text-xs text-gray-400 break-all">
+              {meta.request.full_url}
+            </span>
+          </Info>
+
+        </Card>
+      )}
+
+      {/* REQUEST PAYLOAD */}
+      {meta.request?.payload && (
+        <ObjectTable
+          title="Request Payload"
+          data={meta.request.payload}
+        />
+      )}
+
+      {/* RESPONSE INFO */}
+      {meta.response_status_code && (
+        <Card title="Response Info">
+
+          <Info label="Status Code">
+            {meta.response_status_code}
+          </Info>
+
+          <Info label="Success">
+            {meta.response_success ? "true" : "false"}
+          </Info>
+
+          <Info label="Error">
+            {meta.response_error || "-"}
           </Info>
 
         </Card>
