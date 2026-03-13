@@ -21,19 +21,36 @@ export default function HomePage() {
   /* ================= FETCH DATA ================= */
 
   useEffect(() => {
-    publicFetch(`/api/v1/content/banners`)
-      .then(res => setBanners(res.data || []))
-      .catch(console.error)
-  }, [API])
+
+    publicFetch("/api/v1/content/banners")
+      .then(res => {
+        setBanners(res.data || [])
+      })
+      .catch(err => {
+        if (err.message !== "System Maintenance") {
+          console.error(err)
+        }
+      })
+
+  }, [])
 
   useEffect(() => {
-    publicFetch(`/api/v1/content/settings?group=website`)
+
+    publicFetch("/api/v1/content/settings?group=website")
       .then(res => {
+
         const data = normalizeSettings(res?.data)
+
         setBrand(data.brand || {})
+
       })
-      .catch(console.error)
-  }, [API])
+      .catch(err => {
+        if (err.message !== "System Maintenance") {
+          console.error(err)
+        }
+      })
+
+  }, [])
 
   return (
 
