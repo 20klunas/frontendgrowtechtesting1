@@ -12,8 +12,7 @@ export function handleMaintenance(res, data) {
       `/maintenance?scope=${scope}&message=${message}`
     )
 
-    return Promise.reject(new Error("System Maintenance"))
-
+    throw new Error("System Maintenance")
   }
 
 }
