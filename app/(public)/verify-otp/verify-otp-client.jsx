@@ -1,16 +1,16 @@
-'use client'
+"use client";
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { useAuth } from "../../hooks/useAuth";
 import Image from "next/image";
+import { publicFetch } from "../../lib/publicFetch";
 
 export default function VerifyOtpClient() {
   const router = useRouter();
   const params = useSearchParams();
   const challengeId = params.get("challenge_id");
-
   const { setUser } = useAuth();
   const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -46,6 +46,7 @@ export default function VerifyOtpClient() {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
+      cache: "no-store",
     });
 
     const profileJson = await profileRes.json();
@@ -80,27 +81,13 @@ export default function VerifyOtpClient() {
         throw new Error("NEXT_PUBLIC_API_URL belum diset");
       }
 
-      const res = await fetch(`${API}/api/v1/auth/2fa/verify`, {
+      const json = await publicFetch("/api/v1/auth/2fa/verify", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
         body: JSON.stringify({
           challenge_id: challengeId,
           code,
         }),
       });
-
-      const json = await res.json();
-
-      if (!json.success) {
-        throw new Error(
-          json?.error?.message ||
-            json?.message ||
-            "OTP salah atau verifikasi gagal"
-        );
-      }
 
       const token = json?.data?.token;
 
@@ -119,60 +106,58 @@ export default function VerifyOtpClient() {
         router.replace("/customer");
       }
     } catch (err) {
-      alert(err?.message || "Verifikasi OTP gagal");
+      if (!err?.isMaintenance) {
+        alert(err?.message || "Verifikasi OTP gagal");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-purple-950 to-black px-4">
-      <div className="absolute w-[500px] h-[500px] bg-purple-700/20 blur-[150px] rounded-full"></div>
-
-      <form
-        onSubmit={handleVerify}
-        className="relative w-full max-w-md backdrop-blur-xl bg-white/5 border border-purple-500/30 shadow-2xl shadow-purple-900/30 rounded-2xl p-10"
-      >
-        <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 rounded-xl bg-transparent flex items-center justify-center shadow-lg shadow-purple-900/40">
-            <Image
-              src="/logoherosection.png"
-              alt="Growtech"
-              width={38}
-              height={38}
-              className="object-contain"
-              priority
-            />
-          </div>
+    <main className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 pt-16">
+      <div className="w-full max-w-md rounded-2xl border border-purple-400/60 bg-black p-8 text-white">
+        <div className="flex justify-center mb-5">
+          <Image
+            src="/logoherosection.png"
+            alt="Growtech"
+            width={90}
+            height={90}
+          />
         </div>
 
-        <h1 className="text-2xl font-semibold text-center mb-2">
+        <h1 className="text-center text-2xl font-semibold text-purple-300 mb-3">
           Verifikasi OTP
         </h1>
 
-        <p className="text-gray-400 text-sm text-center mb-8">
+        <p className="text-center text-sm text-gray-400 mb-6">
           Masukkan kode OTP yang dikirim ke akun Anda
         </p>
 
-        <input
-          type="text"
-          placeholder="Masukkan kode OTP"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          className="w-full p-4 rounded-lg bg-black/60 border border-purple-500/40 text-center tracking-[0.3em] text-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
-        />
+        <form onSubmit={handleVerify} className="space-y-4">
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            placeholder="------"
+            className="w-full p-4 rounded-lg bg-black/60 border border-purple-500/40 text-center tracking-[0.3em] text-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+          />
 
-        <button
-          disabled={loading}
-          className="w-full mt-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition font-semibold shadow-lg shadow-purple-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {loading ? "Memverifikasi..." : "Verifikasi OTP"}
-        </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-[#2B044D] py-3 font-semibold text-white transition hover:bg-[#3a0a6a] disabled:opacity-50"
+          >
+            {loading ? "Memverifikasi..." : "Verifikasi OTP"}
+          </button>
+        </form>
 
-        <p className="text-xs text-gray-500 text-center mt-6">
+        <p className="mt-6 text-center text-sm text-gray-400">
           Jika tidak menerima OTP, silakan login ulang
         </p>
-      </form>
+      </div>
     </main>
   );
 }

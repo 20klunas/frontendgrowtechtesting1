@@ -10,6 +10,7 @@ export async function publicFetch(url, options = {}) {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
+    cache: options.cache || "no-store",
   });
 
   const contentType = res.headers.get("content-type");

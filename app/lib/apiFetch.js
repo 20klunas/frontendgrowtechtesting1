@@ -1,25 +1,35 @@
-import Cookies from "js-cookie"
+import Cookies from "js-cookie";
+import { handleMaintenance } from "./maintenanceHandler";
+
+const API = process.env.NEXT_PUBLIC_API_URL;
 
 export async function apiFetch(url, options = {}) {
-  const token = Cookies.get("token")
+  const token = Cookies.get("token");
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}${url}`,
-    {
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      ...options,
-    }
-  )
+  const res = await fetch(`${API.replace(/\/$/, "")}${url}`, {
+    ...options,
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+    cache: options.cache || "no-store",
+  });
 
-  const json = await res.json().catch(() => null)
+  const json = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw new Error(json?.message || `HTTP ${res.status}`)
+  if (json) {
+    handleMaintenance(res, json);
   }
 
-  return json
+  if (!res.ok) {
+    throw new Error(
+      json?.error?.message ||
+      json?.message ||
+      `HTTP ${res.status}`
+    );
+  }
+
+  return json;
 }

@@ -1,27 +1,97 @@
-export function buildMaintenanceRedirectUrl(data) {
+const REDIRECT_KEYS = new Set([
+  "public_access",
+  "user_area_access",
+  "user_auth_access",
+]);
+
+const FEATURE_KEYS = new Set([
+  "catalog_access",
+  "checkout_access",
+  "topup_access",
+]);
+
+export function getMaintenanceMeta(data = {}) {
+  return {
+    isMaintenance: Boolean(data?.meta?.maintenance),
+    scope: data?.meta?.scope || "system",
+    key: data?.meta?.key || "maintenance",
+    feature: data?.meta?.feature || null,
+    message:
+      data?.error?.message ||
+      data?.message ||
+      "System Maintenance",
+  };
+}
+
+export function isRedirectMaintenanceKey(key) {
+  return REDIRECT_KEYS.has(key);
+}
+
+export function isFeatureMaintenanceKey(key) {
+  return FEATURE_KEYS.has(key);
+}
+
+export function buildMaintenanceRedirectUrl(input) {
+  const meta = input?.meta ? getMaintenanceMeta(input) : input;
+
   const message = encodeURIComponent(
-    data?.error?.message || "System Maintenance"
+    meta?.message || "System Maintenance"
   );
 
   const scope = encodeURIComponent(
-    data?.meta?.scope || "system"
+    meta?.scope || "system"
   );
 
   const key = encodeURIComponent(
-    data?.meta?.key || "maintenance"
+    meta?.key || "maintenance"
   );
 
   return `/maintenance?scope=${scope}&key=${key}&message=${message}`;
 }
 
+export function createMaintenanceError(meta) {
+  const err = new Error(meta?.message || "System Maintenance");
+  err.name = "MaintenanceError";
+  err.isMaintenance = true;
+  err.maintenance = meta;
+  return err;
+}
+
 export function handleMaintenance(res, data) {
-  if (res.status === 503 && data?.meta?.maintenance) {
-    const target = buildMaintenanceRedirectUrl(data);
-
-    if (typeof window !== "undefined") {
-      window.location.replace(target);
-    }
-
-    throw new Error("System Maintenance");
+  if (res.status !== 503 || !data?.meta?.maintenance) {
+    return;
   }
+
+  const meta = getMaintenanceMeta(data);
+  const err = createMaintenanceError(meta);
+
+  if (
+    typeof window !== "undefined" &&
+    isRedirectMaintenanceKey(meta.key)
+  ) {
+    window.location.replace(buildMaintenanceRedirectUrl(meta));
+  }
+
+  throw err;
+}
+
+export function isMaintenanceError(error, key = null) {
+  if (!error?.isMaintenance) return false;
+  if (!key) return true;
+  return error?.maintenance?.key === key;
+}
+
+export function isFeatureMaintenanceError(error, key = null) {
+  if (!error?.isMaintenance) return false;
+  if (!isFeatureMaintenanceKey(error?.maintenance?.key)) return false;
+  if (!key) return true;
+  return error?.maintenance?.key === key;
+}
+
+export function getMaintenanceMessage(error, fallback = "Fitur sedang maintenance.") {
+  return (
+    error?.maintenance?.message ||
+    error?.message ||
+    fallback
+  );
 }

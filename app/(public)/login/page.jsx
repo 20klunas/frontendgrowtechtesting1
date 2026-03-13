@@ -1,11 +1,12 @@
-'use client'
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Cookies from "js-cookie";
-import { useAuth } from "../../../app/hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
 import { Eye, EyeOff } from "lucide-react";
+import { publicFetch } from "../../lib/publicFetch";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,6 +47,7 @@ export default function LoginPage() {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
+      cache: "no-store",
     });
 
     const profileJson = await profileRes.json();
@@ -89,24 +91,10 @@ export default function LoginPage() {
         throw new Error("NEXT_PUBLIC_API_URL belum diset");
       }
 
-      const res = await fetch(`${API}/api/v1/auth/login`, {
+      const json = await publicFetch("/api/v1/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
         body: JSON.stringify({ email, password }),
       });
-
-      const json = await res.json();
-
-      if (!json.success) {
-        throw new Error(
-          json?.error?.message ||
-            json?.message ||
-            "Login gagal"
-        );
-      }
 
       if (json?.data?.requires_2fa) {
         router.push(`/verify-otp?challenge_id=${json.data.challenge_id}`);
@@ -121,7 +109,9 @@ export default function LoginPage() {
 
       await saveSessionAndRedirect(token);
     } catch (err) {
-      alert(err?.message || "Login gagal");
+      if (!err?.isMaintenance) {
+        alert(err?.message || "Login gagal");
+      }
     } finally {
       setLoading(false);
     }
@@ -220,28 +210,18 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/50 py-2 text-sm transition hover:bg-purple-400/10"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/50 py-2 text-sm hover:bg-purple-400/10"
             >
-              <Image
-                src="/icons/google-icon.svg"
-                alt="Google"
-                width={18}
-                height={18}
-              />
+              <Image src="/icons/google-icon.svg" alt="Google" width={18} height={18} />
               Google
             </button>
 
             <button
               type="button"
               onClick={handleDiscordLogin}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/50 py-2 text-sm transition hover:bg-purple-400/10"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/50 py-2 text-sm hover:bg-purple-400/10"
             >
-              <Image
-                src="/icons/discord-icon.svg"
-                alt="Discord"
-                width={18}
-                height={18}
-              />
+              <Image src="/icons/discord-icon.svg" alt="Discord" width={18} height={18} />
               Discord
             </button>
           </div>

@@ -25,11 +25,14 @@ export async function authFetch(url, options = {}) {
       ...defaultHeaders,
       ...(options.headers || {}),
     },
+    cache: options.cache || "no-store",
   });
 
   if (res.status === 401) {
     Cookies.remove("token");
     Cookies.remove("role");
+    Cookies.remove("user_name");
+    Cookies.remove("user_email");
 
     if (typeof window !== "undefined") {
       window.location.href = "/login";
