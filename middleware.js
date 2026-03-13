@@ -9,20 +9,13 @@ export function middleware(request) {
   ==========================================================
   MAINTENANCE MODE
   ==========================================================
-  Ambil dari ENV agar tidak hardcode true/false di source code.
-  Default = false
+  NEXT_PUBLIC_MAINTENANCE_MODE=true/false
+  NEXT_PUBLIC_MAINTENANCE_ADMIN_BYPASS=true/false
   ==========================================================
   */
   const maintenance =
     process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
 
-  /*
-  ==========================================================
-  OPTIONAL ADMIN BYPASS
-  ==========================================================
-  Jika true, admin tetap boleh masuk saat maintenance aktif.
-  ==========================================================
-  */
   const allowAdminBypass =
     process.env.NEXT_PUBLIC_MAINTENANCE_ADMIN_BYPASS === "true";
 
@@ -33,7 +26,6 @@ export function middleware(request) {
   */
   const isAdminRoute = pathname.startsWith("/admin");
   const isCustomerRoute = pathname.startsWith("/customer");
-
   const isProtectedRoute = isAdminRoute || isCustomerRoute;
 
   const isAuthRoute =
@@ -46,10 +38,6 @@ export function middleware(request) {
   /*
   ==========================================================
   ROUTE YANG BOLEH DIAKSES SAAT MAINTENANCE
-  ==========================================================
-  - maintenance page
-  - login / register
-  - verify otp
   ==========================================================
   */
   const maintenanceAllowedRoutes = [
@@ -79,10 +67,6 @@ export function middleware(request) {
   ==========================================================
   GLOBAL MAINTENANCE
   ==========================================================
-  Jika maintenance aktif:
-  - route selain yang diizinkan akan diarahkan ke /maintenance
-  - admin bisa bypass jika allowAdminBypass = true dan role=admin
-  ==========================================================
   */
   if (
     maintenance &&
@@ -97,8 +81,6 @@ export function middleware(request) {
   ==========================================================
   AUTH GUARD
   ==========================================================
-  Jika route protected tapi belum login -> ke /login
-  ==========================================================
   */
   if (isProtectedRoute && !token) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -108,54 +90,52 @@ export function middleware(request) {
   ==========================================================
   ROLE GUARD
   ==========================================================
-  - /admin hanya untuk admin
-  - /customer untuk user/customer biasa
-  ==========================================================
   */
   if (isAdminRoute && token && role !== "admin") {
     return NextResponse.redirect(new URL("/customer", request.url));
   }
 
   if (isCustomerRoute && token && role === "admin") {
-    return NextResponse.redirect(new URL("/admin", request.url));
+    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
   }
 
   /*
   ==========================================================
-  SUDAH LOGIN TIDAK PERLU KE LOGIN/REGISTER LAGI
+  LOGIN / REGISTER JIKA SUDAH LOGIN
   ==========================================================
   */
   if (isAuthRoute && token) {
     if (role === "admin") {
-      return NextResponse.redirect(new URL("/admin", request.url));
+      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
     }
 
-    return NextResponse.redirect(new URL("/customer", request.url));
+    if (role === "user" || role === "customer") {
+      return NextResponse.redirect(new URL("/customer", request.url));
+    }
+
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   /*
   ==========================================================
-  OTP ROUTE
-  ==========================================================
-  - route /verify-otp boleh diakses walau token belum ada
-  - kalau user sudah login penuh dan coba buka OTP lagi,
-    arahkan ke dashboard sesuai role
+  OTP PAGE JIKA SUDAH LOGIN PENUH
   ==========================================================
   */
   if (isOtpRoute && token) {
     if (role === "admin") {
-      return NextResponse.redirect(new URL("/admin", request.url));
+      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
     }
 
-    return NextResponse.redirect(new URL("/customer", request.url));
+    if (role === "user" || role === "customer") {
+      return NextResponse.redirect(new URL("/customer", request.url));
+    }
+
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   /*
   ==========================================================
-  MAINTENANCE PAGE
-  ==========================================================
-  Jika maintenance off tapi user buka /maintenance manual,
-  arahkan ke home
+  MAINTENANCE PAGE SAAT MAINTENANCE OFF
   ==========================================================
   */
   if (!maintenance && isMaintenanceRoute) {
