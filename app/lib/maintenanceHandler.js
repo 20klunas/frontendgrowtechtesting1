@@ -1,28 +1,27 @@
-export function handleMaintenance(res, data, url = "") {
+export function buildMaintenanceRedirectUrl(data) {
+  const message = encodeURIComponent(
+    data?.error?.message || "System Maintenance"
+  );
 
-  const authEndpoints = [
-    "/api/v1/auth/login",
-    "/api/v1/auth/me/profile",
-    "/api/v1/auth/google",
-    "/api/v1/auth/discord",
-    "/api/v1/auth/verify-otp"
-  ]
+  const scope = encodeURIComponent(
+    data?.meta?.scope || "system"
+  );
 
-  const isAuthEndpoint = authEndpoints.some(e => url.includes(e))
+  const key = encodeURIComponent(
+    data?.meta?.key || "maintenance"
+  );
 
-  if (res.status === 503 && data?.meta?.maintenance && !isAuthEndpoint) {
+  return `/maintenance?scope=${scope}&key=${key}&message=${message}`;
+}
 
-    const message = encodeURIComponent(
-      data?.error?.message || "System Maintenance"
-    )
+export function handleMaintenance(res, data) {
+  if (res.status === 503 && data?.meta?.maintenance) {
+    const target = buildMaintenanceRedirectUrl(data);
 
-    const scope = data?.meta?.scope || "system"
+    if (typeof window !== "undefined") {
+      window.location.replace(target);
+    }
 
-    window.location.replace(
-      `/maintenance?scope=${scope}&message=${message}`
-    )
-
-    throw new Error("System Maintenance")
+    throw new Error("System Maintenance");
   }
-
 }

@@ -1,13 +1,15 @@
 import Cookies from "js-cookie";
 import { handleMaintenance } from "./maintenanceHandler";
+
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export async function authFetch(url, options = {}) {
-
   const token = Cookies.get("token");
 
   if (!token) {
-    window.location.href = "/login";
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
     throw new Error("Unauthorized");
   }
 
@@ -27,12 +29,16 @@ export async function authFetch(url, options = {}) {
 
   if (res.status === 401) {
     Cookies.remove("token");
-    window.location.href = "/login";
+    Cookies.remove("role");
+
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+
     throw new Error("Session expired");
   }
 
   const contentType = res.headers.get("content-type");
-
   let data = null;
 
   if (contentType && contentType.includes("application/json")) {
@@ -43,19 +49,7 @@ export async function authFetch(url, options = {}) {
     throw new Error(`Server mengembalikan bukan JSON (HTTP ${res.status})`);
   }
 
-  /*
-  ==============================
-  HANDLE MAINTENANCE
-  ==============================
-  */
-
-  handleMaintenance(res, data); 
-
-  /*
-  ==============================
-  ERROR HANDLER
-  ==============================
-  */
+  handleMaintenance(res, data);
 
   if (!res.ok) {
     throw new Error(
