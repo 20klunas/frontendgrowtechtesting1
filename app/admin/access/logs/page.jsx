@@ -100,7 +100,9 @@ export default function AdminAuditLogsPage() {
                 <th className="p-3">User</th>
                 <th className="p-3">Action</th>
                 <th className="p-3">Entity</th>
+                <th className="p-3">Entity ID</th>
                 <th className="p-3">Module</th>
+                <th className="p-3">Scope</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Summary</th>
                 <th className="p-3">Detail</th>
@@ -111,7 +113,7 @@ export default function AdminAuditLogsPage() {
 
             {loading && (
             <tr>
-                <td colSpan="8" className="p-6 text-center">
+                <td colSpan="10" className="p-6 text-center">
                 Loading audit logs...
                 </td>
             </tr>
@@ -119,7 +121,7 @@ export default function AdminAuditLogsPage() {
 
             {!loading && logs.length === 0 && (
             <tr>
-                <td colSpan="8" className="p-6 text-center text-gray-400">
+                <td colSpan="10" className="p-6 text-center text-gray-400">
                 Tidak ada data log
                 </td>
             </tr>
@@ -132,39 +134,49 @@ export default function AdminAuditLogsPage() {
             >
 
                 <td className="p-3">
-                {new Date(log.created_at).toLocaleString()}
+                  {new Date(log.created_at).toLocaleString()}
                 </td>
 
                 <td className="p-3">
-                {log.user?.full_name || log.user?.name || "-"}
-                </td>
-
-                <td className="p-3 capitalize">
-                {log.action}
+                  {log.user?.full_name || log.user?.name || "-"}
                 </td>
 
                 <td className="p-3">
-                {log.entity}
+                  <span className="bg-slate-800 px-2 py-1 rounded text-xs">
+                    {log.action}
+                  </span>
                 </td>
 
                 <td className="p-3">
-                {log.module || "-"}
+                  {log.entity}
                 </td>
 
                 <td className="p-3">
-                <span
+                  {log.entity_id || "-"}
+                </td>
+
+                <td className="p-3 text-purple-400">
+                  {log.module || "-"}
+                </td>
+
+                <td className="p-3">
+                  {log.scope}
+                </td>
+
+                <td className="p-3">
+                  <span
                     className={
-                    log.status === "success"
-                        ? "text-green-400 font-semibold"
-                        : "text-red-400 font-semibold"
+                      log.status === "success"
+                        ? "bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs"
+                        : "bg-red-500/20 text-red-400 px-2 py-1 rounded text-xs"
                     }
-                >
+                  >
                     {log.status}
-                </span>
+                  </span>
                 </td>
 
                 <td className="p-3">
-                {log.summary || "-"}
+                  {log.summary || "-"}
                 </td>
 
                 <td className="p-3">
@@ -175,7 +187,6 @@ export default function AdminAuditLogsPage() {
                     Detail
                 </Link>
                 </td>
-
             </tr>
             ))}
 
