@@ -5,7 +5,9 @@ import SectionCard from "../../../components/admin/SectionCard"
 import { apiFetch } from "../../../../app/lib/apiFetch"
 import Toast from "../../../components/ui/Toast"
 import PermissionGate from "../../../components/admin/PermissionGate"
+
 export default function WebsitePage() {
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
@@ -22,28 +24,44 @@ export default function WebsitePage() {
     email: "",
     footer_desc: "",
     version: "",
+
     maintenance_web: false,
     maintenance_api: false,
+
+    system: {
+      public_access: { enabled: true, message: "" },
+      user_auth_access: { enabled: true, message: "" },
+      user_area_access: { enabled: true, message: "" },
+      catalog_access: { enabled: true, message: "" },
+      checkout_access: { enabled: true, message: "" },
+      topup_access: { enabled: true, message: "" },
+    }
   })
 
   /* ================= GET ================= */
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const res = await apiFetch("/api/v1/admin/settings?group=website")
 
-        /**
-         * Normalisasi:
-         * array -> object by key
-         */
-        const settingsMap = {}
-        res.data.forEach(item => {
-          settingsMap[item.key] = item.value
+  useEffect(() => {
+
+    const fetchSettings = async () => {
+
+      try {
+
+        const websiteRes = await apiFetch("/api/v1/admin/settings?group=website")
+        const systemRes = await apiFetch("/api/v1/admin/settings?group=system")
+
+        const websiteMap = {}
+        websiteRes.data.forEach(item => {
+          websiteMap[item.key] = item.value
         })
 
-        const brand = settingsMap.brand || {}
-        const footer = settingsMap.footer || {}
-        const seo = settingsMap.seo || {}
+        const systemMap = {}
+        systemRes.data.forEach(item => {
+          systemMap[item.key] = item.value
+        })
+
+        const brand = websiteMap.brand || {}
+        const footer = websiteMap.footer || {}
+        const seo = websiteMap.seo || {}
 
         const mapped = {
           site_name: brand.site_name || "",
@@ -57,35 +75,67 @@ export default function WebsitePage() {
           maintenance_web: !!brand.maintenance_web,
           maintenance_api: !!brand.maintenance_api,
           footer_desc: footer.footer_desc || "",
-          keywords: Array.isArray(seo.keywords)
-            ? seo.keywords.join(", ")
-            : "",
+          keywords: Array.isArray(seo.keywords) ? seo.keywords.join(", ") : "",
+
+          system: {
+            public_access: systemMap.public_access || { enabled: true, message: "" },
+            user_auth_access: systemMap.user_auth_access || { enabled: true, message: "" },
+            user_area_access: systemMap.user_area_access || { enabled: true, message: "" },
+            catalog_access: systemMap.catalog_access || { enabled: true, message: "" },
+            checkout_access: systemMap.checkout_access || { enabled: true, message: "" },
+            topup_access: systemMap.topup_access || { enabled: true, message: "" },
+          }
         }
 
         setForm(mapped)
         setInitialForm(mapped)
+
       } catch (err) {
+
         console.error(err)
         setToast({
           type: "error",
           message: "Gagal memuat konfigurasi website",
         })
+
       } finally {
+
         setLoading(false)
+
       }
+
     }
 
     fetchSettings()
+
   }, [])
 
-
   /* ================= CHANGE ================= */
+
   const handleChange = (e) => {
+
     const { name, value, type, checked } = e.target
+
     setForm(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }))
+
+  }
+
+  const handleSystemToggle = (key, field, value) => {
+
+    setForm(prev => ({
+      ...prev,
+      system: {
+        ...prev.system,
+        [key]: {
+          ...prev.system[key],
+          [field]: value
+        }
+      }
+    }))
+
   }
 
   const isChanged = (key) =>
@@ -93,12 +143,16 @@ export default function WebsitePage() {
 
   const hasChanges =
     initialForm &&
-    Object.keys(form).some(k => form[k] !== initialForm[k])
+    JSON.stringify(form) !== JSON.stringify(initialForm)
 
   /* ================= SUBMIT ================= */
+
   const handleSubmit = async () => {
+
     setSaving(true)
+
     try {
+
       await apiFetch("/api/v1/admin/settings/upsert", {
         method: "POST",
         body: JSON.stringify({
@@ -145,32 +199,64 @@ export default function WebsitePage() {
         }),
       })
 
+      for (const key in form.system) {
+
+        await apiFetch("/api/v1/admin/settings/upsert", {
+          method: "POST",
+          body: JSON.stringify({
+            group: "system",
+            key: key,
+            value: form.system[key],
+            is_public: false
+          }),
+        })
+
+      }
+
       setInitialForm(form)
-      setToast({ type: "success", message: "Pengaturan website disimpan" })
+
+      setToast({
+        type: "success",
+        message: "Pengaturan website disimpan",
+      })
+
     } catch {
-      setToast({ type: "error", message: "Gagal menyimpan pengaturan" })
+
+      setToast({
+        type: "error",
+        message: "Gagal menyimpan pengaturan",
+      })
+
     } finally {
+
       setSaving(false)
+
     }
+
   }
 
   if (loading) return null
 
   return (
-    <PermissionGate permission="manage_site_settings">  
+
+    <PermissionGate permission="manage_site_settings">
+
       <>
+
         {toast && (
           <Toast {...toast} onClose={() => setToast(null)} />
         )}
 
-        {/* 🔥 PREVIEW MAINTENANCE */}
-        {form.maintenance_web && (
+        {Object.values(form.system).some(v => !v.enabled) && (
           <div className="mb-4 p-4 bg-yellow-600/20 border border-yellow-500 rounded-lg">
-            ⚠ Website sedang dalam mode maintenance
+            ⚠ Beberapa fitur website sedang dalam mode maintenance
           </div>
         )}
 
+        {/* ================= WEBSITE SETTINGS ================= */}
+
         <SectionCard title="Pengaturan Utama Website">
+
           <div className="grid grid-cols-2 gap-4">
 
             <Input label="Judul Website" name="site_name" value={form.site_name} onChange={handleChange} changed={isChanged("site_name")} />
@@ -188,26 +274,86 @@ export default function WebsitePage() {
             <Textarea label="Footer Deskripsi" name="footer_desc" value={form.footer_desc} onChange={handleChange} changed={isChanged("footer_desc")} />
             <Input label="Versi Website" name="version" value={form.version} onChange={handleChange} changed={isChanged("version")} />
 
-            <Toggle label="Maintenance Website" name="maintenance_web" checked={form.maintenance_web} onChange={handleChange} />
-            <Toggle label="Maintenance API" name="maintenance_api" checked={form.maintenance_api} onChange={handleChange} />
           </div>
 
-          <div className="pt-6">
-            <button
-              onClick={handleSubmit}
-              disabled={!hasChanges || saving}
-              className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold disabled:opacity-50"
-            >
-              {saving ? "Menyimpan..." : "Simpan Perubahan"}
-            </button>
-          </div>
         </SectionCard>
+
+        {/* ================= MAINTENANCE CONTROL ================= */}
+
+        <SectionCard title="System Maintenance Control">
+
+          <div className="space-y-6">
+
+            {Object.entries(form.system).map(([key, value]) => (
+
+              <div key={key} className="border border-gray-700 p-4 rounded-lg">
+
+                <div className="flex items-center justify-between mb-3">
+
+                  <div className="font-semibold">
+                    {key.replaceAll("_", " ")}
+                  </div>
+
+                  <input
+                    type="checkbox"
+                    checked={!value.enabled}
+                    onChange={(e) =>
+                      handleSystemToggle(
+                        key,
+                        "enabled",
+                        !e.target.checked
+                      )
+                    }
+                  />
+
+                </div>
+
+                {!value.enabled && (
+
+                  <input
+                    value={value.message}
+                    placeholder="Pesan maintenance..."
+                    onChange={(e) =>
+                      handleSystemToggle(
+                        key,
+                        "message",
+                        e.target.value
+                      )
+                    }
+                    className="input w-full"
+                  />
+
+                )}
+
+              </div>
+
+            ))}
+
+          </div>
+
+        </SectionCard>
+
+        <div className="pt-6">
+
+          <button
+            onClick={handleSubmit}
+            disabled={!hasChanges || saving}
+            className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold disabled:opacity-50"
+          >
+            {saving ? "Menyimpan..." : "Simpan Perubahan"}
+          </button>
+
+        </div>
+
       </>
-    </PermissionGate>  
+
+    </PermissionGate>
+
   )
+
 }
 
-/* ================= REUSABLE INPUT ================= */
+/* ================= INPUT ================= */
 
 function Input({ label, changed, ...props }) {
   return (
@@ -229,15 +375,6 @@ function Textarea({ label, changed, ...props }) {
         {changed && <span className="ml-2 text-purple-400">(diubah)</span>}
       </label>
       <textarea {...props} className={`input mt-1 w-full min-h-[90px] ${changed ? "ring-2 ring-purple-500/40" : ""}`} />
-    </div>
-  )
-}
-
-function Toggle({ label, ...props }) {
-  return (
-    <div className="flex items-center gap-3">
-      <input type="checkbox" {...props} className="scale-125" />
-      <span>{label}</span>
     </div>
   )
 }

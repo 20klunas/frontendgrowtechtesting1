@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server"
 
 export function middleware(request) {
+
   const token = request.cookies.get("token")?.value
   const { pathname } = request.nextUrl
+  const maintenance = false
+
+  /*
+  =========================
+  GLOBAL MAINTENANCE
+  =========================
+  */
+
+  if (maintenance && pathname !== "/maintenance") {
+    return NextResponse.redirect(new URL("/maintenance", request.url))
+  }
 
   const isProtectedRoute =
     pathname.startsWith("/customer") ||
@@ -12,12 +24,22 @@ export function middleware(request) {
     pathname === "/login" ||
     pathname === "/register"
 
-  // redirect jika belum login
+  /*
+  =========================
+  BELUM LOGIN
+  =========================
+  */
+
   if (isProtectedRoute && !token) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  // redirect jika sudah login tapi buka login/register
+  /*
+  =========================
+  SUDAH LOGIN
+  =========================
+  */
+
   if (isAuthRoute && token) {
     return NextResponse.redirect(new URL("/customer", request.url))
   }

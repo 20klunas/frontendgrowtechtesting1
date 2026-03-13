@@ -1,8 +1,9 @@
 import Cookies from "js-cookie";
-
+import { handleMaintenance } from "./maintenanceHandler";
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export async function authFetch(url, options = {}) {
+
   const token = Cookies.get("token");
 
   if (!token) {
@@ -42,8 +43,26 @@ export async function authFetch(url, options = {}) {
     throw new Error(`Server mengembalikan bukan JSON (HTTP ${res.status})`);
   }
 
+  /*
+  ==============================
+  HANDLE MAINTENANCE
+  ==============================
+  */
+
+  handleMaintenance(res, data); 
+
+  /*
+  ==============================
+  ERROR HANDLER
+  ==============================
+  */
+
   if (!res.ok) {
-    throw new Error(data?.error?.message || data?.message || `HTTP ${res.status}`);
+    throw new Error(
+      data?.error?.message ||
+      data?.message ||
+      `HTTP ${res.status}`
+    );
   }
 
   return data;
