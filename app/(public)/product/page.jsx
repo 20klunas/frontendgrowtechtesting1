@@ -43,7 +43,6 @@ export default function ProductPage() {
   const fetchCategories = async () => {
     try {
       const res = await publicFetch(`/api/v1/categories`);
-      const json = await res.json();
 
       if (json.success) {
         setCategories(json.data);
@@ -63,7 +62,6 @@ export default function ProductPage() {
         : `${API}/api/v1/subcategories`;
 
       const res = await publicFetch(url.replace(API,""));
-      const json = await res.json();
 
       if (json.success) {
 

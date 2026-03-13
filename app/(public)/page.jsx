@@ -22,14 +22,12 @@ export default function HomePage() {
 
   useEffect(() => {
     publicFetch(`/api/v1/content/banners`)
-      .then(res => res.json())
       .then(res => setBanners(res.data || []))
       .catch(console.error)
   }, [API])
 
   useEffect(() => {
     publicFetch(`/api/v1/content/settings?group=website`)
-      .then(res => res.json())
       .then(res => {
         const data = normalizeSettings(res?.data)
         setBrand(data.brand || {})
