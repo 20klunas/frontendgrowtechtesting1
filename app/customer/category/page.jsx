@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ProductCard from "../../components/customer/SubCategoryCard";
 import { motion } from "framer-motion";
+import { publicFetch } from "../../lib/publicFetch";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -37,12 +38,12 @@ export default function CategoryPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`${API}/api/v1/categories`);
-      const json = await res.json();
+      const json = await publicFetch("/api/v1/categories");
 
       if (json.success) {
         setCategories(json.data);
       }
+
     } catch (err) {
       console.error("Failed fetch categories:", err);
     }
@@ -56,8 +57,7 @@ export default function CategoryPage() {
         ? `${API}/api/v1/categories/${categoryId}/subcategories`
         : `${API}/api/v1/subcategories`;
 
-      const res = await fetch(url);
-      const json = await res.json();
+      const json = await publicFetch(url.replace(API, ""));
 
       if (json.success) {
         setSubcategories(json.data);
