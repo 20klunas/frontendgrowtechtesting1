@@ -4,13 +4,16 @@ export function handleMaintenance(res, data) {
 
     const message = encodeURIComponent(
       data?.error?.message || "System Maintenance"
-    );
+    )
 
-    const scope = data?.meta?.scope || "system";
+    const scope = data?.meta?.scope || "system"
 
-    window.location.href = `/maintenance?scope=${scope}&message=${message}`;
+    window.location.replace(
+      `/maintenance?scope=${scope}&message=${message}`
+    )
 
-    throw new Error("System Maintenance");
+    return Promise.reject(new Error("System Maintenance"))
+
   }
 
 }

@@ -48,7 +48,13 @@ export default function ProductPage() {
         setCategories(json.data);
       }
     } catch (err) {
+
+      if (err.message === "System Maintenance") {
+        return;
+      }
+
       console.error("Failed fetch categories:", err);
+
     }
   };
 
@@ -75,8 +81,13 @@ export default function ProductPage() {
       setLoading(false);
 
     } catch (err) {
+
+      if (err.message === "System Maintenance") {
+        return;
+      }
+
       console.error("Failed fetch subcategories:", err);
-      setLoading(false);
+
     }
   };
 
