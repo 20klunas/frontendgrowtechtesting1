@@ -1,37 +1,39 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { authFetch } from "../lib/authFetch";
-import {
-  getMaintenanceMessage,
-  isFeatureMaintenanceError,
-  isMaintenanceError,
-} from "../lib/maintenanceHandler";
+import { createContext, useContext, useMemo, useState } from "react";
 
-const MaintenanceContext = createContext();
+const MaintenanceContext = createContext(null);
 
 export function MaintenanceProvider({ children }) {
-
   const [catalogDisabled, setCatalogDisabled] = useState(false);
   const [catalogMessage, setCatalogMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const value = useMemo(
+    () => ({
+      catalogDisabled,
+      catalogMessage,
+      loading,
+      setCatalogDisabled,
+      setCatalogMessage,
+      setLoading,
+    }),
+    [catalogDisabled, catalogMessage, loading]
+  );
+
   return (
-    <MaintenanceContext.Provider
-      value={{
-        catalogDisabled,
-        catalogMessage,
-        loading,
-        setCatalogDisabled,
-        setCatalogMessage,
-        setLoading
-      }}
-    >
+    <MaintenanceContext.Provider value={value}>
       {children}
     </MaintenanceContext.Provider>
   );
 }
 
 export function useMaintenance() {
-  return useContext(MaintenanceContext);
+  const context = useContext(MaintenanceContext);
+
+  if (!context) {
+    throw new Error("useMaintenance must be used within MaintenanceProvider");
+  }
+
+  return context;
 }

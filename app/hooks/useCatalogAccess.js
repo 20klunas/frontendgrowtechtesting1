@@ -10,7 +10,6 @@ import {
 import { useMaintenance } from "../context/MaintenanceContext";
 
 export default function useCatalogAccess() {
-
   const {
     catalogDisabled,
     catalogMessage,
@@ -21,49 +20,45 @@ export default function useCatalogAccess() {
   } = useMaintenance();
 
   useEffect(() => {
-
-    if (!loading) return;
+    let active = true;
 
     const checkCatalog = async () => {
-
       try {
-
         await authFetch("/api/v1/catalog/products?per_page=1");
+
+        if (!active) return;
 
         setCatalogDisabled(false);
         setCatalogMessage("");
-
       } catch (err) {
+        if (!active) return;
 
         if (isFeatureMaintenanceError(err, "catalog_access")) {
-
           setCatalogDisabled(true);
-
           setCatalogMessage(
-            getMaintenanceMessage(
-              err,
-              "Katalog sedang maintenance."
-            )
+            getMaintenanceMessage(err, "Katalog sedang maintenance.")
           );
-
           return;
         }
 
         if (!isMaintenanceError(err)) {
           console.error("Catalog check failed:", err);
         }
-
       } finally {
-
-        setLoading(false);
-
+        if (active) {
+          setLoading(false);
+        }
       }
-
     };
 
-    checkCatalog();
+    if (loading) {
+      checkCatalog();
+    }
 
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [loading, setCatalogDisabled, setCatalogMessage, setLoading]);
 
   return {
     catalogDisabled,

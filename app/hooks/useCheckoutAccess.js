@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "../lib/apiFetch";
+import { publicFetch } from "../lib/publicFetch";
 
 export default function useCheckoutAccess() {
   const [loading, setLoading] = useState(true);
@@ -9,14 +9,14 @@ export default function useCheckoutAccess() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    let active = true;
+
     const checkAccess = async () => {
       try {
-        const res = await apiFetch(
-          "/api/v1/public/settings?group=system"
-        );
+        const res = await publicFetch("/api/v1/content/settings?group=system");
 
         const settings = {};
-        res.data.forEach((item) => {
+        (res?.data || []).forEach((item) => {
           settings[item.key] = item.value;
         });
 
@@ -25,17 +25,27 @@ export default function useCheckoutAccess() {
           message: "",
         };
 
-        setAllowed(checkout.enabled);
+        if (!active) return;
+
+        setAllowed(Boolean(checkout.enabled));
         setMessage(checkout.message || "");
       } catch (err) {
+        if (!active) return;
+
         console.error("Checkout access check failed:", err);
         setAllowed(true);
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
     checkAccess();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return { loading, allowed, message };

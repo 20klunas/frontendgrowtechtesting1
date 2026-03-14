@@ -14,71 +14,78 @@ import {
   isFeatureMaintenanceError,
   isMaintenanceError,
 } from "../lib/maintenanceHandler";
-
-const normalizeSettings = (rows = []) =>
-  rows.reduce((acc, row) => {
-    acc[row.key] = row.value;
-    return acc;
-  }, {});
+import { useWebsiteSettings } from "../context/WebsiteSettingsContext";
 
 export default function CustomerHomePage() {
+  const { brand } = useWebsiteSettings();
+
   const [popup, setPopup] = useState(null);
   const [open, setOpen] = useState(true);
-  const [brand, setBrand] = useState({});
   const [banners, setBanners] = useState([]);
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [catalogMaintenance, setCatalogMaintenance] = useState("");
 
   useEffect(() => {
+    let active = true;
+
     publicFetch("/api/v1/content/banners")
       .then((res) => {
+        if (!active) return;
         setBanners(res.data || []);
       })
       .catch((err) => {
+        if (!active) return;
         if (!isMaintenanceError(err)) {
           console.error(err);
         }
       });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
+    let active = true;
+
     publicFetch("/api/v1/content/popup")
       .then((res) => {
+        if (!active) return;
+
         if (res?.data?.is_active) {
           setPopup(res.data);
           setOpen(true);
         }
       })
       .catch((err) => {
+        if (!active) return;
         if (!isMaintenanceError(err)) {
           console.error(err);
         }
       });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
-    publicFetch("/api/v1/content/settings?group=website")
-      .then((res) => {
-        const data = normalizeSettings(res?.data);
-        setBrand(data.brand || {});
-      })
-      .catch((err) => {
-        if (!isMaintenanceError(err)) {
-          console.error(err);
-        }
-      });
-  }, []);
+    let active = true;
 
-  useEffect(() => {
     const fetchPopularProducts = async () => {
       try {
         setLoadingProducts(true);
         setCatalogMaintenance("");
 
         const res = await authFetch("/api/v1/catalog/products?sort=popular&per_page=4");
+
+        if (!active) return;
+
         setProducts(res?.data?.data || []);
       } catch (err) {
+        if (!active) return;
+
         if (isFeatureMaintenanceError(err, "catalog_access")) {
           setCatalogMaintenance(
             getMaintenanceMessage(err, "Katalog sedang maintenance.")
@@ -93,11 +100,17 @@ export default function CustomerHomePage() {
 
         setProducts([]);
       } finally {
-        setLoadingProducts(false);
+        if (active) {
+          setLoadingProducts(false);
+        }
       }
     };
 
     fetchPopularProducts();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const catalogDisabled = Boolean(catalogMaintenance);
@@ -211,13 +224,8 @@ export default function CustomerHomePage() {
                 key={i}
                 className="flex flex-col items-center justify-center py-8 bg-gradient-to-b from-purple-900/20 to-black hover:bg-purple-900/30 transition"
               >
-                <span className="text-3xl font-bold text-purple-400">
-                  {val}
-                </span>
-
-                <span className="text-sm text-gray-300 mt-1">
-                  {label}
-                </span>
+                <span className="text-3xl font-bold text-purple-400">{val}</span>
+                <span className="text-sm text-gray-300 mt-1">{label}</span>
               </div>
             ))}
           </motion.div>
@@ -331,12 +339,8 @@ export default function CustomerHomePage() {
 function FeatureMaintenanceCard({ title, message }) {
   return (
     <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 text-center">
-      <h3 className="text-xl font-semibold text-amber-300 mb-2">
-        {title}
-      </h3>
-      <p className="text-amber-100/90">
-        {message}
-      </p>
+      <h3 className="text-xl font-semibold text-amber-300 mb-2">{title}</h3>
+      <p className="text-amber-100/90">{message}</p>
     </div>
   );
 }
@@ -345,7 +349,6 @@ function SkeletonCard() {
   return (
     <div className="rounded-2xl border border-purple-700 bg-black overflow-hidden animate-pulse">
       <div className="h-[170px] bg-zinc-800" />
-
       <div className="p-4 space-y-3">
         <div className="h-4 bg-zinc-800 rounded w-3/4" />
         <div className="h-3 bg-zinc-800 rounded w-1/2" />

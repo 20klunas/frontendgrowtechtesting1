@@ -2,28 +2,28 @@ import { NextResponse } from "next/server";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-const REDIRECT_KEYS = new Set([
-  "public_access",
-  "user_area_access",
-  "user_auth_access",
-]);
-
 function isInternalPath(pathname) {
   return (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
+    pathname.startsWith("/icons") ||
+    pathname.startsWith("/images") ||
     pathname === "/favicon.ico" ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml"
   );
 }
 
-if (
-  pathname.startsWith("/_next") ||
-  pathname.startsWith("/icons") ||
-  pathname.startsWith("/images")
-) {
-  return NextResponse.next();
+function shouldSkipMaintenanceCheck(request, pathname) {
+  const purpose = request.headers.get("purpose");
+  const prefetch = request.headers.get("next-router-prefetch");
+
+  if (request.method !== "GET") return true;
+  if (purpose === "prefetch") return true;
+  if (prefetch) return true;
+  if (isInternalPath(pathname)) return true;
+
+  return false;
 }
 
 function buildMaintenanceRedirectPath(data) {
@@ -31,13 +31,8 @@ function buildMaintenanceRedirectPath(data) {
     data?.error?.message || "Website sedang maintenance."
   );
 
-  const scope = encodeURIComponent(
-    data?.meta?.scope || "system"
-  );
-
-  const key = encodeURIComponent(
-    data?.meta?.key || "maintenance"
-  );
+  const scope = encodeURIComponent(data?.meta?.scope || "system");
+  const key = encodeURIComponent(data?.meta?.key || "maintenance");
 
   return `/maintenance?scope=${scope}&key=${key}&message=${message}`;
 }
@@ -50,57 +45,14 @@ async function safeJson(res) {
   }
 }
 
-async function checkPublicMaintenance(request, pathname) {
-  if (!API) return null;
-  if (isInternalPath(pathname)) return null;
-  if (pathname.startsWith("/maintenance")) return null;
-  if (pathname.startsWith("/admin")) return null;
-  if (pathname.startsWith("/customer")) return null;
-
-  const isAuthLikeRoute =
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname.startsWith("/verify-otp") ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/oauth-success");
-
-  if (isAuthLikeRoute) return null;
-
-  try {
-    // sentinel public_access
-    const res = await fetch(`${API}/api/v1/content/settings?group=website`, {
-      method: "GET",
-      cache: "no-store",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (res.status !== 503) return null;
-
-    const data = await safeJson(res);
-    const key = data?.meta?.key || "public_access";
-
-    if (!REDIRECT_KEYS.has(key)) return null;
-
-    return NextResponse.redirect(
-      new URL(buildMaintenanceRedirectPath(data), request.url)
-    );
-  } catch (error) {
-    console.error("Public maintenance check failed:", error);
-    return null;
-  }
-}
-
 async function checkUserAreaMaintenance(request, pathname, token, role) {
   if (!API) return null;
   if (!pathname.startsWith("/customer")) return null;
   if (!token) return null;
   if (role === "admin") return null;
+  if (shouldSkipMaintenanceCheck(request, pathname)) return null;
 
   try {
-    // sentinel user_area_access
     const res = await fetch(`${API}/api/v1/wallet/summary`, {
       method: "GET",
       cache: "no-store",
@@ -127,35 +79,67 @@ async function checkUserAreaMaintenance(request, pathname, token, role) {
 }
 
 export async function middleware(request) {
-
+  const token = request.cookies.get("token")?.value;
+  const role = request.cookies.get("role")?.value;
   const { pathname } = request.nextUrl;
 
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/maintenance") ||
-    pathname.includes(".")
-  ) {
-    return NextResponse.next();
+  const isAdminRoute = pathname.startsWith("/admin");
+  const isCustomerRoute = pathname.startsWith("/customer");
+  const isProtectedRoute = isAdminRoute || isCustomerRoute;
+
+  const isAuthRoute = pathname === "/login" || pathname === "/register";
+  const isOtpRoute = pathname.startsWith("/verify-otp");
+
+  if (isProtectedRoute && !token) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const token = request.cookies.get("token")?.value;
+  if (isAdminRoute && token && role !== "admin") {
+    return NextResponse.redirect(new URL("/customer", request.url));
+  }
 
-  // const publicMaintenance = await checkPublicMaintenance(request, pathname);
-  // if (publicMaintenance) return publicMaintenance;
+  if (isCustomerRoute && token && role === "admin") {
+    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+  }
+
+  if (isAuthRoute && token) {
+    if (role === "admin") {
+      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    }
+
+    if (role === "user" || role === "customer") {
+      return NextResponse.redirect(new URL("/customer", request.url));
+    }
+
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  if (isOtpRoute && token) {
+    if (role === "admin") {
+      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    }
+
+    if (role === "user" || role === "customer") {
+      return NextResponse.redirect(new URL("/customer", request.url));
+    }
+
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
 
   const userMaintenance = await checkUserAreaMaintenance(
     request,
     pathname,
-    token
+    token,
+    role
   );
 
-  if (userMaintenance) return userMaintenance;
+  if (userMaintenance) {
+    return userMaintenance;
+  }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };
