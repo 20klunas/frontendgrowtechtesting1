@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../app/hooks/useAuth";
 import { Filter, DollarSign, Users, Package, Boxes, Layers } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { useTheme } from "next-themes";
 import TransactionChart from "../../components/admin/cards/TransactionChart";
 import TransactionCard from "../../components/admin/cards/TransactionCard";
 import StatCard from "../../components/admin/cards/StatCard";
@@ -80,6 +80,11 @@ export default function DashboardPage() {
   const [err, setErr] = useState(null);
   const [data, setData] = useState(null);
 
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  const [openRange, setOpenRange] = useState(false);
+
   // build query string
   const queryString = useMemo(() => {
     const p = new URLSearchParams();
@@ -149,6 +154,47 @@ export default function DashboardPage() {
   ];
   const tierOptions = data?.filter_options?.user_tier || ["member", "reseller", "vip"];
 
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        labels: {
+          color: isDark ? "#ffffff" : "#1f2937",
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: {
+          color: isDark ? "#9ca3af" : "#374151",
+        },
+        grid: {
+          color: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+        },
+      },
+      y: {
+        ticks: {
+          color: isDark ? "#9ca3af" : "#374151",
+        },
+        grid: {
+          color: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+        },
+      },
+    },
+  };
+
+  datasets: [
+    {
+      label: "Grafik Pemasukan",
+      data: values,
+      borderColor: isDark ? "#a78bfa" : "#7c3aed",
+      backgroundColor: isDark
+        ? "rgba(167,139,250,0.2)"
+        : "rgba(124,58,237,0.2)",
+      tension: 0.4,
+    },
+  ];
+
   return (
     <PermissionGate permission="view_dashboard">
       <motion.div
@@ -176,32 +222,36 @@ export default function DashboardPage() {
           {/* LEFT FILTER */}
           <div className="flex items-center gap-3">
 
-            <Select value={rangeDraft} onValueChange={(v) => setRangeDraft(v)}>
-
-              <SelectTrigger className="h-10 w-[120px] rounded-lg border border-[#3d2b5e] bg-[#2d1b4e] text-white hover:bg-[#3a2462] transition">
-                <SelectValue />
-              </SelectTrigger>
-
-              <SelectContent
-                position="popper"
-                sideOffset={6}
-                className="border-[#3d2b5e] bg-[#1a1a2e] text-white"
-              >
-                {RANGE_PRESETS.map((f) => (
-                  <SelectItem key={f.value} value={f.value}>
-                    {f.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-
-            </Select>
+            <div className="relative">
 
             <Button
-              onClick={() => setRangeApplied(rangeDraft)}
-              className="h-10 bg-[#2d1b4e] border border-[#3d2b5e] text-[#2d1b4e] hover:bg-[#3a2462]"
+              onClick={() => setOpenRange(!openRange)}
+              className="h-10 bg-[#2d1b4e] border border-[#3d2b5e] text-white hover:bg-[#3a2462]"
             >
-              Terapkan
+              Range
             </Button>
+
+            {openRange && (
+              <div className="absolute left-0 mt-2 w-40 rounded-lg border bg-white dark:bg-[#1a1a2e] shadow-lg z-50">
+
+                {RANGE_PRESETS.map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => {
+                      setRangeDraft(f.value);
+                      setRangeApplied(f.value);
+                      setOpenRange(false);
+                    }}
+                    className="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-white/10"
+                  >
+                    {f.label}
+                  </button>
+                ))}
+
+              </div>
+            )}
+
+            </div>
 
           </div>
 
