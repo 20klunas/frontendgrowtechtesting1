@@ -152,48 +152,9 @@ export default function DashboardPage() {
     "expired",
     "refunded",
   ];
+
+  
   const tierOptions = data?.filter_options?.user_tier || ["member", "reseller", "vip"];
-
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        labels: {
-          color: isDark ? "#ffffff" : "#1f2937",
-        },
-      },
-    },
-    scales: {
-      x: {
-        ticks: {
-          color: isDark ? "#9ca3af" : "#374151",
-        },
-        grid: {
-          color: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-        },
-      },
-      y: {
-        ticks: {
-          color: isDark ? "#9ca3af" : "#374151",
-        },
-        grid: {
-          color: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-        },
-      },
-    },
-  };
-
-  datasets: [
-    {
-      label: "Grafik Pemasukan",
-      data: values,
-      borderColor: isDark ? "#a78bfa" : "#7c3aed",
-      backgroundColor: isDark
-        ? "rgba(167,139,250,0.2)"
-        : "rgba(124,58,237,0.2)",
-      tension: 0.4,
-    },
-  ];
 
   return (
     <PermissionGate permission="view_dashboard">
