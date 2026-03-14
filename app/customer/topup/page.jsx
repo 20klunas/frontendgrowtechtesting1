@@ -218,7 +218,15 @@ export default function TopUpPage() {
       const data = await res.json()
 
       if(data.success){
-        setHistory(Array.isArray(data.data) ? data.data : [])
+
+        const rows =
+          Array.isArray(data.data)
+            ? data.data
+            : Array.isArray(data.data?.data)
+            ? data.data.data
+            : []
+
+        setHistory(rows)
       }
 
     }catch(err){
@@ -226,6 +234,8 @@ export default function TopUpPage() {
     }
 
   }
+
+  console.log("ledger", data)
 
   const fetchWalletSummary = async () => {
     if (!token) return
