@@ -20,6 +20,12 @@ export default function LoginPage() {
   const [authDisabled,setAuthDisabled] = useState(false)
   const [authMessage,setAuthMessage] = useState("")
 
+  const [popup, setPopup] = useState({
+    open: false,
+    type: "info",
+    message: ""
+  });
+
   const saveSession = (token, user) => {
     Cookies.set("token", token, {
       path: "/",
@@ -112,7 +118,11 @@ export default function LoginPage() {
       await saveSessionAndRedirect(token);
     } catch (err) {
       if (!err?.isMaintenance) {
-        alert(err?.message || "Sedang Maintenance, coba beberapa saat lagi.");
+        setPopup({
+          open: true,
+          type: "error",
+          message: err?.message || "Sedang Maintenance, coba beberapa saat lagi."
+        });
       }
     } finally {
       setLoading(false);
@@ -130,11 +140,19 @@ export default function LoginPage() {
     } catch (err) {
 
       if (err?.isMaintenance) {
-        alert(err.message || "Login sedang maintenance");
+        setPopup({
+          open: true,
+          type: "error",
+          message: err.message || "Login sedang maintenance"
+        });
         return;
       }
 
-      alert("Gagal memulai login Google");
+      setPopup({
+        open: true,
+        type: "error",
+        message: "Gagal memulai login Google"
+      });
 
     }
 
@@ -152,6 +170,28 @@ export default function LoginPage() {
   return (
     <main className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 pt-16">
       <div className="w-full max-w-md rounded-2xl border border-purple-400/60 bg-black p-8">
+        {popup.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+            <div className="w-[380px] rounded-2xl border border-purple-500 bg-black p-6 shadow-xl">
+
+              <h2 className="text-lg font-semibold text-purple-300 mb-3">
+                ⚠️ Pemberitahuan
+              </h2>
+
+              <p className="text-sm text-gray-300 mb-6">
+                {popup.message}
+              </p>
+
+              <button
+                onClick={() => setPopup({ ...popup, open: false })}
+                className="w-full rounded-lg bg-purple-600 py-2 font-semibold hover:bg-purple-700 transition"
+              >
+                Tutup
+              </button>
+
+            </div>
+          </div>
+        )}
         <h1 className="text-center text-2xl font-semibold text-purple-300 mb-6">
           Login
         </h1>
