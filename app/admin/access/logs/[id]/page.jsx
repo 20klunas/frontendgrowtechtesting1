@@ -372,6 +372,102 @@ function Info({ label, children }) {
 
 
 
+/* RENDER VALUE - Renders different types of values nicely */
+function RenderValue({ value, depth = 0 }) {
+  // Handle null/undefined
+  if (value === null || value === undefined) {
+    return <span className="text-gray-500 italic">null</span>
+  }
+
+  // Handle booleans with badges
+  if (typeof value === "boolean") {
+    return (
+      <span className={`
+        inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+        ${value 
+          ? "bg-green-500/20 text-green-400 border border-green-500/30" 
+          : "bg-red-500/20 text-red-400 border border-red-500/30"
+        }
+      `}>
+        {value ? "true" : "false"}
+      </span>
+    )
+  }
+
+  // Handle numbers
+  if (typeof value === "number") {
+    return <span className="text-blue-400 font-mono">{value}</span>
+  }
+
+  // Handle arrays
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return <span className="text-gray-500 italic">Empty array</span>
+    }
+
+    return (
+      <div className="space-y-2">
+        {value.map((item, index) => (
+          <div 
+            key={index} 
+            className="flex items-start gap-2 bg-slate-800/50 rounded-lg p-2"
+          >
+            <span className="text-gray-500 text-xs font-mono shrink-0 mt-0.5">
+              [{index}]
+            </span>
+            <div className="flex-1">
+              <RenderValue value={item} depth={depth + 1} />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Handle objects
+  if (typeof value === "object") {
+    const entries = Object.entries(value)
+    
+    if (entries.length === 0) {
+      return <span className="text-gray-500 italic">Empty object</span>
+    }
+
+    return (
+      <div className={`
+        rounded-lg overflow-hidden
+        ${depth > 0 ? "bg-slate-800/30 border border-slate-700/50" : ""}
+      `}>
+        <div className="divide-y divide-slate-700/50">
+          {entries.map(([key, val]) => (
+            <div 
+              key={key} 
+              className={`
+                flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4
+                ${depth > 0 ? "p-2" : "p-3"}
+              `}
+            >
+              <span className={`
+                text-purple-400 font-medium shrink-0
+                ${depth > 0 ? "text-xs" : "text-sm"}
+                sm:w-32 sm:min-w-32
+              `}>
+                {key}
+              </span>
+              <div className="flex-1">
+                <RenderValue value={val} depth={depth + 1} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // Handle strings
+  return <span className="text-gray-200">{String(value)}</span>
+}
+
+
 /* OBJECT TABLE */
 function ObjectTable({ title, data, color }) {
 
@@ -396,42 +492,20 @@ function ObjectTable({ title, data, color }) {
         {title}
       </h2>
 
-      <div className="overflow-x-auto">
-
-        <table className="w-full text-sm">
-
-          <tbody>
-
-            {Object.entries(data).map(([key, value]) => (
-
-              <tr
-                key={key}
-                className="border-b border-slate-800 hover:bg-slate-800 transition"
-              >
-
-                <td className="p-2 text-gray-400 w-48">
-                  {key}
-                </td>
-
-                <td className="p-2">
-
-                  {typeof value === "object"
-                    ? <pre className="text-xs bg-black p-2 rounded overflow-auto">
-                        {JSON.stringify(value, null, 2)}
-                      </pre>
-                    : value?.toString()
-                  }
-
-                </td>
-
-              </tr>
-
-            ))}
-
-          </tbody>
-
-        </table>
-
+      <div className="space-y-1">
+        {Object.entries(data).map(([key, value]) => (
+          <div
+            key={key}
+            className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 p-3 rounded-lg hover:bg-slate-800/50 transition border-b border-slate-800 last:border-b-0"
+          >
+            <span className="text-gray-400 text-sm font-medium shrink-0 sm:w-36 sm:min-w-36">
+              {key}
+            </span>
+            <div className="flex-1 min-w-0">
+              <RenderValue value={value} />
+            </div>
+          </div>
+        ))}
       </div>
 
     </div>
