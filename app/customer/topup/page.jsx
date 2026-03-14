@@ -67,15 +67,19 @@ export default function TopUpPage() {
         }
       )
 
-      const data = await res.json()
+      if (!res.ok) {
+        throw new Error("Gateway API error")
+      }
 
-      if (data.success) {
+      const json = await res.json()
+
+      if (json?.success) {
 
         const rows =
-          Array.isArray(data.data)
-            ? data.data
-            : Array.isArray(data.data?.items)
-            ? data.data.items
+          Array.isArray(json.data)
+            ? json.data
+            : Array.isArray(json.data?.items)
+            ? json.data.items
             : []
 
         const mapped = rows.map(g => ({
