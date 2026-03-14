@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { authFetch } from "../lib/authFetch";
 import {
   getMaintenanceMessage,
@@ -11,9 +11,18 @@ import { useMaintenance } from "../context/MaintenanceContext";
 
 export default function useCatalogAccess() {
 
-  const { catalogDisabled, catalogMessage, loading } = useMaintenance();
+  const {
+    catalogDisabled,
+    catalogMessage,
+    loading,
+    setCatalogDisabled,
+    setCatalogMessage,
+    setLoading,
+  } = useMaintenance();
 
   useEffect(() => {
+
+    if (!loading) return;
 
     const checkCatalog = async () => {
 
@@ -54,7 +63,7 @@ export default function useCatalogAccess() {
 
     checkCatalog();
 
-  }, []);
+  }, [loading]);
 
   return {
     catalogDisabled,
