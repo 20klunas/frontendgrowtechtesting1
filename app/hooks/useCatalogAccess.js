@@ -7,12 +7,11 @@ import {
   isFeatureMaintenanceError,
   isMaintenanceError,
 } from "../lib/maintenanceHandler";
+import { useMaintenance } from "../context/MaintenanceContext";
 
 export default function useCatalogAccess() {
 
-  const [catalogDisabled, setCatalogDisabled] = useState(false);
-  const [catalogMessage, setCatalogMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+  const { catalogDisabled, catalogMessage, loading } = useMaintenance();
 
   useEffect(() => {
 
@@ -60,6 +59,6 @@ export default function useCatalogAccess() {
   return {
     catalogDisabled,
     catalogMessage,
-    loading
+    loading,
   };
 }
