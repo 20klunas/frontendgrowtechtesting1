@@ -110,7 +110,7 @@ export default function LoginPage() {
       await saveSessionAndRedirect(token);
     } catch (err) {
       if (!err?.isMaintenance) {
-        alert(err?.message || "Login gagal");
+        alert(err?.message || "Sedang Maintenance, coba beberapa saat lagi.");
       }
     } finally {
       setLoading(false);
