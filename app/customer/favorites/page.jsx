@@ -5,16 +5,22 @@ import Cookies from "js-cookie";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "../../lib/utils";
+import useCatalogAccess from "../../hooks/useCatalogAccess";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function CustomerFavoritesPage() {
+
+  const { hasAccess, loading: accessLoading } = useCatalogAccess();
+
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchFavorites();
-  }, []);
+    if (!accessLoading && hasAccess) {
+      fetchFavorites();
+    }
+  }, [accessLoading, hasAccess]);
 
   const fetchFavorites = async () => {
     try {
@@ -31,7 +37,6 @@ export default function CustomerFavoritesPage() {
       const json = await res.json();
 
       if (json.success) {
-        // karena paginate
         setFavorites(json?.data?.data || []);
       }
     } catch (err) {
@@ -40,6 +45,26 @@ export default function CustomerFavoritesPage() {
       setLoading(false);
     }
   };
+
+  // loading dari access
+  if (accessLoading) {
+    return (
+      <section className="max-w-6xl mx-auto px-8 py-10 text-white">
+        <p className="text-white/60">Checking access...</p>
+      </section>
+    );
+  }
+
+  // jika tidak punya akses
+  if (!hasAccess) {
+    return (
+      <section className="max-w-6xl mx-auto px-8 py-10 text-white">
+        <p className="text-red-400">
+          Kamu tidak memiliki akses ke katalog.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="max-w-6xl mx-auto px-8 py-10 text-white">
@@ -76,7 +101,6 @@ export default function CustomerFavoritesPage() {
                     {product?.name}
                   </h3>
 
-                  {/* RATING */}
                   <div className="flex items-center text-yellow-400 text-sm mb-2">
                     <span className="mr-1">
                       {"★".repeat(Math.round(product?.rating || 0))}
