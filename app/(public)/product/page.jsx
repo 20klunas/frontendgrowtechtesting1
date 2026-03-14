@@ -243,9 +243,11 @@ export default function ProductPage() {
                   focus:border-purple-500
                 "
               >
-                <option value="terbaru">Terbaru</option>
-                <option value="termurah">Termurah</option>
-                <option value="terlaris">Terlaris</option>
+                <option value="latest">Terbaru</option>
+                <option value="bestseller">Terlaris</option>
+                <option value="favorite">Favorit</option>
+                <option value="popular">Popular</option>
+                <option value="rating">Top Rated</option>
               </select>
 
             </div>

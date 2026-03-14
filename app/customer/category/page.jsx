@@ -182,20 +182,6 @@ export default function CategoryPage() {
                 text-black
               "
             />
-
-            <select
-              className="
-                w-full sm:w-40
-                rounded-lg
-                px-3 py-2
-                text-sm
-                text-black
-              "
-            >
-              <option>Terbaru</option>
-              <option>Termurah</option>
-              <option>Terlaris</option>
-            </select>
           </div>
 
           {/* ================= GRID ================= */}
