@@ -50,7 +50,7 @@ export default function CustomerFavoritesPage() {
   if (accessLoading) {
     return (
       <section className="max-w-6xl mx-auto px-8 py-10 text-white">
-        <p className="text-white/60">Checking access...</p>
+        <p className="text-white/60">Cek Ketersediaan...</p>
       </section>
     );
   }
@@ -60,7 +60,7 @@ export default function CustomerFavoritesPage() {
     return (
       <section className="max-w-6xl mx-auto px-8 py-10 text-white">
         <p className="text-red-400">
-          Kamu tidak memiliki akses ke katalog.
+          Kamu tidak memiliki akses ke katalog/Sedang ada maintenance.
         </p>
       </section>
     );
