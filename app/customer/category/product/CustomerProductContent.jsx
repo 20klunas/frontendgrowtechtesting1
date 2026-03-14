@@ -7,6 +7,11 @@ import Cookies from "js-cookie";
 import { cn } from "../../../lib/utils";
 import { motion } from "framer-motion";
 import { useAuth } from "../../../../app/hooks/useAuth";
+import {
+  getMaintenanceMessage,
+  isFeatureMaintenanceError,
+  isMaintenanceError,
+} from "../../../lib/maintenanceHandler";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -29,6 +34,10 @@ export default function CustomerProductContent() {
   // ===== PAGINATION =====
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+
+  // ===== MAINTENANCE MODE =====
+  const [catalogMaintenance, setCatalogMaintenance] = useState("");
+  const catalogDisabled = Boolean(catalogMaintenance);
 
   const totalPages = useMemo(() => {
     return Math.ceil((products?.length || 0) / itemsPerPage);
@@ -55,6 +64,7 @@ export default function CustomerProductContent() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      setCatalogMaintenance("");
 
       let url = `${API}/api/v1/products?sort=${sort}&per_page=10`;
 
@@ -62,13 +72,10 @@ export default function CustomerProductContent() {
         url += `&subcategory_id=${subcategoryId}`;
       }
 
-      // const url = subcategoryId
-      //   ? `${API}/api/v1/products?subcategory_id=${subcategoryId}`
-      //   : `${API}/api/v1/products`;
-
       const res = await fetch(url);
 
       const contentType = res.headers.get("content-type");
+
       if (!contentType?.includes("application/json")) {
         const text = await res.text();
         console.error("Non-JSON response:", text);
@@ -82,9 +89,25 @@ export default function CustomerProductContent() {
       } else {
         setProducts([]);
       }
+
     } catch (err) {
-      console.error("Failed fetch products:", err);
+
+      if (isFeatureMaintenanceError(err, "catalog_access")) {
+
+        setCatalogMaintenance(
+          getMaintenanceMessage(err, "Katalog sedang maintenance.")
+        );
+
+        setProducts([]);
+        return;
+      }
+
+      if (!isMaintenanceError(err)) {
+        console.error("Failed fetch products:", err);
+      }
+
       setProducts([]);
+
     } finally {
       setLoading(false);
     }
@@ -339,6 +362,7 @@ export default function CustomerProductContent() {
 
       <div className="flex justify-end mb-6">
         <select
+          disabled={catalogDisabled}
           value={sort}
           onChange={(e) => setSort(e.target.value)}
           className="bg-black border border-purple-700 text-white px-3 py-2 rounded-lg"
@@ -352,181 +376,190 @@ export default function CustomerProductContent() {
       </div>
 
       {/* ================= GRID ================= */}
-      <motion.div
-        key={currentPage}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-      >
-        {loading ? (
-          <>
-            <SkeletonVariant />
-            <SkeletonVariant />
-            <SkeletonVariant />
-          </>
-        ) : products.length === 0 ? (
-          <EmptyState />
-        ) : (
-          paginatedProducts.map((product) => {
-            const pricing = Array.isArray(product.tier_pricing)
-              ? product.tier_pricing[0]
-              : product.tier_pricing;
+      {catalogMaintenance ? (
 
-            const originalPrice =
-              pricing?.[userTier] ??
-              pricing?.member ??
-              pricing?.guest ??
-              0;
+        <FeatureMaintenanceCard
+          title="Katalog sedang maintenance"
+          message={catalogMaintenance}
+        />
 
-            const price = pricing?.member;
+      ) : (
+        <motion.div
+          key={currentPage}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+        >
+          {loading ? (
+            <>
+              <SkeletonVariant />
+              <SkeletonVariant />
+              <SkeletonVariant />
+            </>
+          ) : products.length === 0 ? (
+            <EmptyState />
+          ) : (
+            paginatedProducts.map((product) => {
+              const pricing = Array.isArray(product.tier_pricing)
+                ? product.tier_pricing[0]
+                : product.tier_pricing;
 
-            const isAdding = addingId === product.id;
-            const isOutOfStock = (product.available_stock ?? 0) <= 0;
+              const originalPrice =
+                pricing?.[userTier] ??
+                pricing?.member ??
+                pricing?.guest ??
+                0;
 
-            const isFav = favoriteIds.has(product.id);
-            const favLoading = favoriteLoadingId === product.id;
+              const price = pricing?.member;
 
-            // ===== DISKON =====
-            const discountPrice = product.discount_price;
-            const discountPercent = product.discount_percent;
+              const isAdding = addingId === product.id;
+              const isOutOfStock = (product.available_stock ?? 0) <= 0;
 
-            const calculatedDiscountPrice = discountPercent
-              ? originalPrice - (originalPrice * discountPercent) / 100
-              : null;
+              const isFav = favoriteIds.has(product.id);
+              const favLoading = favoriteLoadingId === product.id;
 
-            const finalPrice =
-              discountPrice ?? calculatedDiscountPrice ?? originalPrice;
+              // ===== DISKON =====
+              const discountPrice = product.discount_price;
+              const discountPercent = product.discount_percent;
 
-            const isDiscounted = finalPrice < originalPrice;
+              const calculatedDiscountPrice = discountPercent
+                ? originalPrice - (originalPrice * discountPercent) / 100
+                : null;
 
-            return (
-              <div
-                key={product.id}
-                className="rounded-2xl border border-purple-700 bg-black overflow-hidden"
-              >
-                {/* IMAGE + FAVORITE */}
-                <div className="relative h-[160px] bg-white">
-                  <Image
-                    src={product?.subcategory?.image_url || "/placeholder.png"}
-                    width={300}
-                    height={200}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
+              const finalPrice =
+                discountPrice ?? calculatedDiscountPrice ?? originalPrice;
 
-                  {/* FAVORITE BUTTON (hanya product_id) */}
-                  <button
-                    onClick={() => toggleFavorite(product.id)}
-                    disabled={favLoading}
-                    className={cn(
-                      "absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center border transition select-none",
-                      isFav
-                        ? "bg-pink-500/20 border-pink-400 text-pink-400"
-                        : "bg-black/40 border-white/20 text-white",
-                      "disabled:opacity-60"
-                    )}
-                    title={isFav ? "Hapus dari Favorite" : "Tambah ke Favorite"}
-                  >
-                    {favLoading ? "⏳" : isFav ? "♥" : "♡"}
-                  </button>
-                </div>
+              const isDiscounted = finalPrice < originalPrice;
 
-                <div className="p-4">
-                  <h3 className="font-semibold mb-1">{product.name}</h3>
+              return (
+                <div
+                  key={product.id}
+                  className="rounded-2xl border border-purple-700 bg-black overflow-hidden"
+                >
+                  {/* IMAGE + FAVORITE */}
+                  <div className="relative h-[160px] bg-white">
+                    <Image
+                      src={product?.subcategory?.image_url || "/placeholder.png"}
+                      width={300}
+                      height={200}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
 
-                  <p className="text-xs text-gray-400 mb-1">
-                    Stok Tersedia {product.available_stock ?? 0}
-                  </p>
-
-                  {product.track_stock &&
-                    product.available_stock <= product.stock_min_alert && (
-                      <p className="text-xs text-red-400">⚠ Stok hampir habis</p>
-                    )}
-
-                  {/* RATING DISPLAY */}
-                  <div className="flex items-center text-yellow-400 text-sm mb-2">
-                    <span className="mr-1">
-                      {"★".repeat(Math.round(product.rating || 0))}
-                      {"☆".repeat(5 - Math.round(product.rating || 0))}
-                    </span>
-
-                    <span className="text-xs text-gray-400">
-                      {product.rating?.toFixed(1) || "0.0"} (
-                      {product.rating_count || 0})
-                    </span>
+                    {/* FAVORITE BUTTON (hanya product_id) */}
+                    <button
+                      onClick={() => toggleFavorite(product.id)}
+                      disabled={favLoading}
+                      className={cn(
+                        "absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center border transition select-none",
+                        isFav
+                          ? "bg-pink-500/20 border-pink-400 text-pink-400"
+                          : "bg-black/40 border-white/20 text-white",
+                        "disabled:opacity-60"
+                      )}
+                      title={isFav ? "Hapus dari Favorite" : "Tambah ke Favorite"}
+                    >
+                      {favLoading ? "⏳" : isFav ? "♥" : "♡"}
+                    </button>
                   </div>
 
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex flex-col gap-1">
-                      {isDiscounted && (
-                        <span className="text-xs text-gray-400 line-through">
-                          Rp {originalPrice.toLocaleString("id-ID")}
-                        </span>
+                  <div className="p-4">
+                    <h3 className="font-semibold mb-1">{product.name}</h3>
+
+                    <p className="text-xs text-gray-400 mb-1">
+                      Stok Tersedia {product.available_stock ?? 0}
+                    </p>
+
+                    {product.track_stock &&
+                      product.available_stock <= product.stock_min_alert && (
+                        <p className="text-xs text-red-400">⚠ Stok hampir habis</p>
                       )}
 
-                      <span
-                        className={`font-bold ${
-                          isDiscounted ? "text-green-400" : "text-white"
-                        }`}
-                      >
-                        Rp {finalPrice.toLocaleString("id-ID")}
+                    {/* RATING DISPLAY */}
+                    <div className="flex items-center text-yellow-400 text-sm mb-2">
+                      <span className="mr-1">
+                        {"★".repeat(Math.round(product.rating || 0))}
+                        {"☆".repeat(5 - Math.round(product.rating || 0))}
                       </span>
 
-                      {userTier !== "guest" && (
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded uppercase w-fit font-semibold ${getTierBadgeClass(
-                            userTier
-                          )}`}
-                        >
-                          {userTier}
-                        </span>
-                      )}
+                      <span className="text-xs text-gray-400">
+                        {product.rating?.toFixed(1) || "0.0"} (
+                        {product.rating_count || 0})
+                      </span>
                     </div>
 
-                    <span className="text-xs px-2 py-1 rounded bg-purple-800 text-purple-200">
-                      {product.type || "Otomatis"}
-                    </span>
-                  </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex flex-col gap-1">
+                        {isDiscounted && (
+                          <span className="text-xs text-gray-400 line-through">
+                            Rp {originalPrice.toLocaleString("id-ID")}
+                          </span>
+                        )}
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleBuyNow(product.id)}
-                      disabled={checkoutLoadingId === product.id || isOutOfStock}
-                      className={cn(
-                        "flex-1 rounded-lg py-2 text-sm font-semibold transition relative",
-                        isOutOfStock
-                          ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-                          : "bg-purple-600 hover:bg-purple-700 text-white",
-                        "disabled:opacity-70"
-                      )}
-                    >
-                      {checkoutLoadingId === product.id
-                        ? "Memproses..."
-                        : isOutOfStock
-                        ? "🔒 Stok Habis"
-                        : "Beli Sekarang"}
-                    </button>
+                        <span
+                          className={`font-bold ${
+                            isDiscounted ? "text-green-400" : "text-white"
+                          }`}
+                        >
+                          Rp {finalPrice.toLocaleString("id-ID")}
+                        </span>
 
-                    {/* ADD TO CART */}
-                    <button
-                      onClick={() => addToCart(product.id)}
-                      disabled={isAdding || isOutOfStock}
-                      className={cn(
-                        "w-10 h-10 flex items-center justify-center rounded-lg border border-purple-600 hover:bg-purple-600/20 transition disabled:opacity-50",
-                        isOutOfStock && "cursor-not-allowed opacity-50"
-                      )}
-                      title={isOutOfStock ? "Stok habis" : "Tambah ke keranjang"}
-                    >
-                      {isAdding ? "⏳" : "🛒"}
-                    </button>
+                        {userTier !== "guest" && (
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded uppercase w-fit font-semibold ${getTierBadgeClass(
+                              userTier
+                            )}`}
+                          >
+                            {userTier}
+                          </span>
+                        )}
+                      </div>
+
+                      <span className="text-xs px-2 py-1 rounded bg-purple-800 text-purple-200">
+                        {product.type || "Otomatis"}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleBuyNow(product.id)}
+                        disabled={checkoutLoadingId === product.id || isOutOfStock}
+                        className={cn(
+                          "flex-1 rounded-lg py-2 text-sm font-semibold transition relative",
+                          isOutOfStock
+                            ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                            : "bg-purple-600 hover:bg-purple-700 text-white",
+                          "disabled:opacity-70"
+                        )}
+                      >
+                        {checkoutLoadingId === product.id
+                          ? "Memproses..."
+                          : isOutOfStock
+                          ? "🔒 Stok Habis"
+                          : "Beli Sekarang"}
+                      </button>
+
+                      {/* ADD TO CART */}
+                      <button
+                        onClick={() => addToCart(product.id)}
+                        disabled={isAdding || isOutOfStock}
+                        className={cn(
+                          "w-10 h-10 flex items-center justify-center rounded-lg border border-purple-600 hover:bg-purple-600/20 transition disabled:opacity-50",
+                          isOutOfStock && "cursor-not-allowed opacity-50"
+                        )}
+                        title={isOutOfStock ? "Stok habis" : "Tambah ke keranjang"}
+                      >
+                        {isAdding ? "⏳" : "🛒"}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
-      </motion.div>
+              );
+            })
+          )}
+        </motion.div>
+      )}
 
       {/* ================= PAGINATION ================= */}
       {totalPages > 1 && (
@@ -569,6 +602,20 @@ export default function CustomerProductContent() {
         </div>
       )}
     </section>
+  );
+}
+
+/* ================= MAINTENANCE MODE COMPONENT ================= */
+function FeatureMaintenanceCard({ title, message }) {
+  return (
+    <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 text-center">
+      <h3 className="text-xl font-semibold text-amber-300 mb-2">
+        {title}
+      </h3>
+      <p className="text-amber-100/90">
+        {message}
+      </p>
+    </div>
   );
 }
 
