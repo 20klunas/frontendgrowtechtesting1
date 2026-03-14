@@ -16,6 +16,7 @@ import {
   isFeatureMaintenanceError,
   isMaintenanceError,
 } from "../lib/maintenanceHandler";
+import useCatalogAccess from "../../app/hooks/useCatalogAccess";
 
 /* ================= UTIL ================= */
 const normalizeSettings = (rows = []) =>
@@ -44,7 +45,8 @@ export default function NavbarCustomer() {
   const [filteredSubs, setFilteredSubs] = useState([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [catalogMaintenance, setCatalogMaintenance] = useState("");
-  const catalogDisabled = Boolean(catalogMaintenance);
+  // const catalogDisabled = Boolean(catalogMaintenance);
+  const { catalogDisabled, catalogMessage } = useCatalogAccess();
 
   const avatarSrc = user?.avatar_url || user?.avatar || null
 
@@ -195,7 +197,7 @@ export default function NavbarCustomer() {
   const handleSelectSub = (subId) => {
 
     if (catalogDisabled) {
-      alert(catalogMaintenance || "Katalog sedang maintenance");
+      alert(catalogMessage);
       return;
     }
 

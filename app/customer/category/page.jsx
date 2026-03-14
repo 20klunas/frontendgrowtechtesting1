@@ -10,6 +10,7 @@ import {
   isFeatureMaintenanceError,
   isMaintenanceError,
 } from "../../lib/maintenanceHandler";
+import useCatalogAccess from "../../hooks/useCatalogAccess";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -22,7 +23,8 @@ export default function CategoryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
   const [catalogMaintenance, setCatalogMaintenance] = useState("");
-  const catalogDisabled = Boolean(catalogMaintenance);
+  // const catalogDisabled = Boolean(catalogMaintenance);
+  const { catalogDisabled, catalogMessage } = useCatalogAccess();
 
   const filteredSubcategories = subcategories.filter((sub) =>
     sub.name.toLowerCase().includes(search.toLowerCase())
@@ -197,11 +199,11 @@ export default function CategoryPage() {
           </div>
 
           {/* ================= GRID ================= */}
-          {catalogMaintenance ? (
+          {catalogDisabled ? (
 
             <FeatureMaintenanceCard
               title="Katalog sedang maintenance"
-              message={catalogMaintenance}
+              message={catalogMessage}
             />
 
           ) : (
