@@ -384,12 +384,19 @@ export default function TopUpPage() {
             </div>
 
             <button
-              // onClick={() => setShowConfirm(true)}
-              disabled={!paymentMethod || topupDisabled}
               onClick={handleTopup}
-              className="mt-6 w-full rounded-xl border border-purple-500 py-3 font-semibold hover:bg-purple-500/10"
+              disabled={!paymentMethod || topupDisabled}
+              title={topupDisabled ? topupMessage : ""}
+              className={`mt-6 w-full rounded-xl py-3 font-semibold transition
+              ${
+                !paymentMethod || topupDisabled
+                  ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                  : "border border-purple-500 hover:bg-purple-500/10 text-white"
+              }`}
             >
-              Lanjutkan Pembayaran
+              {topupDisabled
+                ? "🔒 Top Up Maintenance"
+                : "Lanjutkan Pembayaran"}
             </button>
           </Card>
 
