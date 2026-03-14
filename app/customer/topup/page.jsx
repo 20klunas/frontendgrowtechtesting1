@@ -7,7 +7,7 @@ import Link from "next/link"
 import { useEffect } from "react"
 import Cookies from "js-cookie"
 import Script from 'next/script'
-
+import useTopUpAccess from "../../hooks/useTopUpAccess";
 /* ================= DATA ================= */
 
 const API = process.env.NEXT_PUBLIC_API_URL
@@ -52,6 +52,7 @@ export default function TopUpPage() {
   const [token, setToken] = useState(null)
   const [gateways,setGateways] = useState([])
   const [paymentMethod,setPaymentMethod] = useState(null)
+  const { topupDisabled, topupMessage, loading } = useTopUpAccess();
 
   const fetchGateways = async () => {
 
@@ -105,15 +106,18 @@ export default function TopUpPage() {
 
   },[])
 
-  useEffect(()=>{
+  useEffect(() => {
 
-    if(token){
+    if (token) {
       fetchWalletSummary()
       fetchLedger()
-      fetchGateways()
+
+      if (!topupDisabled) {
+        fetchGateways()
+      }
     }
 
-  },[token])
+  },[token, topupDisabled])
 
   const defaultOptions = {
     headers: {
@@ -135,6 +139,11 @@ export default function TopUpPage() {
       alert("Silakan login ulang")
       router.push("/login")
       return
+    }
+
+    if (topupDisabled) {
+      alert(topupMessage || "Top up sedang maintenance");
+      return;
     }
 
     try {
@@ -240,6 +249,15 @@ export default function TopUpPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <section className="max-w-7xl mx-auto px-8 py-10 text-white">
+        <p>Loading...</p>
+      </section>
+    )
+  }
+  
+
   const fee =
     paymentMethod?.feeType === "percent"
       ? Math.round(amount * paymentMethod.fee / 100)
@@ -262,6 +280,16 @@ export default function TopUpPage() {
       strategy="afterInteractive"
     />
     <section className="max-w-7xl mx-auto px-8 py-10 text-white">
+
+      {topupDisabled && (
+        <div className={`mt-6 w-full rounded-xl border py-3 font-semibold transition
+          ${topupDisabled
+            ? "border-gray-600 text-gray-500 cursor-not-allowed"
+            : "border-purple-500 hover:bg-purple-500/10"}
+        `}>
+          {topupMessage}
+        </div>
+      )}
 
       <h1 className="text-3xl font-bold mb-10">
         Top Up Saldo Wallet
@@ -293,6 +321,7 @@ export default function TopUpPage() {
               {PRESETS.map((p) => (
                 <button
                   key={p.value}
+                  disabled={topupDisabled}
                   onClick={() => setAmount(p.value)}
                   className={`rounded-xl border py-3 transition
                     ${amount === p.value
@@ -339,7 +368,7 @@ export default function TopUpPage() {
 
             <button
               // onClick={() => setShowConfirm(true)}
-              disabled={!paymentMethod}
+              disabled={!paymentMethod || topupDisabled}
               onClick={handleTopup}
               className="mt-6 w-full rounded-xl border border-purple-500 py-3 font-semibold hover:bg-purple-500/10"
             >
