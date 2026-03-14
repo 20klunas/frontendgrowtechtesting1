@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import ProductCard from "../../components/customer/SubCategoryCard";
 import { motion } from "framer-motion";
 import { publicFetch } from "../../lib/publicFetch";
+import {
+  getMaintenanceMessage,
+  isFeatureMaintenanceError,
+  isMaintenanceError,
+} from "../../lib/maintenanceHandler";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -15,6 +20,8 @@ export default function CategoryPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+  const [catalogMaintenance, setCatalogMaintenance] = useState("");
+  const catalogDisabled = Boolean(catalogMaintenance);
 
   const filteredSubcategories = subcategories.filter((sub) =>
     sub.name.toLowerCase().includes(search.toLowerCase())
@@ -52,6 +59,7 @@ export default function CategoryPage() {
   const fetchSubcategories = async (categoryId = null) => {
     try {
       setLoading(true);
+      setCatalogMaintenance("");
 
       const url = categoryId
         ? `${API}/api/v1/categories/${categoryId}/subcategories`
@@ -62,9 +70,25 @@ export default function CategoryPage() {
       if (json.success) {
         setSubcategories(json.data);
       }
+
     } catch (err) {
-      console.error("Failed fetch subcategories:", err);
+
+      if (isFeatureMaintenanceError(err, "catalog_access")) {
+
+        setCatalogMaintenance(
+          getMaintenanceMessage(err, "Katalog sedang maintenance.")
+        );
+
+        setSubcategories([]);
+        return;
+      }
+
+      if (!isMaintenanceError(err)) {
+        console.error("Failed fetch subcategories:", err);
+      }
+
       setSubcategories([]);
+
     } finally {
       setLoading(false);
     }
@@ -99,6 +123,7 @@ export default function CategoryPage() {
           </h4>
 
           <button
+            disabled={catalogDisabled}
             className={!selectedCategory ? "active whitespace-nowrap" : "whitespace-nowrap"}
             onClick={() => handleCategoryClick(null)}
           >
@@ -171,30 +196,43 @@ export default function CategoryPage() {
           </div>
 
           {/* ================= GRID ================= */}
-          <motion.div
-            key={currentPage}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="
-              product-grid
-              grid
-              grid-cols-1
-              sm:grid-cols-2
-              lg:grid-cols-3
-              gap-4 sm:gap-6
-            "
-          >
-            {paginatedSubs.map((sub) => (
-              <ProductCard key={sub.id} subcategory={sub} />
-            ))}
+          {catalogMaintenance ? (
 
-            {filteredSubcategories.length === 0 && (
-              <p className="text-white/60">
-                Produk tidak ditemukan
-              </p>
-            )}
-          </motion.div>
+            <FeatureMaintenanceCard
+              title="Katalog sedang maintenance"
+              message={catalogMaintenance}
+            />
+
+          ) : (
+
+            <motion.div
+              key={currentPage}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="
+                product-grid
+                grid
+                grid-cols-1
+                sm:grid-cols-2
+                lg:grid-cols-3
+                gap-4 sm:gap-6
+              "
+            >
+
+              {paginatedSubs.map((sub) => (
+                <ProductCard key={sub.id} subcategory={sub} />
+              ))}
+
+              {filteredSubcategories.length === 0 && (
+                <p className="text-white/60">
+                  Produk tidak ditemukan
+                </p>
+              )}
+
+            </motion.div>
+
+          )}
 
           {/* ================= PAGINATION ================= */}
           {totalPages > 1 && (
@@ -265,5 +303,18 @@ export default function CategoryPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function FeatureMaintenanceCard({ title, message }) {
+  return (
+    <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 text-center">
+      <h3 className="text-xl font-semibold text-amber-300 mb-2">
+        {title}
+      </h3>
+      <p className="text-amber-100/90">
+        {message}
+      </p>
+    </div>
   );
 }
