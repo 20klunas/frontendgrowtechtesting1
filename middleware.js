@@ -18,6 +18,14 @@ function isInternalPath(pathname) {
   );
 }
 
+if (
+  pathname.startsWith("/_next") ||
+  pathname.startsWith("/icons") ||
+  pathname.startsWith("/images")
+) {
+  return NextResponse.next();
+}
+
 function buildMaintenanceRedirectPath(data) {
   const message = encodeURIComponent(
     data?.error?.message || "Website sedang maintenance."

@@ -63,7 +63,7 @@ export default function useCatalogAccess() {
 
     checkCatalog();
 
-  }, [loading]);
+  }, []);
 
   return {
     catalogDisabled,

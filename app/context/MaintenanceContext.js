@@ -11,36 +11,10 @@ import {
 const MaintenanceContext = createContext();
 
 export function MaintenanceProvider({ children }) {
+
   const [catalogDisabled, setCatalogDisabled] = useState(false);
   const [catalogMessage, setCatalogMessage] = useState("");
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const checkMaintenance = async () => {
-      try {
-        await authFetch("/api/v1/catalog/products?per_page=1");
-
-        setCatalogDisabled(false);
-        setCatalogMessage("");
-      } catch (err) {
-        if (isFeatureMaintenanceError(err, "catalog_access")) {
-          setCatalogDisabled(true);
-          setCatalogMessage(
-            getMaintenanceMessage(err, "Katalog sedang maintenance.")
-          );
-          return;
-        }
-
-        if (!isMaintenanceError(err)) {
-          console.error("Maintenance check error:", err);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkMaintenance();
-  }, []);
 
   return (
     <MaintenanceContext.Provider
@@ -48,6 +22,9 @@ export function MaintenanceProvider({ children }) {
         catalogDisabled,
         catalogMessage,
         loading,
+        setCatalogDisabled,
+        setCatalogMessage,
+        setLoading
       }}
     >
       {children}
