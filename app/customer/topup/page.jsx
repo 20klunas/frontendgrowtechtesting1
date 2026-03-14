@@ -67,19 +67,15 @@ export default function TopUpPage() {
         }
       )
 
-      if (!res.ok) {
-        throw new Error("Gateway API error")
-      }
+      const data = await res.json()
 
-      const json = await res.json()
-
-      if (json?.success) {
+      if (data.success) {
 
         const rows =
-          Array.isArray(json.data)
-            ? json.data
-            : Array.isArray(json.data?.items)
-            ? json.data.items
+          Array.isArray(data.data)
+            ? data.data
+            : Array.isArray(data.data?.items)
+            ? data.data.items
             : []
 
         const mapped = rows.map(g => ({
@@ -239,7 +235,7 @@ export default function TopUpPage() {
 
   }
 
-  console.log("ledger", data)
+  console.log("ledger", history)
 
   const fetchWalletSummary = async () => {
     if (!token) return
