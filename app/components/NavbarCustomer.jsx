@@ -11,6 +11,11 @@ import Cookies from "js-cookie"
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
 import { Heart } from "lucide-react";
+import {
+  getMaintenanceMessage,
+  isFeatureMaintenanceError,
+  isMaintenanceError,
+} from "../lib/maintenanceHandler";
 
 /* ================= UTIL ================= */
 const normalizeSettings = (rows = []) =>
@@ -38,6 +43,8 @@ export default function NavbarCustomer() {
   const [subcategories, setSubcategories] = useState([]);
   const [filteredSubs, setFilteredSubs] = useState([]);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [catalogMaintenance, setCatalogMaintenance] = useState("");
+  const catalogDisabled = Boolean(catalogMaintenance);
 
   const avatarSrc = user?.avatar_url || user?.avatar || null
 
@@ -71,14 +78,28 @@ export default function NavbarCustomer() {
 
   const fetchSubcategories = async () => {
     try {
-      const res = await fetch(`${API}/api/v1/subcategories`);
+      setCatalogMaintenance("");
+
+      const res = await fetch(`${API}/api/v1/catalog/subcategories`);
       const json = await res.json();
 
       if (json.success) {
         setSubcategories(json.data);
       }
+
     } catch (err) {
-      console.error("Failed fetch subcategories:", err);
+
+      if (isFeatureMaintenanceError(err, "catalog_access")) {
+        setCatalogMaintenance(
+          getMaintenanceMessage(err, "Katalog sedang maintenance.")
+        );
+        setSubcategories([]);
+        return;
+      }
+
+      if (!isMaintenanceError(err)) {
+        console.error("Failed fetch subcategories:", err);
+      }
     }
   };
 
@@ -172,6 +193,12 @@ export default function NavbarCustomer() {
 
   /* ================= HANDLERS ================= */
   const handleSelectSub = (subId) => {
+
+    if (catalogDisabled) {
+      alert(catalogMaintenance || "Katalog sedang maintenance");
+      return;
+    }
+
     setSearch("");
     setSearchOpen(false);
 
@@ -264,8 +291,13 @@ export default function NavbarCustomer() {
 
             {/* INPUT */}
             <input
+              disabled={catalogDisabled}
               type="text"
-              placeholder="Cari produk..."
+              placeholder={
+                catalogDisabled
+                  ? "Katalog sedang maintenance"
+                  : "Cari produk..."
+              }
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
