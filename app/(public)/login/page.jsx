@@ -17,6 +17,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [authDisabled,setAuthDisabled] = useState(false)
+  const [authMessage,setAuthMessage] = useState("")
 
   const saveSession = (token, user) => {
     Cookies.set("token", token, {
@@ -117,13 +119,25 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    if (!API) {
-      alert("NEXT_PUBLIC_API_URL belum diset");
-      return;
+  const handleGoogleLogin = async () => {
+
+    try {
+
+      await publicFetch("/api/v1/auth/google/redirect-check");
+
+      window.location.href = `${API}/api/v1/auth/google/redirect`;
+
+    } catch (err) {
+
+      if (err?.isMaintenance) {
+        alert(err.message || "Login sedang maintenance");
+        return;
+      }
+
+      alert("Gagal memulai login Google");
+
     }
 
-    window.location.href = `${API}/api/v1/auth/google/redirect`;
   };
 
   const handleDiscordLogin = () => {
