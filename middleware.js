@@ -127,114 +127,29 @@ async function checkUserAreaMaintenance(request, pathname, token, role) {
 }
 
 export async function middleware(request) {
-  const token = request.cookies.get("token")?.value;
-  const role = request.cookies.get("role")?.value;
+
   const { pathname } = request.nextUrl;
 
-  // STOP middleware logic untuk maintenance page
-  if (pathname.startsWith("/maintenance")) {
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/maintenance") ||
+    pathname.includes(".")
+  ) {
     return NextResponse.next();
   }
 
-  const isAdminRoute = pathname.startsWith("/admin");
-  const isCustomerRoute = pathname.startsWith("/customer");
-  const isProtectedRoute = isAdminRoute || isCustomerRoute;
+  const token = request.cookies.get("token")?.value;
 
-  const isAuthRoute =
-    pathname === "/login" ||
-    pathname === "/register";
-
-  const isOtpRoute = pathname.startsWith("/verify-otp");
-  const isMaintenanceRoute = pathname.startsWith("/maintenance");
-
-  // AUTH GUARD
-  if (isProtectedRoute && !token) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // ROLE GUARD
-  if (isAdminRoute && token && role !== "admin") {
-    return NextResponse.redirect(new URL("/customer", request.url));
-  }
-
-  if (isCustomerRoute && token && role === "admin") {
-    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
-  }
-
-  // LOGIN / REGISTER JIKA SUDAH LOGIN
-  if (isAuthRoute && token) {
-    if (role === "admin") {
-      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
-    }
-
-    if (role === "user" || role === "customer") {
-      return NextResponse.redirect(new URL("/customer", request.url));
-    }
-
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // OTP PAGE JIKA SUDAH LOGIN PENUH
-  if (isOtpRoute && token) {
-    if (role === "admin") {
-      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
-    }
-
-    if (role === "user" || role === "customer") {
-      return NextResponse.redirect(new URL("/customer", request.url));
-    }
-
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // FULL PUBLIC MAINTENANCE
   const publicMaintenance = await checkPublicMaintenance(request, pathname);
   if (publicMaintenance) return publicMaintenance;
 
-  // FULL USER AREA MAINTENANCE
   const userMaintenance = await checkUserAreaMaintenance(
     request,
     pathname,
-    token,
-    role
+    token
   );
+
   if (userMaintenance) return userMaintenance;
-
-  // kalau buka /maintenance saat normal, balikkan
-  if (isMaintenanceRoute && API) {
-    try {
-      const publicRes = await fetch(`${API}/api/v1/content/settings?group=website`, {
-        method: "GET",
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      });
-
-      const publicStillMaintenance = publicRes.status === 503;
-
-      if (!publicStillMaintenance) {
-        if (token && (role === "user" || role === "customer")) {
-          const userRes = await fetch(`${API}/api/v1/wallet/summary`, {
-            method: "GET",
-            cache: "no-store",
-            headers: {
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          const userStillMaintenance = userRes.status === 503;
-
-          if (!userStillMaintenance) {
-            return NextResponse.redirect(new URL("/customer", request.url));
-          }
-        } else {
-          return NextResponse.redirect(new URL("/", request.url));
-        }
-      }
-    } catch (error) {
-      console.error("Maintenance page re-check failed:", error);
-    }
-  }
 
   return NextResponse.next();
 }
