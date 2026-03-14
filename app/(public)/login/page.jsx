@@ -133,7 +133,14 @@ export default function LoginPage() {
 
     try {
 
-      await publicFetch("/api/v1/auth/google/redirect-check");
+      if (!API) {
+        setPopup({
+          open: true,
+          type: "error",
+          message: "API belum dikonfigurasi"
+        });
+        return;
+      }
 
       window.location.href = `${API}/api/v1/auth/google/redirect`;
 
