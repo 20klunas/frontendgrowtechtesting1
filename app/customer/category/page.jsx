@@ -46,7 +46,7 @@ export default function CategoryPage() {
 
   const fetchCategories = async () => {
     try {
-      const json = await authFetch("/api/v1/categories");
+      const json = await authFetch("/api/v1/catalog/categories");
 
       if (json.success) {
         setCategories(json.data);
