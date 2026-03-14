@@ -123,6 +123,11 @@ export async function middleware(request) {
   const role = request.cookies.get("role")?.value;
   const { pathname } = request.nextUrl;
 
+  // STOP middleware logic untuk maintenance page
+  if (pathname.startsWith("/maintenance")) {
+    return NextResponse.next();
+  }
+
   const isAdminRoute = pathname.startsWith("/admin");
   const isCustomerRoute = pathname.startsWith("/customer");
   const isProtectedRoute = isAdminRoute || isCustomerRoute;
