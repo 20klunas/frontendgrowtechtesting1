@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authFetch } from "../../../../../lib/authFetch";
+import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess";
 
 export default function CartPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function CartPage() {
 
   const [voucher, setVoucher] = useState("");
   const [voucherValid, setVoucherValid] = useState(null);
+  const { loading: accessLoading, allowed, message } = useCheckoutAccess();
 
   const debounceRef = useRef(null);
 
@@ -182,6 +184,35 @@ export default function CartPage() {
           className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 transition"
         >
           Login Sekarang
+        </Link>
+      </main>
+    );
+  }
+
+  if (accessLoading) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        <p className="text-gray-400">Checking checkout access...</p>
+      </main>
+    );
+  }
+
+  if (!allowed) {
+    return (
+      <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center text-center px-6">
+        <h2 className="text-2xl font-semibold mb-3">
+          Checkout Sedang Tidak Tersedia
+        </h2>
+
+        <p className="text-gray-400 mb-6">
+          {message || "Fitur checkout sedang maintenance."}
+        </p>
+
+        <Link
+          href="/customer/category"
+          className="px-6 py-3 rounded-xl bg-purple-700 hover:bg-purple-600"
+        >
+          Kembali ke Katalog
         </Link>
       </main>
     );

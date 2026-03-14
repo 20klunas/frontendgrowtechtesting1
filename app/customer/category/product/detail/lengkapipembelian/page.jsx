@@ -6,6 +6,7 @@ import Link from "next/link";
 import { authFetch } from "../../../../../lib/authFetch";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -16,6 +17,7 @@ export default function StepTwo() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [patchingQty, setPatchingQty] = useState(false);
+  const { loading: accessLoading, allowed, message } = useCheckoutAccess();
 
   const router = useRouter();
 
@@ -174,6 +176,35 @@ export default function StepTwo() {
   const taxPercent = checkout.summary?.tax_percent ?? 0;
   const taxAmount = checkout.summary?.tax_amount ?? 0;
   const total = checkout.summary?.total ?? 0;
+
+  if (accessLoading) {
+    return (
+      <section className="max-w-5xl mx-auto px-6 py-12 text-white">
+        <p className="text-gray-400">Checking checkout access...</p>
+      </section>
+    );
+  }
+
+  if (!allowed) {
+    return (
+      <section className="max-w-5xl mx-auto px-6 py-12 text-white text-center">
+        <h2 className="text-2xl font-semibold mb-3">
+          Checkout Sedang Maintenance
+        </h2>
+
+        <p className="text-gray-400 mb-6">
+          {message || "Silakan coba lagi nanti."}
+        </p>
+
+        <Link
+          href="/customer/category"
+          className="px-6 py-3 rounded-xl bg-purple-700 hover:bg-purple-600"
+        >
+          Kembali ke Katalog
+        </Link>
+      </section>
+    );
+  }
 
   return (
     <section className="max-w-5xl mx-auto px-6 py-10 text-white">
