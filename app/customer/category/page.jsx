@@ -62,8 +62,8 @@ export default function CategoryPage() {
       setCatalogMaintenance("");
 
       const url = categoryId
-        ? `${API}/api/v1/categories/${categoryId}/subcategories`
-        : `${API}/api/v1/subcategories`;
+        ? `${API}/api/v1/catalog/categories/${categoryId}/subcategories`
+        : `${API}/api/v1/catalog/subcategories`;
 
       const json = await publicFetch(url.replace(API, ""));
 
