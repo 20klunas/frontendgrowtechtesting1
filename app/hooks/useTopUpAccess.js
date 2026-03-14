@@ -18,7 +18,10 @@ export default function useTopUpAccess() {
 
     const checkTopup = async () => {
       try {
-        await authFetch("/api/v1/wallet/summary");
+        await authFetch("/api/v1/wallet/topups/init", {
+          method: "POST",
+          body: JSON.stringify({ amount: 1000, gateway_code: "test" })
+        });
 
         if (!active) return;
 
