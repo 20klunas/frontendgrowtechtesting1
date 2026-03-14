@@ -1,5 +1,5 @@
 'use client'
-
+export const dynamic = "force-dynamic";
 import { useState } from "react"
 import { X, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -8,6 +8,7 @@ import { useEffect } from "react"
 import Cookies from "js-cookie"
 import Script from 'next/script'
 import useTopUpAccess from "../../hooks/useTopUpAccess";
+
 /* ================= DATA ================= */
 
 const API = process.env.NEXT_PUBLIC_API_URL
@@ -67,7 +68,9 @@ export default function TopUpPage() {
         }
       )
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+
+      if (!data?.success) return
 
       if (data.success) {
 
@@ -100,11 +103,11 @@ export default function TopUpPage() {
 
   }
 
-  useEffect(()=>{
-
-    setToken(Cookies.get("token"))
-
-  },[])
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setToken(Cookies.get("token"))
+    }
+  }, [])
 
   useEffect(() => {
 
@@ -157,10 +160,10 @@ export default function TopUpPage() {
         })
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
 
-      if (!data.success) {
-        throw new Error(data.message || "Topup gagal")
+      if (!data?.success) {
+        throw new Error(data?.message || "Topup gagal")
       }
 
       const snapToken = data.data.snap_token
@@ -168,7 +171,7 @@ export default function TopUpPage() {
 
       /* MIDTRANS SNAP */
 
-      if (snapToken && window.snap) {
+      if (snapToken && typeof window !== "undefined" && window.snap) {
 
         window.snap.pay(snapToken, {
           onSuccess: async () => {
@@ -215,7 +218,9 @@ export default function TopUpPage() {
         }
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+
+      if(!data?.success) return
 
       if(data.success){
 
@@ -248,7 +253,9 @@ export default function TopUpPage() {
         }
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+
+      if (!data?.success) return
 
       if (data.success) {
         setWallet(data.data.wallet)

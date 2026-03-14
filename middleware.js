@@ -140,8 +140,8 @@ export async function middleware(request) {
 
   const token = request.cookies.get("token")?.value;
 
-  const publicMaintenance = await checkPublicMaintenance(request, pathname);
-  if (publicMaintenance) return publicMaintenance;
+  // const publicMaintenance = await checkPublicMaintenance(request, pathname);
+  // if (publicMaintenance) return publicMaintenance;
 
   const userMaintenance = await checkUserAreaMaintenance(
     request,
