@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ProductCard from "../../components/customer/SubCategoryCard";
 import { motion } from "framer-motion";
 import { publicFetch } from "../../lib/publicFetch";
+import { authFetch } from "../../lib/authFetch";
 import {
   getMaintenanceMessage,
   isFeatureMaintenanceError,
@@ -45,7 +46,7 @@ export default function CategoryPage() {
 
   const fetchCategories = async () => {
     try {
-      const json = await publicFetch("/api/v1/categories");
+      const json = await authFetch("/api/v1/categories");
 
       if (json.success) {
         setCategories(json.data);
@@ -65,7 +66,7 @@ export default function CategoryPage() {
         ? `${API}/api/v1/catalog/categories/${categoryId}/subcategories`
         : `${API}/api/v1/catalog/subcategories`;
 
-      const json = await publicFetch(url.replace(API, ""));
+      const json = await authFetch(url.replace(API, ""));
 
       if (json.success) {
         setSubcategories(json.data);
