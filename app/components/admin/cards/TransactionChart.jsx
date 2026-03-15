@@ -131,7 +131,6 @@ export default function TransactionChart({
                 color: isDark ? "#ffffff" : "#111827",
                 fontSize: 12
               }}
-              formatter={(value) => formatRupiah(valueJuta * 1_000_000)}
             />
 
             <Line
