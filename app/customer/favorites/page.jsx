@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "../../lib/utils";
 import useCatalogAccess from "../../hooks/useCatalogAccess";
+import { useRouter } from "next/navigation";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -19,6 +20,7 @@ export default function CustomerFavoritesPage() {
 
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     if (!accessLoading && !catalogDisabled) {
@@ -47,6 +49,65 @@ export default function CustomerFavoritesPage() {
       console.error("Failed fetch favorites:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBuyNow = async (productId) => {
+    try {
+      const token = Cookies.get("token");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      // 1️⃣ add ke cart
+      const addRes = await fetch(`${API}/api/v1/cart/items`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          product_id: productId,
+          qty: 1,
+        }),
+      });
+
+      if (!addRes.ok) {
+        const text = await addRes.text();
+        console.error("Add to cart failed:", text);
+        alert("Gagal menambahkan produk");
+        return;
+      }
+
+      // 2️⃣ checkout
+      const checkoutRes = await fetch(`${API}/api/v1/cart/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          voucher_code: null,
+        }),
+      });
+
+      if (!checkoutRes.ok) {
+        const text = await checkoutRes.text();
+        console.error("Checkout failed:", text);
+        alert("Checkout gagal");
+        return;
+      }
+
+      // 3️⃣ redirect
+      router.push("/customer/category/product/detail/lengkapipembelian");
+
+      window.dispatchEvent(new Event("cart-updated"));
+
+    } catch (err) {
+      console.error("Buy now error:", err);
+      alert("Terjadi kesalahan");
     }
   };
 
@@ -119,12 +180,12 @@ export default function CustomerFavoritesPage() {
                     </span>
                   </div>
 
-                  <Link
-                    href={`/customer/category/product/${product?.id}`}
-                    className="block mt-3 text-sm bg-purple-600 hover:bg-purple-700 py-2 rounded-lg text-center transition"
+                  <button
+                    onClick={() => handleBuyNow(product?.id)}
+                    className="block w-full mt-3 text-sm bg-purple-600 hover:bg-purple-700 py-2 rounded-lg text-center transition"
                   >
-                    Lihat Produk
-                  </Link>
+                    Beli
+                  </button>
                 </div>
               </div>
             );
