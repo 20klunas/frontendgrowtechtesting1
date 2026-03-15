@@ -31,7 +31,6 @@ export default function Footer() {
       border-t border-purple-800/40
       bg-gradient-to-b from-black to-[#0a0014]
       text-white
-      mt-16
       overflow-hidden
     ">
 
