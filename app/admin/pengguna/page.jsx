@@ -186,13 +186,13 @@ export default function ManajemenPenggunaPage() {
 
             {/* TOOLBAR */}
             <div className="flex flex-wrap items-center gap-3 mb-6">
-              <button
+              {/* <button
                 onClick={() => setShowFilter(!showFilter)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg border border-purple-700 hover:bg-purple-700/20"
               >
                 <Filter size={16} />
                 Filter
-              </button>
+              </button> */}
 
               <input
                 placeholder="Cari data..."

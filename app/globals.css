@@ -190,6 +190,10 @@ html:not(.dark) .admin table tbody tr:hover a {
   color: #ffffff !important;
 }
 
+html:not(.dark) .admin bg-gray-800 :hover {
+  color: #ffffff !important;
+}
+
 /* ================= MODAL CARD ================= */
 
 .modal-card {

@@ -325,13 +325,13 @@ export default function DataDepositPage() {
               </thead>
               <tbody>
                 {topups.map(item => (
-                  <tr key={item.id} className="border-b">
-                    <td>{item.id}</td>
-                    <td>{item.order_id}</td>
-                    <td>{item.status}</td>
-                    <td>{item.user?.name}</td>
-                    <td>Rp {formatRupiah(item.amount)}</td>
-                    <td>{new Date(item.created_at).toLocaleString()}</td>
+                  <tr key={item.id} className="border-b text-white">
+                    <td className="text-white">{item.id}</td>
+                    <td className="text-white">{item.order_id}</td>
+                    <td className="text-white">{item.status}</td>
+                    <td className="text-white">{item.user?.name}</td>
+                    <td className="text-white">Rp {formatRupiah(item.amount)}</td>
+                    <td className="text-white">{new Date(item.created_at).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -362,15 +362,15 @@ export default function DataDepositPage() {
 
               <tbody>
                 {ledger.map(item => (
-                  <tr key={item.id} className="border-b">
+                  <tr key={item.id} className="border-b text-white">
 
-                    <td>{item.id}</td>
+                    <td className="text-white">{item.id}</td>
 
-                    <td>
+                    <td className="text-white">
                       {item.wallet?.code ?? `Wallet #${item.wallet_id}`}
                     </td>
 
-                    <td>
+                    <td className="text-white">
                       {item.wallet?.user?.email ?? '-'}
                     </td>
 
@@ -384,21 +384,21 @@ export default function DataDepositPage() {
                       </span>
                     </td>
 
-                    <td>Rp {formatRupiah(item.amount)}</td>
+                    <td className="text-white">Rp {formatRupiah(item.amount)}</td>
 
-                    <td>Rp {formatRupiah(item.balance_before)}</td>
+                    <td className="text-white">Rp {formatRupiah(item.balance_before)}</td>
 
-                    <td>Rp {formatRupiah(item.balance_after)}</td>
+                    <td className="text-white">Rp {formatRupiah(item.balance_after)}</td>
 
-                    <td>{item.transaction?.type}</td>
+                    <td className="text-white">{item.transaction?.type}</td>
 
-                    <td>{item.transaction?.status}</td>
+                    <td className="text-white">{item.transaction?.status}</td>
 
-                    <td>
+                    <td className="text-white">
                       {item.transaction?.note ?? '-'}
                     </td>
 
-                    <td>
+                    <td className="text-white">
                       {new Date(item.created_at).toLocaleString("id-ID")}
                     </td>
 
@@ -514,7 +514,7 @@ export default function DataDepositPage() {
 
             {/* Preview Note */}
             <div className="text-sm bg-gray-50 p-3 rounded">
-              <div className="font-semibold">Preview note:</div>
+              <div className="font-semibold text-black">Preview note:</div>
               <div className="font-mono text-gray-700">
                 {buildNote(
                   manualTopup.reason,
