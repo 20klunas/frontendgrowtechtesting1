@@ -110,7 +110,17 @@ export default function ProfilePage() {
   if (loading) return null;
   if (!user) return <p className="text-white text-center">User tidak ditemukan</p>;
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === "name") {
+      const trimmed = value.slice(0, 10); // maksimal 10
+      setForm({ ...form, name: trimmed });
+      return;
+    }
+
+    setForm({ ...form, [name]: value });
+  };
 
   const handleAvatarSelect = (e) => {
     const file = e.target.files?.[0];
@@ -221,6 +231,7 @@ export default function ProfilePage() {
                 onChange={handleChange}
                 filled={isFilled(form.name)}
                 changed={isChanged("name")}
+                maxLength={10}
               />
 
               <Input
@@ -262,7 +273,7 @@ export default function ProfilePage() {
                       }
                     `}
                   >
-                    {form.tier.toUpperCase()}
+                    {String(form.tier || "member").toUpperCase()}
                   </span>
 
                   <a
@@ -314,6 +325,7 @@ function Input({
   disabled = false,
   filled = false,
   changed = false,
+  maxLength
 }) {
   return (
     <div>
@@ -327,6 +339,7 @@ function Input({
         value={value}
         onChange={onChange}
         disabled={disabled}
+        maxLength={maxLength}
         placeholder={disabled ? "" : "Belum diisi"}
         className={`w-full rounded-xl px-4 py-2 outline-none text-white border
           ${filled ? "bg-purple-900/60 border-purple-500" : "bg-black border-purple-700/30 text-gray-400"}
