@@ -70,12 +70,7 @@ export default function TransactionChart({
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  if (!mounted) return null;
-
-  const isDark = theme === "dark";
-
-
+  const isDark = mounted && theme === "dark";
 
   // kalau data berubah, pastikan offset ga out of range
   useEffect(() => {
@@ -105,66 +100,68 @@ export default function TransactionChart({
       </div>
 
       <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={sliced}>
-            <CartesianGrid
-              stroke={gridColor}
-              strokeDasharray="3 3"
-              vertical={false}
-            />
+        { mounted ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={sliced}>
+              <CartesianGrid
+                stroke={gridColor}
+                strokeDasharray="3 3"
+                vertical={false}
+              />
 
 
-            <XAxis
-              dataKey="dayLabel"
-              stroke={axisColor}
-              tick={{ fontSize: 11 }}
-              interval="preserveStartEnd"
-            />
+              <XAxis
+                dataKey="dayLabel"
+                stroke={axisColor}
+                tick={{ fontSize: 11 }}
+                interval="preserveStartEnd"
+              />
 
-            <YAxis
-              stroke={axisColor}
-              domain={[0, "auto"]}
-              tick={{ fontSize: 11 }}
-              tickFormatter={(v) => {
-                if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)} jt`;
-                if (v >= 1_000) return `${(v / 1_000).toFixed(0)} rb`;
-                return v;
-              }}
-            />
+              <YAxis
+                stroke={axisColor}
+                domain={[0, "auto"]}
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v) => {
+                  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)} jt`;
+                  if (v >= 1_000) return `${(v / 1_000).toFixed(0)} rb`;
+                  return v;
+                }}
+              />
 
-            <Tooltip
-              formatter={(value) => formatRupiah(value)}
-              contentStyle={{
-                backgroundColor: tooltipBg,
-                border: `1px solid ${tooltipBorder}`,
-                borderRadius: "8px",
-              }}
-              labelStyle={{
-                color: isDark ? "#a78bfa" : "#4f46e5",
-                fontSize: 12
-              }}
-              itemStyle={{
-                color: isDark ? "#ffffff" : "#111827",
-                fontSize: 12
-              }}
-            />
+              <Tooltip
+                formatter={(value) => formatRupiah(value)}
+                contentStyle={{
+                  backgroundColor: tooltipBg,
+                  border: `1px solid ${tooltipBorder}`,
+                  borderRadius: "8px",
+                }}
+                labelStyle={{
+                  color: isDark ? "#a78bfa" : "#4f46e5",
+                  fontSize: 12
+                }}
+                itemStyle={{
+                  color: isDark ? "#ffffff" : "#111827",
+                  fontSize: 12
+                }}
+              />
 
-            <Line
-              type="natural"
-              dataKey="value"
-              stroke={lineColor}
-              strokeWidth={2}
-              isAnimationActive
-              animationDuration={600}
-              dot={{
-                r: 5,
-                fill: isDark ? "#a855f7" : "#000000",
-                stroke: isDark ? "#0f172a" : "#ffffff",
-                strokeWidth: 2
-              }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+              <Line
+                type="natural"
+                dataKey="value"
+                stroke={lineColor}
+                strokeWidth={2}
+                isAnimationActive
+                animationDuration={600}
+                dot={{
+                  r: 5,
+                  fill: isDark ? "#a855f7" : "#000000",
+                  stroke: isDark ? "#0f172a" : "#ffffff",
+                  strokeWidth: 2
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : null }
       </div>
 
       {/* SLIDER */}
