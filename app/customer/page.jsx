@@ -135,11 +135,17 @@ export default function CustomerHomePage() {
 
       <section className="relative overflow-hidden">
 
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-purple-700/20 blur-[140px] rounded-full pointer-events-none" />
+        {/* glow background */}
 
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-black to-black pointer-events-none" />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-purple-700/20 blur-[140px] rounded-full pointer-events-none z-0" />
 
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 pt-32 pb-28 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        {/* gradient overlay */}
+
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-black/40 to-black pointer-events-none z-0" />
+
+        {/* HERO CONTENT */}
+
+        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8 pt-32 pb-28 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
           {/* TEXT */}
 
@@ -227,42 +233,8 @@ export default function CustomerHomePage() {
           </motion.div>
 
         </div>
-
-        {/* STATS */}
-
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 pb-12">
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-            {[
-              ["10K+", "Produk Tersedia"],
-              ["100%", "Aman & Terpercaya"],
-              ["24/7", "Dukungan Pelanggan"],
-            ].map(([val, label], i) => (
-
-              <motion.div
-                key={i}
-                whileHover={{ y: -5 }}
-                className="rounded-2xl border border-purple-800/40 bg-gradient-to-b from-zinc-900 to-black p-8 text-center hover:border-purple-500 transition"
-              >
-
-                <p className="text-4xl font-bold text-purple-400">
-                  {val}
-                </p>
-
-                <p className="text-gray-400 mt-2">
-                  {label}
-                </p>
-
-              </motion.div>
-
-            ))}
-
-          </div>
-
-        </div>
-
       </section>
+
 
       {/* BANNER */}
 
