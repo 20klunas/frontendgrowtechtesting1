@@ -57,6 +57,14 @@ function ProcessContent() {
     return <div className="text-white p-10">Memuat pembayaran...</div>;
   }
 
+  useEffect(() => {
+    if (payment?.status === "paid") {
+      router.replace(
+        `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
+      );
+    }
+  }, [payment]);
+
   const status = payment?.status;
 
   const statusConfig = {
