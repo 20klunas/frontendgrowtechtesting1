@@ -280,7 +280,7 @@ export default function StepTwo() {
       {/* ================= BUTTONS ================= */}
       <div className="flex gap-4 mb-8">
         <Link
-          href="/customer/category/product/detail/cart"
+          href="/customer/category"
           className="flex-1 text-center py-3 rounded-xl border border-purple-700 hover:bg-purple-700/20"
         >
           Kembali

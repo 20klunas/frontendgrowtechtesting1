@@ -159,7 +159,7 @@ function ProcessContent() {
 
         <div className="border border-purple-500/40 rounded-xl p-4 mb-6">
 
-          <Row label="Metode" value={payment?.method} />
+          <Row label="Metode" value={payment?.gateway_code} />
 
           <Row label="Status" value={payment?.status} />
 

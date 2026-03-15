@@ -57,7 +57,7 @@ function SuccessContent() {
       setLoading(true);
 
       const [deliveryJson, orderJson, paymentJson] = await Promise.all([
-        authFetch(`/api/v1/orders/${orderId}/delivery`),
+        authFetch(`/api/v1/orders/${orderId}/delivery/info`),
         authFetch(`/api/v1/orders/${orderId}`),
         authFetch(`/api/v1/orders/${orderId}/payments`), // ✅ tambahan
       ]);
@@ -85,7 +85,7 @@ function SuccessContent() {
 
   const fetchDelivery = async () => {
     try {
-      const json = await authFetch(`/api/v1/orders/${orderId}/delivery`);
+      const json = await authFetch(`/api/v1/orders/${orderId}/delivery/info`);
       if (json?.success) setDelivery(json.data);
     } catch (err) {
       console.error("Refresh error:", err);
@@ -306,7 +306,7 @@ function SuccessContent() {
             <span className="text-white font-semibold">{invoiceNumber}</span>
           </p>
 
-          <StatusBadge status={paymentInfo?.order_status || order?.status} />
+          <StatusBadge status={paymentInfo?.order_status} />
         </div>
 
         {/* RATING SECTION */}
@@ -397,7 +397,7 @@ function SuccessContent() {
           <div className="rounded-2xl border border-purple-500/40 p-6">
             <h2 className="text-lg font-semibold mb-4">Akses Produk Digital</h2>
 
-            {!revealedData ? (
+            {delivery?.delivery_mode === "one_time" && !revealedData ? (
               <button
                 onClick={handleReveal}
                 disabled={!delivery?.can_reveal || revealing}
