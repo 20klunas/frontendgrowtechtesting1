@@ -591,18 +591,26 @@ export default function LicensesPage() {
 
               {/* DUPLICATE LIST */}
               {duplicateResult.duplicate_items?.length > 0 && (
-                <div className="mt-3">
+                <div className="mt-4">
 
-                  <p className="text-red-400 text-xs mb-1">
-                    License yang Duplicate:
+                  <p className="text-red-400 font-semibold text-sm mb-2">
+                    License Duplicate ({duplicateResult.duplicate_items.length})
                   </p>
 
-                  <div className="max-h-40 overflow-y-auto border border-red-500/20 rounded p-2 text-xs">
-                    {duplicateResult.duplicate_items.map((l, i) => (
-                      <div key={i} className="text-red-300">
-                        {l}
+                  <div className="max-h-40 overflow-y-auto border border-red-500/30 rounded-lg p-3 bg-red-500/5 space-y-1 text-xs">
+
+                    {duplicateResult.duplicate_items.map((key, i) => (
+                      <div
+                        key={i}
+                        className="flex justify-between border-b border-red-500/10 pb-1"
+                      >
+                        <span className="text-gray-400">#{i + 1}</span>
+                        <span className="text-red-300 font-mono break-all">
+                          {key}
+                        </span>
                       </div>
                     ))}
+
                   </div>
 
                 </div>
