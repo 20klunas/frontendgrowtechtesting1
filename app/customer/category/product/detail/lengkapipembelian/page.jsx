@@ -100,7 +100,7 @@ export default function StepTwo() {
 
     const item = checkout.items[0];
     const stockAvailable = item.stock_available ?? 0;
-    const qty = item.qty ?? 1;
+
 
     if (newQty < 1 || newQty > stockAvailable) return;
 
@@ -159,6 +159,7 @@ export default function StepTwo() {
   }
 
   const item = checkout.items[0];
+  const qty = item.qty ?? 1;
   const product = item.product;
   const unitPrice = item.unit_price ?? 0;
   const stockAvailable = item.stock_available ?? 0;
@@ -252,11 +253,11 @@ export default function StepTwo() {
           <div className="px-4 py-1 rounded-lg bg-purple-900/30">
             {qty} Unit
           </div>
-          <p className="text-xs text-yellow-500 mt-2">
+        </div>
+        <p className="text-xs text-yellow-500 mt-2">
             Catatan: Jumlah pembelian tidak dapat diubah di halaman ini. 
             Untuk mengubah jumlah yang dibeli silakan ke keranjang atau masukkan produk ke keranjang dahulu.
-          </p>
-        </div>
+        </p>
       </div>
 
       {/* ================= SALDO ================= */}
