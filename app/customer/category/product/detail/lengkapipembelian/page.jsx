@@ -105,53 +105,30 @@ export default function StepTwo() {
 
     const oldQty = qty;
 
-    // Optimistic UI
     setQty(newQty);
-    setCheckout((prev) => {
-      if (!prev) return prev;
-
-      const unitPrice = item.unit_price ?? 0;
-      const newSubtotal = unitPrice * newQty;
-
-      return {
-        ...prev,
-        items: [
-          {
-            ...item,
-            qty: newQty,
-            line_subtotal: newSubtotal,
-          },
-        ],
-        summary: {
-          ...prev.summary,
-          subtotal: newSubtotal,
-          total: newSubtotal,
-        },
-      };
-    });
-
     setPatchingQty(true);
 
     try {
-      await authFetch(`/api/v1/cart/items/${item.id}`, {
+      const json = await authFetch(`/api/v1/cart/items/${item.id}`, {
         method: "PATCH",
         body: JSON.stringify({
           qty: newQty,
         }),
       });
 
-      await fetchCheckout(); // refresh checkout data
+      if (json.success) {
+        await fetchCheckout(); // refresh checkout
+        window.dispatchEvent(new Event("cart-updated"));
+      }
 
-      window.dispatchEvent(new Event("cart-updated"));
     } catch (err) {
       console.error("Update qty failed:", err.message);
-
-      // rollback jika gagal
       setQty(oldQty);
     } finally {
       setPatchingQty(false);
     }
   };
+
 
   // ================= SKELETON LOADING =================
   if (loading) {
