@@ -94,8 +94,12 @@ export default function CategoryPage() {
 
       const json = await authFetch(url.replace(API, ""));
 
-      if (json?.success && Array.isArray(json.data)) {
-        setSubcategories(json.data);
+      if (json?.success) {
+        const subs = Array.isArray(json.data)
+          ? json.data
+          : json.data?.data || [];
+
+        setSubcategories(subs);
       } else {
         console.warn("Invalid subcategory response:", json);
         setSubcategories([]);
