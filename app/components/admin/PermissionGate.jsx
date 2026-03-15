@@ -12,9 +12,11 @@ export default function PermissionGate({ permission, children }) {
     if (!loading && !can(permission)) {
       router.replace("/admin/not-found")
     }
-  }, [loading, permission])
+  }, [loading, permission, can])
 
-  if (loading) return null
+  if (loading) {
+    return null
+  }
 
   if (!can(permission)) return null
 
