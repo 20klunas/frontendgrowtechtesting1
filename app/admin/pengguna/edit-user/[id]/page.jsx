@@ -108,7 +108,7 @@ export default function EditUserPage() {
       </div>
 
       {/* CARD */}
-      <div className="rounded-2xl border border-purple-700/60 bg-black/80 backdrop-blur p-8 shadow-[0_0_25px_rgba(168,85,247,0.25)]">
+      <div className="rounded-2xl border border-purple-700/60 bg-black backdrop-blur p-8 shadow-[0_0_25px_rgba(168,85,247,0.25)]">
 
         {/* ACCOUNT INFO */}
         <div className="mb-8">
@@ -235,7 +235,7 @@ export default function EditUserPage() {
 
           <button
             onClick={() => router.back()}
-            className="px-6 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 transition"
+            className="px-6 py-2 rounded-lg border border-gray-600 text-white hover:bg-gray-800 transition"
           >
             Batal
           </button>
