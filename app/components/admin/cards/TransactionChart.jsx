@@ -65,7 +65,16 @@ export default function TransactionChart({
   }, [fullData, debouncedOffset]);
 
   const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   const isDark = theme === "dark";
+
 
 
   // kalau data berubah, pastikan offset ga out of range
@@ -141,13 +150,18 @@ export default function TransactionChart({
             />
 
             <Line
-              type="monotone"
+              type="natural"
               dataKey="value"
               stroke={lineColor}
               strokeWidth={2}
               isAnimationActive
               animationDuration={600}
-              dot={{ r: 5, fill: "#7c3aed" }}
+              dot={{
+                r: 5,
+                fill: isDark ? "#a855f7" : "#000000",
+                stroke: isDark ? "#0f172a" : "#ffffff",
+                strokeWidth: 2
+              }}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -160,7 +174,7 @@ export default function TransactionChart({
         max={Math.max(0, fullData.length - windowSize)}
         value={offset}
         onChange={(e) => setOffset(Number(e.target.value))}
-        className="mt-4 w-full accent-purple-800"
+        className="mt-4 w-full accent-black dark:accent-purple-500"
       />
     </div>
   );
