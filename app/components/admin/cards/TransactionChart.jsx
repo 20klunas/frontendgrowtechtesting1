@@ -46,13 +46,14 @@ export default function TransactionChart({
 
     return L.map((date, i) => {
       const raw = Number(V[i] ?? 0);
+
       return {
         dayLabel: date,
-        valueRaw: raw,
-        valueJuta: toJuta(raw),
+        value: raw,
       };
     });
   }, [labels, values]);
+
 
   const windowSize = 7;
 
@@ -78,7 +79,7 @@ export default function TransactionChart({
   const axisColor = isDark ? "#a1a1aa" : "#6b7280";
   const tooltipBg = isDark ? "#1a1a2e" : "#ffffff";
   const tooltipBorder = isDark ? "#3d2b5e" : "#e5e7eb";
-  const lineColor = isDark ? "#ffffff" : "#4f46e5";
+  const lineColor = isDark ? "#ffffff" : "#000000";
 
 
   return (
@@ -113,11 +114,17 @@ export default function TransactionChart({
 
             <YAxis
               stroke={axisColor}
+              domain={[0, "auto"]}
               tick={{ fontSize: 11 }}
-              tickFormatter={(v) => `${Number(v).toFixed(0)} jt`}
+              tickFormatter={(v) => {
+                if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)} jt`;
+                if (v >= 1_000) return `${(v / 1_000).toFixed(0)} rb`;
+                return v;
+              }}
             />
 
             <Tooltip
+              formatter={(value) => formatRupiah(value)}
               contentStyle={{
                 backgroundColor: tooltipBg,
                 border: `1px solid ${tooltipBorder}`,
@@ -135,7 +142,7 @@ export default function TransactionChart({
 
             <Line
               type="monotone"
-              dataKey="valueJuta"
+              dataKey="value"
               stroke={lineColor}
               strokeWidth={2}
               isAnimationActive
