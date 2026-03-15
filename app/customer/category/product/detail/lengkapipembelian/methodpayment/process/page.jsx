@@ -22,9 +22,10 @@ function ProcessContent() {
     const interval = setInterval(() => {
       fetchPayment(true);
     }, 3000);
+    console.log("Polling payment...");
 
     return () => clearInterval(interval);
-  }, [orderId]);
+  }, [orderId, router]);
 
   const fetchPayment = async (silent = false) => {
     try {
@@ -33,13 +34,18 @@ function ProcessContent() {
       const json = await authFetch(`/api/v1/orders/${orderId}/payments`);
 
       if (json.success) {
-        setPayment(json.data.payment);
 
-        // ✅ AUTO REDIRECT IF SUCCESS
-        if (json.data.payment.status === "paid") {
+        const paymentData = json.data?.payment || json.data;
+        const status = paymentData?.status;
+
+        setPayment(paymentData);
+
+        if (["paid","completed","success"].includes(status)) {
+
           router.replace(
             `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
           );
+
         }
       }
     } finally {
