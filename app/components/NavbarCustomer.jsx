@@ -82,7 +82,7 @@ export default function NavbarCustomer() {
     try {
       setCatalogMaintenance("");
 
-      const res = await fetch(`${API}/api/v1/catalog/subcategories`);
+      const res = await authFetch("/api/v1/catalog/subcategories");
       const json = await res.json();
 
       if (json.success) {
