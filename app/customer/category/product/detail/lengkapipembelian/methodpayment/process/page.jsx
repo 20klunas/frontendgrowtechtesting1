@@ -32,7 +32,9 @@ function ProcessContent() {
 
       const paymentData = json?.data?.payment || json?.data;
 
-      const status = paymentData?.status?.toLowerCase();
+      const status =
+        paymentData?.status?.toLowerCase() ||
+        json?.data?.payment?.status?.toLowerCase();
 
       setPayment(paymentData);
 

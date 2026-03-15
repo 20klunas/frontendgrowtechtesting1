@@ -57,7 +57,7 @@ function SuccessContent() {
       setLoading(true);
 
       const [deliveryJson, orderJson, paymentJson] = await Promise.all([
-        authFetch(`/api/v1/orders/${orderId}/delivery/info`),
+        authFetch(`/api/v1/orders/${orderId}/delivery`),
         authFetch(`/api/v1/orders/${orderId}`),
         authFetch(`/api/v1/orders/${orderId}/payments`), // ✅ tambahan
       ]);
@@ -85,7 +85,7 @@ function SuccessContent() {
 
   const fetchDelivery = async () => {
     try {
-      const json = await authFetch(`/api/v1/orders/${orderId}/delivery/info`);
+      const json = await authFetch(`/api/v1/orders/${orderId}/delivery`);
       if (json?.success) setDelivery(json.data);
     } catch (err) {
       console.error("Refresh error:", err);
@@ -464,13 +464,15 @@ function SuccessContent() {
               </button>
             </div>
 
-            <button
-              onClick={handleClose}
-              disabled={closing}
-              className="w-full mt-3 rounded-xl bg-red-500/10 border border-red-500 py-2 text-sm"
-            >
-              {closing ? "Menutup..." : "Close Delivery"}
-            </button>
+            {delivery?.delivery_mode === "one_time" && (
+              <button
+                onClick={handleClose}
+                disabled={closing}
+                className="w-full mt-3 rounded-xl bg-red-500/10 border border-red-500 py-2 text-sm"
+              >
+                {closing ? "Menutup..." : "Close Delivery"}
+              </button>
+            )}  
 
             <Link
               href={`./invoice/${orderId}`}
