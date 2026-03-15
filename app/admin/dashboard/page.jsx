@@ -187,7 +187,7 @@ export default function DashboardPage() {
 
             <Button
               onClick={() => setOpenRange(!openRange)}
-              className="h-10 bg-[#2d1b4e] border border-[#3d2b5e] text-white hover:bg-[#3a2462]"
+              className="h-10 bg-[#2d1b4e] border border-[#3d2b5e] text-[#fff] hover:bg-[#3a2462]"
             >
               Range
             </Button>
@@ -217,7 +217,7 @@ export default function DashboardPage() {
           </div>
 
           {/* RIGHT FILTER */}
-          <Button
+          {/* <Button
             onClick={() => {
               setFiltersDraft(filtersApplied || {});
               setOpenFilter(true);
@@ -226,7 +226,7 @@ export default function DashboardPage() {
           >
             <Filter className="mr-2 h-4 w-4" />
             Filter
-          </Button>
+          </Button> */}
         </motion.div>
 
         {/* ERROR */}

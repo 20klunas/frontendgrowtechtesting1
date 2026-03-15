@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from "recharts";
 import { useEffect, useMemo, useState } from "react";
+import { useTheme } from "next-themes";
 
 function formatRupiah(n) {
   const x = Math.floor(Number(n || 0));
@@ -62,6 +63,10 @@ export default function TransactionChart({
     return fullData.slice(start, start + windowSize);
   }, [fullData, debouncedOffset]);
 
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+
   // kalau data berubah, pastikan offset ga out of range
   useEffect(() => {
     const max = Math.max(0, fullData.length - windowSize);
@@ -69,10 +74,17 @@ export default function TransactionChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullData.length]);
 
+  const gridColor = isDark ? "#3d2b5e" : "#e5e7eb";
+  const axisColor = isDark ? "#a1a1aa" : "#6b7280";
+  const tooltipBg = isDark ? "#1a1a2e" : "#ffffff";
+  const tooltipBorder = isDark ? "#3d2b5e" : "#e5e7eb";
+  const lineColor = isDark ? "#ffffff" : "#4f46e5";
+
+
   return (
-    <div className="rounded-xl bg-[#1a1a2e] p-6 border border-[#3d2b5e]">
+    <div className="rounded-xl bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-[#3d2b5e] p-6">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-semibold text-white">Grafik Pemasukan</p>
+        <p className="text-sm font-semibold text-gray-900 dark:text-white">Grafik Pemasukan</p>
         {loading ? (
           <span className="text-xs text-gray-400">Loading...</span>
         ) : (
@@ -86,43 +98,45 @@ export default function TransactionChart({
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={sliced}>
             <CartesianGrid
-              stroke="#3d2b5e"
+              stroke={gridColor}
               strokeDasharray="3 3"
               vertical={false}
             />
 
+
             <XAxis
               dataKey="dayLabel"
-              stroke="#a1a1aa"
+              stroke={axisColor}
               tick={{ fontSize: 11 }}
               interval="preserveStartEnd"
             />
 
             <YAxis
-              stroke="#a1a1aa"
+              stroke={axisColor}
               tick={{ fontSize: 11 }}
               tickFormatter={(v) => `${Number(v).toFixed(0)} jt`}
             />
 
             <Tooltip
               contentStyle={{
-                backgroundColor: "#1a1a2e",
-                border: "1px solid #3d2b5e",
+                backgroundColor: tooltipBg,
+                border: `1px solid ${tooltipBorder}`,
                 borderRadius: "8px",
               }}
-              labelStyle={{ color: "#a78bfa", fontSize: 12 }}
-              itemStyle={{ color: "#ffffff", fontSize: 12 }}
-              formatter={(_, __, props) => {
-                const raw = props?.payload?.valueRaw ?? 0;
-                return [formatRupiah(raw), "Pemasukan"];
+              labelStyle={{
+                color: isDark ? "#a78bfa" : "#4f46e5",
+                fontSize: 12
               }}
-              labelFormatter={(label) => `Tanggal: ${label}`}
-            />
+              itemStyle={{
+                color: isDark ? "#ffffff" : "#111827",
+                fontSize: 12
+              }}
+
 
             <Line
               type="monotone"
               dataKey="valueJuta"
-              stroke="#ffffff"
+              stroke={lineColor}
               strokeWidth={2}
               isAnimationActive
               animationDuration={600}
@@ -139,7 +153,7 @@ export default function TransactionChart({
         max={Math.max(0, fullData.length - windowSize)}
         value={offset}
         onChange={(e) => setOffset(Number(e.target.value))}
-        className="mt-4 w-full"
+        className="mt-4 w-full accent-purple-800"
       />
     </div>
   );
