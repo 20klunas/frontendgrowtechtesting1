@@ -87,7 +87,7 @@ export default function Footer() {
         </div>
 
         {/* KONTAK */}
-        <div className="space-y-3 text-center md:text-left">
+        <div className="space-y-3 text-center md:text-left flex flex-col items-center md:items-start">
           <h4 className="font-semibold text-purple-400">
             Kontak
           </h4>
@@ -96,7 +96,7 @@ export default function Footer() {
             <a
               href={brand.phone}
               target="_blank"
-              className="footer-link"
+              className="footer-link block"
             >
               {brand.phone}
             </a>
@@ -105,12 +105,13 @@ export default function Footer() {
           {brand.email && (
             <a
               href={`mailto:${brand.email}`}
-              className="footer-link"
+              className="footer-link block"
             >
               {brand.email}
             </a>
           )}
         </div>
+
 
       </div>
 
