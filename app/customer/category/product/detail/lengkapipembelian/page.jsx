@@ -140,6 +140,8 @@ export default function StepTwo() {
         }),
       });
 
+      await fetchCheckout(); // refresh checkout data
+
       window.dispatchEvent(new Event("cart-updated"));
     } catch (err) {
       console.error("Update qty failed:", err.message);
