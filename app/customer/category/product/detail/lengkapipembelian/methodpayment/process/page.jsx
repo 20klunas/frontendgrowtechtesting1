@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authFetch } from "../../../../../../../lib/authFetch";
-import { Lock, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { Lock, CheckCircle, XCircle } from "lucide-react";
 
 function ProcessContent() {
   const router = useRouter();
@@ -14,58 +14,91 @@ function ProcessContent() {
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const pollingRef = useRef(null);
+  const redirectedRef = useRef(false);
+
+  const SUCCESS_STATUS = ["paid", "completed", "success"];
+  const FAILED_STATUS = ["failed", "error", "cancelled"];
+
+  /* ================= FETCH PAYMENT ================= */
+
+  const fetchPayment = async () => {
     if (!orderId) return;
 
-    fetchPayment();
-
-    const interval = setInterval(() => {
-      fetchPayment(true);
-    }, 3000);
-    console.log("Polling payment...");
-
-    return () => clearInterval(interval);
-  }, [orderId, router]);
-
-  const fetchPayment = async (silent = false) => {
     try {
-      if (!silent) setLoading(true);
-
       const json = await authFetch(`/api/v1/orders/${orderId}/payments`);
 
-      if (json.success) {
+      if (!json?.success) return;
 
-        const paymentData = json.data?.payment || json.data;
-        const status = paymentData?.status;
+      const paymentData = json?.data?.payment || json?.data;
 
-        setPayment(paymentData);
+      const status = paymentData?.status?.toLowerCase();
 
-        if (["paid","completed","success"].includes(status)) {
+      setPayment(paymentData);
 
-          router.replace(
-            `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
-          );
+      /* ================= SUCCESS ================= */
 
-        }
+      if (SUCCESS_STATUS.includes(status) && !redirectedRef.current) {
+
+        redirectedRef.current = true;
+
+        router.replace(
+          `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
+        );
+
+        return;
       }
+
+      /* ================= FAILED ================= */
+
+      if (FAILED_STATUS.includes(status) && !redirectedRef.current) {
+
+        redirectedRef.current = true;
+
+        router.replace(
+          `/customer/category/product/detail/lengkapipembelian/methodpayment/failed?order=${orderId}`
+        );
+
+        return;
+      }
+
+    } catch (err) {
+      console.error("Fetch payment error:", err);
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   };
 
-  if (loading && !payment) {
-    return <div className="text-white p-10">Memuat pembayaran...</div>;
-  }
+  /* ================= POLLING ================= */
+
+  const startPolling = async () => {
+
+    await fetchPayment();
+
+    pollingRef.current = setTimeout(startPolling, 3000);
+  };
 
   useEffect(() => {
-    if (payment?.status === "paid") {
-      router.replace(
-        `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
-      );
-    }
-  }, [payment]);
+    if (!orderId) return;
 
-  const status = payment?.status;
+    startPolling();
+
+    return () => {
+      if (pollingRef.current) clearTimeout(pollingRef.current);
+    };
+  }, [orderId]);
+
+  /* ================= LOADING ================= */
+
+  if (loading && !payment) {
+    return (
+      <main className="min-h-screen bg-black flex items-center justify-center text-white">
+        Memuat pembayaran...
+      </main>
+    );
+  }
+
+  const status = payment?.status?.toLowerCase();
 
   const statusConfig = {
     pending: {
@@ -74,6 +107,7 @@ function ProcessContent() {
       color: "text-yellow-400",
       button: null,
     },
+
     paid: {
       icon: <CheckCircle className="text-green-400" size={48} />,
       title: "Pembayaran Berhasil",
@@ -91,6 +125,7 @@ function ProcessContent() {
         </button>
       ),
     },
+
     failed: {
       icon: <XCircle className="text-red-400" size={48} />,
       title: "Pembayaran Gagal",
@@ -123,12 +158,16 @@ function ProcessContent() {
         </p>
 
         <div className="border border-purple-500/40 rounded-xl p-4 mb-6">
+
           <Row label="Metode" value={payment?.method} />
+
           <Row label="Status" value={payment?.status} />
+
           <Row
             label="Amount"
-            value={`Rp ${Number(payment?.amount).toLocaleString("id-ID")}`}
+            value={`Rp ${Number(payment?.amount || 0).toLocaleString("id-ID")}`}
           />
+
         </div>
 
         <div className="flex items-center justify-center gap-2 text-sm text-gray-400 mb-8">
@@ -137,6 +176,7 @@ function ProcessContent() {
         </div>
 
         {current.button}
+
       </div>
     </main>
   );
