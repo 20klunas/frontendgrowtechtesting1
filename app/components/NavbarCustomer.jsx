@@ -204,7 +204,7 @@ export default function NavbarCustomer() {
     setSearch("");
     setSearchOpen(false);
 
-    router.push(`/customer/category/product?subcategory=${subId}`);
+    router.replace(`/customer/category/product?subcategory=${subId}`);
   };
 
   return (
