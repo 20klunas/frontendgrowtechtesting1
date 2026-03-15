@@ -12,11 +12,11 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function StepTwo() {
   const [checkout, setCheckout] = useState(null);
-  const [qty, setQty] = useState(1);
+  // const [qty, setQty] = useState(1);
   const [walletBalance, setWalletBalance] = useState(0);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [patchingQty, setPatchingQty] = useState(false);
+  // const [patchingQty, setPatchingQty] = useState(false);
   const { loading: accessLoading, allowed, message } = useCheckoutAccess();
 
   const router = useRouter();
@@ -38,7 +38,7 @@ export default function StepTwo() {
 
       if (json.success) {
         setCheckout(json.data);
-        setQty(json.data.items?.[0]?.qty || 1);
+        // setQty(json.data.items?.[0]?.qty || 1);
       }
     } catch (err) {
       console.warn("Checkout preview failed:", err.message);
@@ -100,6 +100,7 @@ export default function StepTwo() {
 
     const item = checkout.items[0];
     const stockAvailable = item.stock_available ?? 0;
+    const qty = item.qty ?? 1;
 
     if (newQty < 1 || newQty > stockAvailable) return;
 
@@ -248,36 +249,8 @@ export default function StepTwo() {
             Jumlah Pembelian
           </span>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => updateQty(qty - 1)}
-              disabled={qty <= 1 || patchingQty}
-              className="h-8 w-8 rounded-full bg-white text-black disabled:opacity-40"
-            >
-              −
-            </button>
-
-            <div className="min-w-[24px] text-center overflow-hidden">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={qty}
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -10, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {qty}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            <button
-              onClick={() => updateQty(qty + 1)}
-              disabled={qty >= stockAvailable || patchingQty}
-              className="h-8 w-8 rounded-full bg-white text-black disabled:opacity-40"
-            >
-              +
-            </button>
+          <div className="px-4 py-1 rounded-lg bg-purple-900/30">
+            {qty} Unit
           </div>
         </div>
       </div>
