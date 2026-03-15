@@ -33,13 +33,16 @@ export default function CategoryPage() {
 
   /* ================= FILTER ================= */
 
-  const filteredSubcategories = subcategories
+  const safeSubcategories = Array.isArray(subcategories) ? subcategories : [];
+
+  const filteredSubcategories = safeSubcategories
     .filter((sub) =>
-      sub.name.toLowerCase().includes(search.toLowerCase())
+      sub?.name?.toLowerCase().includes(search.toLowerCase())
     )
     .filter((sub) =>
-      selectedCategory ? sub.category_id === selectedCategory : true
+      selectedCategory ? sub?.category_id === selectedCategory : true
     );
+
 
 
   /* ================= PAGINATION ================= */
@@ -91,9 +94,13 @@ export default function CategoryPage() {
 
       const json = await authFetch(url.replace(API, ""));
 
-      if (json.success) {
+      if (json?.success && Array.isArray(json.data)) {
         setSubcategories(json.data);
+      } else {
+        console.warn("Invalid subcategory response:", json);
+        setSubcategories([]);
       }
+
 
     } catch (err) {
 
