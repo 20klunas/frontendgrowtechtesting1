@@ -252,6 +252,10 @@ export default function StepTwo() {
           <div className="px-4 py-1 rounded-lg bg-purple-900/30">
             {qty} Unit
           </div>
+          <p className="text-xs text-yellow-500 mt-2">
+            Catatan: Jumlah pembelian tidak dapat diubah di halaman ini. 
+            Untuk mengubah jumlah yang dibeli silakan ke keranjang atau masukkan produk ke keranjang dahulu.
+          </p>
         </div>
       </div>
 
