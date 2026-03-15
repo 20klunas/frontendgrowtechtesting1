@@ -178,7 +178,7 @@ export default function EditDiscountPage() {
 
       <h1 className="text-4xl font-bold">Edit Discount</h1>
 
-      <Section title="Informasi Dasar">
+      <Section title="Informasi Dasar" className="bg-black border border-purple-700 rounded-2xl p-6">
         <Input label="Nama Discount"
           value={form.name}
           onChange={v => setForm({ ...form, name: v })}
@@ -216,7 +216,7 @@ export default function EditDiscountPage() {
         />
       </Section>
 
-      <Section title="Aturan Discount">
+      <Section title="Aturan Discount" className="bg-black border border-purple-700 rounded-2xl p-6">
         <Input
           label="Min Order Amount (Rp)"
           value={formatRupiah(form.min_order_amount)}
@@ -244,7 +244,7 @@ export default function EditDiscountPage() {
         />
       </Section>
 
-      <Section title="Jadwal Aktif">
+      <Section title="Jadwal Aktif" className="bg-black border border-purple-700 rounded-2xl p-6">
         <Input label="Starts At"
           type="datetime-local"
           value={form.starts_at}
@@ -266,7 +266,7 @@ export default function EditDiscountPage() {
         )}
       </Section>
 
-      <Section title="Target Discount">
+      <Section title="Target Discount" className="bg-black border border-purple-700 rounded-2xl p-6">
         <SearchableDropdown
           label="Tambah Subcategory"
           placeholder="Cari subcategory..."

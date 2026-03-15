@@ -158,7 +158,7 @@ export default function AddDiscountPage() {
       <h1 className="text-4xl font-bold">Tambah Discount</h1>
 
       {/* BASIC INFO */}
-      <Section title="Informasi Dasar">
+      <Section title="Informasi Dasar" className="bg-black border border-purple-700 rounded-2xl p-6">
         <Input label="Nama Discount *"
           onChange={v => setForm({ ...form, name: v })} />
 
@@ -182,7 +182,7 @@ export default function AddDiscountPage() {
       </Section>
 
       {/* RULES */}
-      <Section title="Aturan Discount">
+      <Section title="Aturan Discount" className="bg-black border border-purple-700 rounded-2xl p-6">
         <Input
           label="Min Order Amount (Rp)"
           value={formatRupiah(form.min_order_amount)}

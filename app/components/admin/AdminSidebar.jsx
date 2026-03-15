@@ -33,7 +33,7 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
       {open && (
         <div
           onClick={() => setOpen(false)}
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          className="fixed inset-0 bg-black z-40 lg:hidden"
         />
       )}
 

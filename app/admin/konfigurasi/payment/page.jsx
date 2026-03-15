@@ -770,7 +770,7 @@ MODAL FORM
 
 {showModal && (
 
-<div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+<div className="fixed inset-0 bg-black flex items-center justify-center p-4 z-50">
 
 <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-2xl overflow-y-auto max-h-[90vh]">
 

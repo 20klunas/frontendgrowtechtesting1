@@ -2,7 +2,7 @@
 
 export default function VoucherCard({ data, onEdit, onDelete, onToggle }) {
   return (
-    <div className="border border-purple-700 rounded-2xl p-6 bg-black/60 shadow-lg">
+    <div className="border border-purple-700 rounded-2xl p-6 bg-black shadow-lg">
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4 items-center">
 

@@ -285,7 +285,7 @@ export default function KategoriPage() {
                         px-4
                         py-3
                         rounded-lg
-                        bg-black/60
+                        bg-black
                         border border-purple-500/30
                         text-white
                         focus:outline-none
