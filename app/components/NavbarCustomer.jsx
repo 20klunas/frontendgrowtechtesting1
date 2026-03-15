@@ -11,6 +11,7 @@ import Cookies from "js-cookie"
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
 import { Heart } from "lucide-react";
+import { authFetch } from "../lib/authFetch";
 import {
   getMaintenanceMessage,
   isFeatureMaintenanceError,
@@ -82,8 +83,7 @@ export default function NavbarCustomer() {
     try {
       setCatalogMaintenance("");
 
-      const res = await authFetch("/api/v1/catalog/subcategories");
-      const json = await res.json();
+      const json = await authFetch("/api/v1/catalog/subcategories");
 
       if (json.success) {
         setSubcategories(json.data);
