@@ -11,16 +11,20 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function CustomerFavoritesPage() {
 
-  const { hasAccess, loading: accessLoading } = useCatalogAccess();
+  // const { hasAccess, loading: accessLoading } = useCatalogAccess();
+  const {
+    catalogDisabled,
+    loading: accessLoading,
+  } = useCatalogAccess();
 
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!accessLoading && hasAccess) {
+    if (!accessLoading && !catalogDisabled) {
       fetchFavorites();
     }
-  }, [accessLoading, hasAccess]);
+  }, [accessLoading, catalogDisabled]);
 
   const fetchFavorites = async () => {
     try {
@@ -56,11 +60,11 @@ export default function CustomerFavoritesPage() {
   }
 
   // jika tidak punya akses
-  if (!hasAccess) {
+  if (catalogDisabled) {
     return (
       <section className="max-w-6xl mx-auto px-8 py-10 text-white">
         <p className="text-red-400">
-          Kamu tidak memiliki akses ke katalog/Sedang ada maintenance.
+          Katalog sedang maintenance atau Anda tidak memiliki akses untuk melihat katalog. Silakan coba lagi nanti.
         </p>
       </section>
     );
