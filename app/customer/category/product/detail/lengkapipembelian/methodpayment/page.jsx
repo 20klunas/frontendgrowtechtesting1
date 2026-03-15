@@ -199,7 +199,7 @@ function PaymentPage() {
             onSuccess: function (result) {
 
               router.push(
-                `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${result.order_id}`
+                `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
               );
 
             },
@@ -207,7 +207,7 @@ function PaymentPage() {
             onPending: function (result) {
 
               router.push(
-                `/customer/category/product/detail/lengkapipembelian/methodpayment/process?order=${result.order_id}`
+                `/customer/category/product/detail/lengkapipembelian/methodpayment/process?order=${orderId}`
               );
 
             },
@@ -215,7 +215,7 @@ function PaymentPage() {
             onError: function (result) {
 
               router.push(
-                `/customer/category/product/detail/lengkapipembelian/methodpayment/failed?order=${result.order_id}`
+                `/customer/category/product/detail/lengkapipembelian/methodpayment/failed?order=${orderId}`
               );
 
             },
