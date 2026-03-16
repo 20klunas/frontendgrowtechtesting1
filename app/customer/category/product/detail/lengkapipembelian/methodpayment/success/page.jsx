@@ -384,13 +384,6 @@ function SuccessContent() {
               <Download size={16} />
               Download Invoice PDF
             </button>
-
-            <button
-              onClick={fetchPaymentStatus}
-              className="mt-3 w-full rounded-xl border border-purple-500 py-2 text-sm font-semibold"
-            >
-              Refresh Payment Status
-            </button>
           </div>
 
           {/* DIGITAL ACCESS */}
@@ -456,19 +449,19 @@ function SuccessContent() {
                 {resending ? "Mengirim..." : "Resend Email"}
               </button>
 
-              <button
-                onClick={fetchDelivery}
-                className="rounded-xl border border-purple-500 py-2 text-sm"
+              <Link
+                href={`./invoice/${orderId}`}
+                className="w-full rounded-xl border border-purple-500 py-2 text-sm text-center font-medium hover:bg-purple-500/10 transition"
               >
-                Refresh
-              </button>
+                Lihat Detail Produk
+              </Link>
             </div>
 
             {delivery?.delivery_mode === "one_time" && (
               <button
                 onClick={handleClose}
                 disabled={closing}
-                className="w-full mt-3 rounded-xl bg-red-500/10 border border-red-500 py-2 text-sm"
+                className="w-full mt-3 rounded-xl border border-red-500 text-red-400 py-2 text-sm font-medium hover:bg-red-500/10 transition"
               >
                 {closing ? "Menutup..." : "Close Delivery"}
               </button>
