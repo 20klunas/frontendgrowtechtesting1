@@ -14,7 +14,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [setLoading] = useState(false);
   const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [authDisabled,setAuthDisabled] = useState(false)
@@ -91,7 +91,7 @@ export default function LoginPage() {
     }
   };
 
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
 
   useEffect(() => {
     const token = Cookies.get("token")
@@ -99,6 +99,16 @@ export default function LoginPage() {
     if (token) {
       router.replace("/customer")
     }
+  }, [user, loading])
+
+  useEffect(() => {
+
+    if (loading) return
+
+    if (user) {
+      router.replace("/customer")
+    }
+
   }, [user, loading])
 
   const handleLogin = async (e) => {

@@ -24,7 +24,6 @@ export function AuthProvider({ children }) {
       return
     }
 
-    // ✅ jika user sudah ada, tidak perlu fetch lagi
     if (user) {
       setLoading(false)
       return
@@ -37,20 +36,13 @@ export function AuthProvider({ children }) {
         const res = await fetch(`${API}/api/v1/auth/me/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
         })
-
-        if (!res.ok) {
-          throw new Error("Unauthorized")
-        }
 
         const json = await res.json()
         setUser(json.data)
 
       } catch (err) {
-
-        console.error("Auth fetch error:", err)
 
         Cookies.remove("token")
         setUser(null)
@@ -65,7 +57,7 @@ export function AuthProvider({ children }) {
 
     fetchMe()
 
-  }, [user])
+  }, []) 
 
   const logout = async () => {
     const token = Cookies.get("token")

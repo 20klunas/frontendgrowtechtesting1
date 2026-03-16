@@ -100,12 +100,13 @@ export default function VerifyOtpClient() {
       saveSession(token, user);
       setUser(user);
 
-      await new Promise((r) => setTimeout(r, 100));
+      // await new Promise((r) => setTimeout(r, 100));
 
       if (user.role === "admin") {
         router.replace("/admin/dashboard");
       } else {
         router.replace("/customer");
+        router.refresh();
       }
 
     } catch (err) {

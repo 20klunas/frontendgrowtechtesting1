@@ -467,13 +467,6 @@ function SuccessContent() {
               </button>
             )}  
 
-            <Link
-              href={`./invoice/${orderId}`}
-              className="rounded-xl border border-purple-500 py-4 text-center font-semibold"
-            >
-              Lihat Detail Produk
-            </Link>
-
             <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mt-4">
               <Lock size={14} />
               Data terenkripsi & aman
