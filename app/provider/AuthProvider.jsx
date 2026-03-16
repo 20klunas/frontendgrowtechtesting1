@@ -7,29 +7,33 @@ import Cookies from "js-cookie"
 export const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
+
   const router = useRouter()
+  const API = process.env.NEXT_PUBLIC_API_URL
+
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const API = process.env.NEXT_PUBLIC_API_URL
-
   useEffect(() => {
+
     const token = Cookies.get("token")
 
-    // kalau tidak ada token → selesai
     if (!token) {
+      setUser(null)
       setLoading(false)
       return
     }
 
-    // kalau user sudah ada → tidak perlu fetch lagi
+    // ✅ jika user sudah ada, tidak perlu fetch lagi
     if (user) {
       setLoading(false)
       return
     }
 
     const fetchMe = async () => {
+
       try {
+
         const res = await fetch(`${API}/api/v1/auth/me/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -45,20 +49,23 @@ export function AuthProvider({ children }) {
         setUser(json.data)
 
       } catch (err) {
+
         console.error("Auth fetch error:", err)
 
         Cookies.remove("token")
         setUser(null)
-        router.replace("/login")
 
       } finally {
+
         setLoading(false)
+
       }
+
     }
 
     fetchMe()
 
-  }, [])
+  }, [user])
 
   const logout = async () => {
     const token = Cookies.get("token")

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Cookies from "js-cookie";
@@ -86,9 +86,20 @@ export default function LoginPage() {
     if (user.role === "admin") {
       router.replace("/admin/dashboard");
     } else {
-      router.replace("/customer");
+      await new Promise((r) => setTimeout(r, 100))
+      router.replace("/customer")
     }
   };
+
+  const { user } = useAuth()
+
+  useEffect(() => {
+    const token = Cookies.get("token")
+
+    if (token) {
+      router.replace("/customer")
+    }
+  }, [user, loading])
 
   const handleLogin = async (e) => {
     e.preventDefault();
