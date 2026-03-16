@@ -138,6 +138,11 @@ export default function TopUpPage() {
 
   const handleTopup = async () => {
 
+    if (amount < 10000) {
+      alert("Minimal topup Rp 10.000")
+      return
+    }
+
     if (!token) {
       alert("Silakan login ulang")
       router.push("/login")
@@ -240,7 +245,9 @@ export default function TopUpPage() {
 
   }
 
-  console.log("ledger", history)
+  useEffect(() => {
+    console.log("ledger", history)
+  }, [history])
 
   const fetchWalletSummary = async () => {
     if (!token) return
@@ -359,8 +366,9 @@ export default function TopUpPage() {
               <span className="px-4 text-gray-400">Rp</span>
               <input
                 type="number"
+                min="10000"
                 value={amount}
-                onChange={(e) => setAmount(Number(e.target.value || 0))}
+                onChange={(e) => setAmount(Number(e.target.value))}
                 className="flex-1 bg-black px-4 py-3 outline-none"
               />
             </div>
