@@ -1,136 +1,119 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { Heart } from 'lucide-react'
+import Cookies from 'js-cookie'
+
 import { useAuth } from "../../app/hooks/useAuth"
 import { cn } from "../lib/utils"
-import Cookies from "js-cookie"
-import { useRouter } from "next/navigation";
-import { useRef } from "react";
-import { Heart } from "lucide-react";
-import { authFetch } from "../lib/authFetch";
+import { authFetch } from "../lib/authFetch"
 import {
   getMaintenanceMessage,
   isFeatureMaintenanceError,
   isMaintenanceError,
-} from "../lib/maintenanceHandler";
-import useCatalogAccess from "../../app/hooks/useCatalogAccess";
+} from "../lib/maintenanceHandler"
+import useCatalogAccess from "../../app/hooks/useCatalogAccess"
+import { useWebsiteSettings } from "../context/WebsiteSettingsContext"
 
-/* ================= UTIL ================= */
-const normalizeSettings = (rows = []) =>
-  rows.reduce((acc, row) => {
-    acc[row.key] = row.value
-    return acc
-  }, {})
-
-/* ================= COMPONENT ================= */
 export default function NavbarCustomer() {
   const API = process.env.NEXT_PUBLIC_API_URL
   const pathname = usePathname()
+  const router = useRouter()
+
   const { user, logout, loading } = useAuth()
-  const token = Cookies.get("token")
-  const [brand, setBrand] = useState({})
+  const { brand } = useWebsiteSettings()
+
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [cartCount, setCartCount] = useState(0)
   const [cartItems, setCartItems] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
-  const router = useRouter();
-  const searchRef = useRef(null);
 
-  const [search, setSearch] = useState("");
-  const [subcategories, setSubcategories] = useState([]);
-  const [filteredSubs, setFilteredSubs] = useState([]);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [catalogMaintenance, setCatalogMaintenance] = useState("");
-  // const catalogDisabled = Boolean(catalogMaintenance);
-  const { catalogDisabled, catalogMessage } = useCatalogAccess();
+  const searchRef = useRef(null)
+
+  const [search, setSearch] = useState("")
+  const [subcategories, setSubcategories] = useState([])
+  const [filteredSubs, setFilteredSubs] = useState([])
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [catalogMaintenance, setCatalogMaintenance] = useState("")
+
+  const { catalogDisabled, catalogMessage } = useCatalogAccess()
 
   const avatarSrc = user?.avatar_url || user?.avatar || null
 
-  /* ================= FETCH BRAND ================= */
-  useEffect(() => {
-    fetch(`${API}/api/v1/content/settings?group=website`)
-      .then(res => res.json())
-      .then(res => {
-        const data = normalizeSettings(res?.data)
-        setBrand(data.brand || {})
-      })
-      .catch(console.error)
-  }, [API])
-
+  const maintenanceText =
+    catalogMessage || catalogMaintenance || "Katalog sedang maintenance"
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setSearchOpen(false);
+        setSearchOpen(false)
       }
-    };
+    }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
-  /* ================= FETCH SUBCATEGORIES ================= */
   useEffect(() => {
-    fetchSubcategories();
-  }, []);
+    fetchSubcategories()
+  }, [])
 
   const fetchSubcategories = async () => {
     try {
-      setCatalogMaintenance("");
+      setCatalogMaintenance("")
 
-      const json = await authFetch("/api/v1/catalog/subcategories");
+      const json = await authFetch("/api/v1/catalog/subcategories")
 
       if (json.success) {
-        setSubcategories(json.data);
+        setSubcategories(json.data || [])
       }
-
     } catch (err) {
-
       if (isFeatureMaintenanceError(err, "catalog_access")) {
         setCatalogMaintenance(
           getMaintenanceMessage(err, "Katalog sedang maintenance.")
-        );
-        setSubcategories([]);
-        return;
+        )
+        setSubcategories([])
+        return
       }
 
       if (!isMaintenanceError(err)) {
-        console.error("Failed fetch subcategories:", err);
+        console.error("Failed fetch subcategories:", err)
       }
     }
-  };
+  }
 
-  /* ================= SEARCH FILTER ================= */
   useEffect(() => {
     if (!search.trim()) {
-      setFilteredSubs([]);
-      return;
+      setFilteredSubs([])
+      return
     }
 
-    const keyword = search.toLowerCase();
+    const keyword = search.toLowerCase()
 
-    const filtered = subcategories.filter(sub =>
-      sub.name.toLowerCase().includes(keyword)
-    );
+    const filtered = subcategories.filter((sub) =>
+      sub.name?.toLowerCase().includes(keyword)
+    )
 
-    setFilteredSubs(filtered);
-  }, [search, subcategories]);
+    setFilteredSubs(filtered)
+  }, [search, subcategories])
 
-  /* ================= SCROLL SHRINK ================= */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30)
     window.addEventListener("scroll", onScroll)
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  /* ================= FETCH CART COUNT ================= */
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setCartCount(0)
+      setCartItems([])
+      return
+    }
 
     fetchCart()
   }, [user])
@@ -140,8 +123,8 @@ export default function NavbarCustomer() {
       const token = Cookies.get("token")
 
       if (!token) {
-        console.warn("No token found")
         setCartCount(0)
+        setCartItems([])
         return
       }
 
@@ -155,6 +138,7 @@ export default function NavbarCustomer() {
         const text = await res.text()
         console.error("Cart error:", res.status, text)
         setCartCount(0)
+        setCartItems([])
         return
       }
 
@@ -163,6 +147,8 @@ export default function NavbarCustomer() {
       if (!contentType?.includes("application/json")) {
         const text = await res.text()
         console.error("Non JSON response:", text)
+        setCartCount(0)
+        setCartItems([])
         return
       }
 
@@ -173,18 +159,19 @@ export default function NavbarCustomer() {
         setCartItems(items)
         const total = items.reduce((sum, item) => sum + (item.qty || 1), 0)
         setCartCount(total)
+      } else {
+        setCartCount(0)
+        setCartItems([])
       }
     } catch (err) {
       console.error("Failed fetch cart:", err)
       setCartCount(0)
+      setCartItems([])
     }
   }
 
-
-
   if (loading) return null
 
-  /* ================= NAV CONFIG ================= */
   const navItems = [
     { label: "Home", href: "/customer" },
     { label: "Product", href: "/customer/category" },
@@ -193,19 +180,17 @@ export default function NavbarCustomer() {
   const isActive = (href) =>
     pathname === href || pathname.startsWith(`${href}/`)
 
-  /* ================= HANDLERS ================= */
   const handleSelectSub = (subId) => {
-
     if (catalogDisabled) {
-      alert(catalogMessage);
-      return;
+      alert(maintenanceText)
+      return
     }
 
-    setSearch("");
-    setSearchOpen(false);
+    setSearch("")
+    setSearchOpen(false)
 
-    router.replace(`/customer/category/product?subcategory=${subId}`);
-  };
+    router.replace(`/customer/category/product?subcategory=${subId}`)
+  }
 
   return (
     <motion.nav
@@ -220,7 +205,6 @@ export default function NavbarCustomer() {
     >
       <div className="mx-auto max-w-7xl px-4 flex items-center justify-between gap-6">
 
-        {/* ================= LEFT ================= */}
         <div className="flex items-center gap-3">
           <div className="relative w-9 h-9">
             <Image
@@ -231,14 +215,12 @@ export default function NavbarCustomer() {
             />
           </div>
           <span className="hidden sm:block text-white font-semibold text-lg">
-            {brand.site_name || "Growtech Central"}
+            {brand?.site_name || "Growtech Central"}
           </span>
         </div>
 
-        {/* ================= CENTER (DESKTOP) ================= */}
         <div className="hidden lg:flex items-center gap-8 relative">
-
-          {navItems.map(item => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -261,10 +243,7 @@ export default function NavbarCustomer() {
             </Link>
           ))}
 
-          {/* ================= SEARCH ================= */}
           <div ref={searchRef} className="relative ml-6 w-[320px] group">
-
-            {/* ICON */}
             <span
               className="
                 pointer-events-none
@@ -291,19 +270,18 @@ export default function NavbarCustomer() {
               </svg>
             </span>
 
-            {/* INPUT */}
             <input
               disabled={catalogDisabled}
               type="text"
               placeholder={
                 catalogDisabled
-                  ? "Katalog sedang maintenance"
+                  ? maintenanceText
                   : "Cari produk..."
               }
               value={search}
               onChange={(e) => {
-                setSearch(e.target.value);
-                setSearchOpen(true);
+                setSearch(e.target.value)
+                setSearchOpen(true)
               }}
               onFocus={() => setSearchOpen(true)}
               className="
@@ -312,19 +290,16 @@ export default function NavbarCustomer() {
                 py-2.5 pl-11 pr-4
                 text-sm text-zinc-900
                 placeholder:text-zinc-400
-
                 border border-purple-300/40
                 focus:border-purple-500
                 focus:ring-2 focus:ring-purple-500/30
                 focus:outline-none
-
                 shadow-sm
                 transition-all duration-300
                 hover:shadow-md
               "
             />
 
-            {/* GLOW */}
             <div
               className="
                 pointer-events-none
@@ -335,7 +310,6 @@ export default function NavbarCustomer() {
               "
             />
 
-            {/* DROPDOWN RESULT */}
             {searchOpen && (
               <motion.div
                 initial={{ opacity: 0, y: 6, scale: 0.98 }}
@@ -350,9 +324,8 @@ export default function NavbarCustomer() {
                   z-50
                 "
               >
-
                 {search && filteredSubs.length > 0 && (
-                  filteredSubs.map(sub => (
+                  filteredSubs.map((sub) => (
                     <button
                       key={sub.id}
                       onClick={() => handleSelectSub(sub.id)}
@@ -369,29 +342,24 @@ export default function NavbarCustomer() {
                   ))
                 )}
 
-                {/* EMPTY STATE */}
                 {search && filteredSubs.length === 0 && (
                   <div className="px-4 py-3 text-sm text-white/50">
                     Tidak ada subkategori
                   </div>
                 )}
 
-                {/* HINT STATE */}
                 {!search && (
                   <div className="px-4 py-3 text-xs text-white/40">
                     Ketik nama produk ...
                   </div>
                 )}
-
               </motion.div>
             )}
           </div>
-
         </div>
 
-        {/* MOBILE MENU */}
         <div className="lg:hidden flex items-center gap-3">
-          {navItems.map(item => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -407,10 +375,7 @@ export default function NavbarCustomer() {
           ))}
         </div>
 
-        {/* ================= RIGHT ================= */}
         <div className="relative flex items-center gap-3">
-
-          {/* FAVORITES */}
           <Link
             href="/customer/favorites"
             className="relative text-white hover:text-pink-400 transition"
@@ -418,7 +383,6 @@ export default function NavbarCustomer() {
             <Heart size={20} />
           </Link>
 
-          {/* CART */}
           <Link
             href="/customer/category/product/detail/cart"
             className="relative text-white transition"
@@ -432,6 +396,7 @@ export default function NavbarCustomer() {
               </span>
             )}
           </Link>
+
           {cartOpen && (
             <motion.div
               onMouseEnter={() => setCartOpen(true)}
@@ -456,7 +421,7 @@ export default function NavbarCustomer() {
                 </p>
               ) : (
                 <div className="space-y-3 max-h-60 overflow-y-auto">
-                  {cartItems.map(item => (
+                  {cartItems.map((item) => (
                     <div
                       key={item.id}
                       className="flex gap-3 items-center"
@@ -464,7 +429,7 @@ export default function NavbarCustomer() {
                       <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-purple-900/30">
                         <Image
                           src={item.product?.thumbnail || "/no-image.png"}
-                          alt={item.product?.name}
+                          alt={item.product?.name || "Product"}
                           fill
                           className="object-cover"
                         />
@@ -496,7 +461,6 @@ export default function NavbarCustomer() {
             </motion.div>
           )}
 
-          {/* USER BUTTON */}
           <button
             onClick={() => setOpen(!open)}
             className="flex items-center gap-2"
@@ -527,7 +491,6 @@ export default function NavbarCustomer() {
             </div>
           </button>
 
-          {/* ================= DROPDOWN ================= */}
           {open && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}

@@ -7,12 +7,32 @@ import { isMaintenanceError } from "../lib/maintenanceHandler";
 const WebsiteSettingsContext = createContext(null);
 
 let cachedSettings = null;
+let inFlightSettingsPromise = null;
 
 function normalizeSettings(rows = []) {
   return rows.reduce((acc, row) => {
     acc[row.key] = row.value;
     return acc;
   }, {});
+}
+
+async function loadWebsiteSettings() {
+  if (cachedSettings) {
+    return cachedSettings;
+  }
+
+  if (!inFlightSettingsPromise) {
+    inFlightSettingsPromise = (async () => {
+      const res = await publicFetch("/api/v1/content/settings?group=website");
+      const mapped = normalizeSettings(res?.data || []);
+      cachedSettings = mapped;
+      return mapped;
+    })().finally(() => {
+      inFlightSettingsPromise = null;
+    });
+  }
+
+  return inFlightSettingsPromise;
 }
 
 export function WebsiteSettingsProvider({ children }) {
@@ -24,6 +44,7 @@ export function WebsiteSettingsProvider({ children }) {
     let active = true;
 
     if (cachedSettings) {
+      setSettings(cachedSettings);
       setLoading(false);
       return;
     }
@@ -33,13 +54,9 @@ export function WebsiteSettingsProvider({ children }) {
         setLoading(true);
         setError(null);
 
-        const res = await publicFetch("/api/v1/content/settings?group=website");
-
-        const mapped = normalizeSettings(res?.data || []);
+        const mapped = await loadWebsiteSettings();
 
         if (!active) return;
-
-        cachedSettings = mapped;
 
         setSettings(mapped);
       } catch (err) {
@@ -75,7 +92,7 @@ export function WebsiteSettingsProvider({ children }) {
       seo,
       error,
     };
-  }, [loading, settings, error]); 
+  }, [loading, settings, brand, footer, seo, error]);
 
   return (
     <WebsiteSettingsContext.Provider value={value}>
@@ -88,9 +105,15 @@ export function useWebsiteSettings() {
   const context = useContext(WebsiteSettingsContext);
 
   if (!context) {
-    throw new Error(
-      "useWebsiteSettings must be used within WebsiteSettingsProvider"
-    );
+    // ✅ SAFE fallback (penting untuk build & SSR)
+    return {
+      loading: true,
+      settings: {},
+      brand: {},
+      footer: {},
+      seo: {},
+      error: null,
+    };
   }
 
   return context;
