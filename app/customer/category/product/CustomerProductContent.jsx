@@ -13,7 +13,7 @@ import {
   isMaintenanceError,
 } from "../../../lib/maintenanceHandler";
 import useCatalogAccess from "../../../hooks/useCatalogAccess";
-
+export const dynamic = "force-dynamic";
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function CustomerProductContent() {

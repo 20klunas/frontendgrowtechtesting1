@@ -3,7 +3,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import ProductCard from "../../components/customer/SubCategoryCard";
-
+export const dynamic = "force-dynamic";
 export default function CustomerCategoryContent({
   initialCategories = [],
   initialSubcategories = [],
