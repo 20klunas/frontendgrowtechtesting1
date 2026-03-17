@@ -1,10 +1,6 @@
+import { Suspense } from "react";
 import { getProductPageData } from "../../../lib/serverCatalogFetch";
 import CustomerProductContent from "./CustomerProductContent";
-
-function getSingleParam(value) {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return typeof value === "string" ? value : null;
-}
 
 export default async function Page({ searchParams }) {
   const params = searchParams || {};
@@ -18,12 +14,14 @@ export default async function Page({ searchParams }) {
   });
 
   return (
-    <CustomerProductContent
-      initialProducts={products}
-      initialHeader={header}
-      initialSort={sort}
-      subcategoryId={subcategoryId}
-      maintenanceMessage={maintenanceMessage}
-    />
+    <Suspense fallback={<div>Loading...</div>}>
+      <CustomerProductContent
+        initialProducts={products}
+        initialHeader={header}
+        initialSort={sort}
+        subcategoryId={subcategoryId}
+        maintenanceMessage={maintenanceMessage}
+      />
+    </Suspense>
   );
 }
