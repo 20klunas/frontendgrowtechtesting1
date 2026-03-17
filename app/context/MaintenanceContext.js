@@ -12,7 +12,7 @@ import {
 const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 // Ganti path ini kalau endpoint public settings di backend kamu beda.
-const PUBLIC_SETTINGS_PATH = "/settings/public";
+const PUBLIC_SETTINGS_PATH = "/content/settings?group=website";
 
 function buildUrl(path) {
   if (!API) return `/api/v1${path}`;
