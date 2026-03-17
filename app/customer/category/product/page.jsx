@@ -2,6 +2,11 @@ import { Suspense } from "react";
 import { getProductPageData } from "../../../lib/serverCatalogFetch";
 import CustomerProductContent from "./CustomerProductContent";
 
+function getSingleParam(value) {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return typeof value === "string" ? value : null;
+}
+
 export default async function Page({ searchParams }) {
   const params = searchParams || {};
 
