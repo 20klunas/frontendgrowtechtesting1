@@ -1,405 +1,588 @@
-"use client";
+'use client'
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import BannerCarousel from "../components/customer/BannerCarousel";
-import Popup from "../components/customer/Popup";
-import { publicFetch } from "../lib/publicFetch";
-import { authFetch } from "../lib/authFetch";
-import {
-  getMaintenanceMessage,
-  isFeatureMaintenanceError,
-  isMaintenanceError,
-} from "../lib/maintenanceHandler";
-import { useWebsiteSettings } from "../context/WebsiteSettingsContext";
+import { useState, useEffect } from "react";
+import { X, CheckCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import Script from "next/script";
+import useTopUpAccess from "../../hooks/useTopUpAccess";
 
-export default function CustomerHomePage() {
-  const { brand } = useWebsiteSettings();
+/* ================= DATA ================= */
 
-  const [popup, setPopup] = useState(null);
-  const [open, setOpen] = useState(true);
-  const [banners, setBanners] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
-  const [catalogMaintenance, setCatalogMaintenance] = useState("");
+const API = process.env.NEXT_PUBLIC_API_URL;
 
-  useEffect(() => {
-    let active = true;
+const PRESETS = [
+  { label: "Rp 10K", value: 10000 },
+  { label: "Rp 25K", value: 25000 },
+  { label: "Rp 50K", value: 50000 },
+  { label: "Rp 100K", value: 100000 },
+  { label: "Rp 150K", value: 150000 },
+  { label: "Rp 300K", value: 300000 },
+];
 
-    publicFetch("/api/v1/content/banners")
-      .then((res) => {
-        if (!active) return;
-        setBanners(res.data || []);
-      })
-      .catch((err) => {
-        if (!active) return;
-        if (!isMaintenanceError(err)) {
-          console.error(err);
+/* ================= PAGE ================= */
+
+export default function TopUpPage() {
+  const router = useRouter();
+
+  const [amount, setAmount] = useState(10000);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const [wallet, setWallet] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [token, setToken] = useState(null);
+  const [gateways, setGateways] = useState([]);
+  const [paymentMethod, setPaymentMethod] = useState(null);
+
+  const { topupDisabled, topupMessage, loading } = useTopUpAccess();
+
+  const fetchGateways = async () => {
+    try {
+      const res = await fetch(
+        `${API}/api/v1/payment-gateways/available?scope=topup`,
+        {
+          headers: {
+            Accept: "application/json",
+          },
         }
-      });
+      );
 
-    return () => {
-      active = false;
-    };
-  }, []);
+      const data = await res.json().catch(() => null);
 
-  useEffect(() => {
-    let active = true;
+      if (!data?.success) return;
 
-    publicFetch("/api/v1/content/popup")
-      .then((res) => {
-        if (!active) return;
+      const rows = Array.isArray(data.data)
+        ? data.data
+        : Array.isArray(data.data?.items)
+        ? data.data.items
+        : [];
 
-        if (res?.data?.is_active) {
-          setPopup(res.data);
-          setOpen(true);
-        }
-      })
-      .catch((err) => {
-        if (!active) return;
-        if (!isMaintenanceError(err)) {
-          console.error(err);
-        }
-      });
+      const mapped = rows.map((g) => ({
+        id: g.code,
+        name: g.name,
+        desc: "Klik untuk pembayaran",
+        fee: g.fee_value ?? 0,
+        feeType: g.fee_type ?? "fixed",
+      }));
 
-    return () => {
-      active = false;
-    };
-  }, []);
+      setGateways(mapped);
 
-  useEffect(() => {
-    let active = true;
-
-    const fetchPopularProducts = async () => {
-      try {
-        setLoadingProducts(true);
-        setCatalogMaintenance("");
-
-        const res = await authFetch(
-          "/api/v1/catalog/products?sort=popular&per_page=4"
-        );
-
-        if (!active) return;
-
-        setProducts(res?.data?.data || []);
-      } catch (err) {
-        if (!active) return;
-
-        if (isFeatureMaintenanceError(err, "catalog_access")) {
-          setCatalogMaintenance(
-            getMaintenanceMessage(err, "Katalog sedang maintenance.")
-          );
-          setProducts([]);
-          return;
-        }
-
-        if (!isMaintenanceError(err)) {
-          console.error("Failed fetch popular products:", err);
-        }
-
-        setProducts([]);
-      } finally {
-        if (active) {
-          setLoadingProducts(false);
-        }
+      if (mapped.length > 0) {
+        setPaymentMethod(mapped[0]);
+      } else {
+        setPaymentMethod(null);
       }
-    };
+    } catch (err) {
+      console.error("Gateway fetch error", err);
+      setGateways([]);
+      setPaymentMethod(null);
+    }
+  };
 
-    fetchPopularProducts();
-
-    return () => {
-      active = false;
-    };
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setToken(Cookies.get("token"));
+    }
   }, []);
 
-  const catalogDisabled = Boolean(catalogMaintenance);
+  useEffect(() => {
+    if (!token) return;
+
+    fetchWalletSummary();
+    fetchLedger();
+  }, [token]);
+
+  useEffect(() => {
+    if (!token || loading) return;
+
+    if (topupDisabled) {
+      setGateways([]);
+      setPaymentMethod(null);
+      return;
+    }
+
+    fetchGateways();
+  }, [token, loading, topupDisabled]);
+
+  const getAuthHeaders = () => ({
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: `Bearer ${token}`,
+  });
+
+  const handleTopup = async () => {
+    if (amount < 10000) {
+      alert("Minimal topup Rp 10.000");
+      return;
+    }
+
+    if (!token) {
+      alert("Silakan login ulang");
+      router.push("/login");
+      return;
+    }
+
+    if (topupDisabled) {
+      alert(topupMessage || "Top up sedang maintenance");
+      return;
+    }
+
+    if (!paymentMethod) {
+      alert("Metode pembayaran belum tersedia");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/api/v1/wallet/topups/init`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          amount,
+          gateway_code: paymentMethod.id,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        throw new Error(
+          data?.error?.message ||
+            data?.message ||
+            "Topup gagal"
+        );
+      }
+
+      const snapToken = data.data?.snap_token;
+      const redirectUrl = data.data?.redirect_url;
+
+      /* MIDTRANS SNAP */
+      if (snapToken && typeof window !== "undefined" && window.snap) {
+        window.snap.pay(snapToken, {
+          onSuccess: async () => {
+            await fetchWalletSummary();
+            await fetchLedger();
+            setShowSuccess(true);
+          },
+          onPending: () => alert("Menunggu pembayaran"),
+          onError: () => alert("Pembayaran gagal"),
+          onClose: () => console.log("User menutup popup"),
+        });
+
+        return;
+      }
+
+      /* REDIRECT GATEWAY */
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+
+      alert("Gateway tidak memberikan metode pembayaran");
+    } catch (err) {
+      console.error("TOPUP ERROR:", err);
+      alert(err?.message || "Topup gagal");
+    }
+  };
+
+  const fetchLedger = async () => {
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${API}/api/v1/wallet/ledger`, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!data?.success) return;
+
+      const rows = Array.isArray(data.data)
+        ? data.data
+        : Array.isArray(data.data?.data)
+        ? data.data.data
+        : [];
+
+      setHistory(rows);
+    } catch (err) {
+      console.error("Ledger fetch error", err);
+    }
+  };
+
+  useEffect(() => {
+    console.log("ledger", history);
+  }, [history]);
+
+  const fetchWalletSummary = async () => {
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${API}/api/v1/wallet/summary`, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!data?.success) return;
+
+      setWallet(data.data?.wallet || null);
+    } catch (err) {
+      console.error("Wallet fetch error:", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <section className="max-w-7xl mx-auto px-8 py-10 text-white">
+        <p>Loading...</p>
+      </section>
+    );
+  }
+
+  const fee =
+    paymentMethod?.feeType === "percent"
+      ? Math.round((amount * paymentMethod.fee) / 100)
+      : paymentMethod?.fee ?? 0;
+
+  const total = amount + fee;
 
   return (
-    <main className="relative min-h-screen bg-black text-white overflow-hidden">
+    <>
+      <Script
+        src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+        strategy="afterInteractive"
+      />
 
-      {popup && open && popup?.is_active && (
-        <Popup
-          title={popup?.title}
-          content={popup?.content}
-          image={popup?.image_url}
-          ctaText={popup?.cta_text}
-          ctaUrl={popup?.cta_url}
-          onClose={() => setOpen(false)}
-        />
-      )}
-
-      {/* HERO SECTION */}
-
-      <section className="relative overflow-hidden">
-
-        {/* glow background */}
-
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-purple-700/20 blur-[140px] rounded-full pointer-events-none z-0" />
-
-        {/* gradient overlay */}
-
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-black/40 to-black pointer-events-none z-0" />
-
-        {/* HERO CONTENT */}
-
-        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8 pt-32 pb-28 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-
-          {/* TEXT */}
-
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="max-w-2xl"
+      <section className="max-w-7xl mx-auto px-8 py-10 text-white">
+        {topupDisabled && (
+          <div
+            className={`mt-6 w-full rounded-xl border py-3 font-semibold transition
+              ${
+                topupDisabled
+                  ? "border-gray-600 text-gray-500 cursor-not-allowed"
+                  : "border-purple-500 hover:bg-purple-500/10"
+              }
+            `}
           >
-
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
-
-              <span className="text-white">
-                {brand?.home_title || "Growtech Central"}
-              </span>
-
-              <br />
-
-              <span className="bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 bg-clip-text text-transparent">
-                {brand?.home_subtitle || "Toko Digital Terpercaya"}
-              </span>
-
-            </h1>
-
-            {brand?.description && (
-              <p className="mt-6 text-gray-300 text-lg leading-relaxed max-w-xl">
-                {brand.description}
-              </p>
-            )}
-
-            <div className="mt-8 flex flex-wrap gap-4">
-
-              {catalogDisabled ? (
-                <button
-                  disabled
-                  title={catalogMaintenance}
-                  className="bg-zinc-800 border border-zinc-700 px-6 py-3 rounded-lg text-zinc-400 cursor-not-allowed"
-                >
-                  Katalog Maintenance
-                </button>
-              ) : (
-                <Link
-                  href="/customer/category"
-                  className="px-7 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 font-semibold shadow-lg shadow-purple-900/40 transition hover:scale-[1.03]"
-                >
-                  Jelajahi Katalog
-                </Link>
-              )}
-
-              <Link
-                href="/customer/faq"
-                className="px-7 py-3 rounded-xl border border-purple-500 text-purple-300 hover:bg-purple-500/10 transition"
-              >
-                Informasi
-              </Link>
-
-            </div>
-
-            {catalogDisabled && (
-              <p className="mt-4 text-sm text-amber-300">
-                {catalogMaintenance}
-              </p>
-            )}
-
-          </motion.div>
-
-          {/* HERO IMAGE */}
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7 }}
-            className="flex justify-center lg:justify-end"
-          >
-
-            <Image
-              src="/logoherosection.png"
-              alt="Growtech"
-              width={420}
-              height={420}
-              priority
-              className="drop-shadow-[0_0_70px_rgba(168,85,247,0.8)]"
-            />
-
-          </motion.div>
-
-        </div>
-      </section>
-
-
-      {/* BANNER */}
-
-      <section className="py-24">
-        <BannerCarousel banners={banners || []} autoplay loop />
-      </section>
-
-      {/* POPULAR PRODUCTS */}
-
-      <section className="mx-auto max-w-7xl px-6 lg:px-8 py-28">
-
-        <motion.h2
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-3xl font-bold text-purple-400 mb-12"
-        >
-          Produk Populer
-        </motion.h2>
-
-        {catalogDisabled ? (
-          <FeatureMaintenanceCard
-            title="Katalog sedang maintenance"
-            message={catalogMaintenance}
-          />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-
-              {loadingProducts ? (
-                <>
-                  <SkeletonCard />
-                  <SkeletonCard />
-                  <SkeletonCard />
-                  <SkeletonCard />
-                </>
-              ) : (
-                products.map((product) => {
-
-                  const price =
-                    product?.tier_pricing?.member ??
-                    product?.tier_pricing?.guest ??
-                    0;
-
-                  return (
-                    <motion.div
-                      key={product.id}
-                      whileHover={{ y: -6, scale: 1.03 }}
-                      transition={{ duration: 0.25 }}
-                    >
-
-                      <Link
-                        href={`/customer/category/product/${product.id}`}
-                        className="group block rounded-2xl border border-purple-800/40 bg-gradient-to-b from-zinc-900 to-black overflow-hidden transition hover:border-purple-500 hover:shadow-xl hover:shadow-purple-900/30"
-                      >
-
-                        <div className="relative h-[180px] bg-white overflow-hidden">
-
-                          <Image
-                            src={
-                              product?.subcategory?.image_url ||
-                              "/placeholder.png"
-                            }
-                            width={300}
-                            height={200}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
-                          />
-
-                        </div>
-
-                        <div className="p-4">
-
-                          <h3 className="font-semibold text-white mb-1 line-clamp-1">
-                            {product.name}
-                          </h3>
-
-                          <p className="text-xs text-gray-400 mb-2">
-                            Stok {product.available_stock ?? 0}
-                          </p>
-
-                          <div className="flex items-center text-yellow-400 text-sm mb-2">
-
-                            {"★".repeat(Math.round(product.rating || 0))}
-                            {"☆".repeat(5 - Math.round(product.rating || 0))}
-
-                            <span className="text-xs text-gray-400 ml-2">
-                              ({product.rating_count || 0})
-                            </span>
-
-                          </div>
-
-                          <p className="font-bold text-green-400">
-                            Rp {price.toLocaleString("id-ID")}
-                          </p>
-
-                        </div>
-
-                      </Link>
-
-                    </motion.div>
-                  );
-                })
-              )}
-
-            </div>
-
-            <div className="flex justify-center mt-14">
-
-              <Link
-                href="/customer/category"
-                className="px-8 py-3 rounded-xl border border-purple-500 text-purple-300 hover:bg-purple-500/10 transition"
-              >
-                Lihat Semua Produk
-              </Link>
-
-            </div>
-          </>
+            {topupMessage}
+          </div>
         )}
 
+        <h1 className="text-3xl font-bold mb-10">Top Up Saldo Wallet</h1>
+
+        {/* ================= TOP ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          {/* LEFT */}
+          <div className="space-y-6">
+            <Card>
+              <Header
+                title="Saldo Wallet Anda"
+                icon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="35"
+                    height="35"
+                    viewBox="0 0 24 24"
+                  >
+                    <g
+                      fill="none"
+                      stroke="#9333ea"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                    >
+                      <path d="M17 8V5a1 1 0 0 0-1-1H6a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V6" />
+                      <path d="M20 12v4h-4a2 2 0 0 1 0-4z" />
+                    </g>
+                  </svg>
+                }
+              />
+              <p className="text-sm text-gray-400">Total Saldo</p>
+              <p className="text-3xl font-bold mt-2 mb-2">
+                Rp {wallet?.balance?.toLocaleString?.("id-ID") ?? 0}
+              </p>
+              <p className="text-sm text-red-500">
+                ⚠️ Topup untuk melakukan pembelian lebih banyak
+              </p>
+            </Card>
+
+            <Card>
+              <h3 className="font-semibold mb-4">Pilih Jumlah Top Up</h3>
+
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                {PRESETS.map((p) => (
+                  <button
+                    key={p.value}
+                    disabled={topupDisabled}
+                    onClick={() => setAmount(p.value)}
+                    className={`rounded-xl border py-3 transition
+                      ${
+                        amount === p.value
+                          ? "border-purple-500 bg-purple-500/20"
+                          : "border-purple-700 hover:bg-purple-700/10"
+                      }
+                    `}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-sm text-gray-400 mb-2">
+                Atau Masukkan Jumlah Custom
+              </p>
+
+              <div className="flex border border-purple-700 rounded-xl overflow-hidden">
+                <span className="px-4 text-gray-400">Rp</span>
+                <input
+                  type="number"
+                  min="10000"
+                  value={amount}
+                  onChange={(e) => setAmount(Number(e.target.value))}
+                  className="flex-1 bg-black px-4 py-3 outline-none"
+                  disabled={topupDisabled}
+                />
+              </div>
+            </Card>
+          </div>
+
+          {/* RIGHT */}
+          <div className="space-y-6">
+            <Card>
+              <h3 className="font-semibold mb-4">Ringkasan Top Up</h3>
+
+              <div className="space-y-2 text-sm">
+                <Row
+                  label="Jumlah Top Up"
+                  value={`Rp ${amount.toLocaleString("id-ID")}`}
+                />
+                <Row
+                  label="Fee Admin"
+                  value={`Rp ${Number(fee || 0).toLocaleString("id-ID")}`}
+                />
+              </div>
+
+              <div className="border-t border-purple-700 mt-4 pt-4 flex justify-between font-semibold">
+                <span>Ringkasan Top Up</span>
+                <span>Rp {total.toLocaleString("id-ID")}</span>
+              </div>
+
+              <button
+                onClick={handleTopup}
+                disabled={!paymentMethod || topupDisabled}
+                title={topupDisabled ? topupMessage : ""}
+                className={`mt-6 w-full rounded-xl py-3 font-semibold transition
+                ${
+                  !paymentMethod || topupDisabled
+                    ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                    : "border border-purple-500 hover:bg-purple-500/10 text-white"
+                }`}
+              >
+                {topupDisabled
+                  ? "🔒 Top Up Maintenance"
+                  : "Lanjutkan Pembayaran"}
+              </button>
+            </Card>
+
+            <Card>
+              <h3 className="font-semibold mb-4">Metode Pembayaran</h3>
+
+              <div className="space-y-4">
+                {gateways.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setPaymentMethod(m)}
+                    className={`w-full flex items-center gap-4 rounded-xl border p-4 transition
+                    ${
+                      paymentMethod?.id === m.id
+                        ? "border-purple-500 bg-purple-500/20"
+                        : "border-purple-700 hover:bg-purple-700/10"
+                    }
+                  `}
+                  >
+                    <span className="text-2xl">➜</span>
+
+                    <div className="text-left">
+                      <p className="font-semibold">{m.name}</p>
+                      <p className="text-sm text-gray-400">{m.desc}</p>
+                    </div>
+                  </button>
+                ))}
+
+                {!topupDisabled && gateways.length === 0 && (
+                  <div className="text-sm text-gray-400">
+                    Metode pembayaran belum tersedia.
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* ================= HISTORY ================= */}
+        <Card>
+          <h3 className="font-semibold mb-6">Riwayat Top Up</h3>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-purple-700 text-gray-400">
+                <tr>
+                  <th className="py-3 text-left">No</th>
+                  <th className="text-left">Jumlah</th>
+                  <th className="text-left">Metode</th>
+                  <th className="text-left">Tanggal & Jam</th>
+                  <th className="text-left">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((row, i) => (
+                  <tr key={row.id} className="border-b border-purple-800/40">
+                    <td className="py-3">{i + 1}</td>
+                    <td>
+                      Rp {Number(row.amount || 0).toLocaleString("id-ID")}
+                    </td>
+                    <td>{row.type}</td>
+                    <td>
+                      {row.created_at
+                        ? new Date(row.created_at).toLocaleString("id-ID")
+                        : "-"}
+                    </td>
+                    <td
+                      className={
+                        row.direction === "CREDIT"
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }
+                    >
+                      {row.direction}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {/* ================= MODAL KONFIRMASI ================= */}
+        {showConfirm && (
+          <Modal onClose={() => setShowConfirm(false)}>
+            <h3 className="text-lg font-bold mb-4">Konfirmasi Top Up</h3>
+
+            <div className="space-y-2 text-sm mb-6">
+              <Row
+                label="Jumlah Top Up"
+                value={`Rp ${amount.toLocaleString("id-ID")}`}
+              />
+              <Row
+                label="Metode Pembayaran"
+                value={paymentMethod?.name || "-"}
+              />
+              <Row
+                label="Fee Admin"
+                value={`Rp ${Number(fee || 0).toLocaleString("id-ID")}`}
+              />
+              <Row
+                label="Total Diterima"
+                value={`Rp ${total.toLocaleString("id-ID")}`}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 border border-purple-700 rounded-lg py-2"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirm(false);
+                  setShowSuccess(true);
+                }}
+                className="flex-1 bg-purple-700 rounded-lg py-2 font-semibold"
+              >
+                Lanjutkan Pembayaran
+              </button>
+            </div>
+          </Modal>
+        )}
+
+        {/* ================= SUCCESS ================= */}
+        {showSuccess && (
+          <Modal onClose={() => setShowSuccess(false)}>
+            <div className="text-center">
+              <CheckCircle size={48} className="mx-auto text-green-400 mb-4" />
+              <h3 className="text-xl font-bold text-green-400 mb-2">
+                Top Up Berhasil!
+              </h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Saldo Anda berhasil diperbarui
+              </p>
+
+              <p className="text-sm text-gray-400">Saldo Terbaru</p>
+              <p className="text-2xl font-bold mb-6">
+                Rp {wallet?.balance?.toLocaleString?.("id-ID") ?? 0}
+              </p>
+
+              <button
+                onClick={() => router.push(`/customer/category`)}
+                className="w-full bg-purple-700 rounded-xl py-3 font-semibold"
+              >
+                Mulai Berbelanja
+              </button>
+            </div>
+          </Modal>
+        )}
       </section>
-
-      {/* CTA SECTION */}
-
-      <section className="py-24 border-t border-purple-900/40 text-center">
-
-        <h2 className="text-3xl font-bold mb-6">
-          Siap mulai transaksi digital?
-        </h2>
-
-        <Link
-          href="/customer/category"
-          className="inline-block px-8 py-4 rounded-xl bg-purple-600 hover:bg-purple-700 font-semibold shadow-lg shadow-purple-900/40 transition"
-        >
-          Jelajahi Produk
-        </Link>
-
-      </section>
-
-    </main>
+    </>
   );
 }
 
-function FeatureMaintenanceCard({ title, message }) {
+/* ================= COMPONENTS ================= */
+
+function Modal({ children, onClose }) {
   return (
-    <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 text-center">
-      <h3 className="text-xl font-semibold text-amber-300 mb-2">
-        {title}
-      </h3>
-      <p className="text-amber-100/90">
-        {message}
-      </p>
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center px-4">
+      <div className="relative w-full max-w-md rounded-3xl border border-purple-700 bg-black p-6">
+        <button onClick={onClose} className="absolute right-4 top-4 text-gray-400">
+          <X />
+        </button>
+        {children}
+      </div>
     </div>
   );
 }
 
-function SkeletonCard() {
+function Card({ children }) {
   return (
-    <div className="rounded-2xl border border-purple-800 bg-black overflow-hidden animate-pulse">
-      <div className="h-[180px] bg-zinc-800" />
-      <div className="p-4 space-y-3">
-        <div className="h-4 bg-zinc-800 rounded w-3/4" />
-        <div className="h-3 bg-zinc-800 rounded w-1/2" />
-        <div className="h-3 bg-zinc-800 rounded w-1/3" />
-      </div>
+    <div className="border border-purple-700 rounded-2xl p-6 bg-black">
+      {children}
+    </div>
+  );
+}
+
+function Header({ title, icon }) {
+  return (
+    <div className="flex justify-between mb-4">
+      <h3 className="font-semibold">{title}</h3>
+      <span>{icon}</span>
+    </div>
+  );
+}
+
+function Row({ label, value }) {
+  return (
+    <div className="flex justify-between text-sm text-gray-300">
+      <span>{label}</span>
+      <span>{value}</span>
     </div>
   );
 }

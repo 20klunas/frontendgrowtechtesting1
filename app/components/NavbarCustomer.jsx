@@ -41,7 +41,11 @@ export default function NavbarCustomer() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [catalogMaintenance, setCatalogMaintenance] = useState("")
 
-  const { catalogDisabled, catalogMessage } = useCatalogAccess()
+  const {
+    catalogDisabled,
+    catalogMessage,
+    loading: catalogLoading,
+  } = useCatalogAccess()
 
   const avatarSrc = user?.avatar_url || user?.avatar || null
 
@@ -59,10 +63,6 @@ export default function NavbarCustomer() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  useEffect(() => {
-    fetchSubcategories()
-  }, [])
-
   const fetchSubcategories = async () => {
     try {
       setCatalogMaintenance("")
@@ -78,6 +78,7 @@ export default function NavbarCustomer() {
           getMaintenanceMessage(err, "Katalog sedang maintenance.")
         )
         setSubcategories([])
+        setFilteredSubs([])
         return
       }
 
@@ -86,6 +87,21 @@ export default function NavbarCustomer() {
       }
     }
   }
+
+  useEffect(() => {
+    if (catalogLoading) return
+
+    if (catalogDisabled) {
+      setCatalogMaintenance(
+        catalogMessage || "Katalog sedang maintenance."
+      )
+      setSubcategories([])
+      setFilteredSubs([])
+      return
+    }
+
+    fetchSubcategories()
+  }, [catalogLoading, catalogDisabled, catalogMessage])
 
   useEffect(() => {
     if (!search.trim()) {
@@ -204,7 +220,6 @@ export default function NavbarCustomer() {
       )}
     >
       <div className="mx-auto max-w-7xl px-4 flex items-center justify-between gap-6">
-
         <div className="flex items-center gap-3">
           <div className="relative w-9 h-9">
             <Image
@@ -271,10 +286,12 @@ export default function NavbarCustomer() {
             </span>
 
             <input
-              disabled={catalogDisabled}
+              disabled={catalogLoading || catalogDisabled}
               type="text"
               placeholder={
-                catalogDisabled
+                catalogLoading
+                  ? "Memuat katalog..."
+                  : catalogDisabled
                   ? maintenanceText
                   : "Cari produk..."
               }
