@@ -137,7 +137,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
 
-            <StatItem title="10K+" subtitle="Produk Tersedia"/>
+            <StatItem title="10K+" subtitle="Produk Terjual"/>
             <StatItem title="100%" subtitle="Aman & Terpercaya"/>
             <StatItem title="24/7" subtitle="Dukungan Pelanggan"/>
 
