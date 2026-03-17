@@ -1,24 +1,26 @@
-"use client"
+"use client";
 
-import { usePermission } from "../../hooks/usePermission"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { usePermission } from "../../hooks/usePermission";
 
 export default function PermissionGate({ permission, children }) {
-  const { can, loading } = usePermission()
-  const router = useRouter()
+  const { can, loading } = usePermission();
+  const router = useRouter();
 
   useEffect(() => {
     if (!loading && !can(permission)) {
-      router.replace("/admin/not-found")
+      router.replace("/admin/not-found");
     }
-  }, [loading, permission, can])
+  }, [loading, permission, can, router]);
 
   if (loading) {
-    return null
+    return null;
   }
 
-  if (!can(permission)) return null
+  if (!can(permission)) {
+    return null;
+  }
 
-  return children
+  return children;
 }
