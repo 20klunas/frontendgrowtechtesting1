@@ -9,8 +9,21 @@ const GAP = 40
 
 const SPRING = {
   type: "spring",
-  stiffness: 110,
-  damping: 24
+  stiffness: 90,
+  damping: 22
+}
+
+// simple throttle via requestAnimationFrame
+function useRafThrottle(callback) {
+  const raf = useRef(null)
+
+  return (...args) => {
+    if (raf.current) return
+    raf.current = requestAnimationFrame(() => {
+      callback(...args)
+      raf.current = null
+    })
+  }
 }
 
 export default function BannerCarousel({
@@ -31,18 +44,24 @@ export default function BannerCarousel({
   const itemWidth = Math.min(width * 0.75, 1000)
   const trackOffset = itemWidth + GAP
 
+  // ✅ Debounce resize
   useEffect(() => {
+    let timeout
+
     const handleResize = () => {
-      setWidth(window.innerWidth)
+      clearTimeout(timeout)
+      timeout = setTimeout(() => {
+        setWidth(window.innerWidth)
+      }, 150)
     }
 
     handleResize()
-
     window.addEventListener("resize", handleResize)
 
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
+  // ✅ Extend banners (unchanged logic)
   const extended = useMemo(() => {
     if (banners.length >= 3) return banners
     return [...banners, ...banners, ...banners]
@@ -51,13 +70,13 @@ export default function BannerCarousel({
   const renderItems = useMemo(() => {
     if (!loop) return extended
     return [extended[extended.length - 1], ...extended, extended[0]]
-  }, [extended])
+  }, [extended, loop])
 
   const activeIndex =
     (position - 1 + extended.length) % extended.length
 
+  // ✅ Autoplay optimized
   useEffect(() => {
-
     if (!autoplay) return
     if (pauseOnHover && hovered) return
 
@@ -66,15 +85,16 @@ export default function BannerCarousel({
     }, autoplayDelay)
 
     return () => clearInterval(t)
-
-  }, [hovered, autoplay])
+  }, [hovered, autoplay, autoplayDelay, pauseOnHover])
 
   const centerOffset =
     typeof window !== "undefined"
       ? window.innerWidth / 2 - itemWidth / 2
       : 0
 
-  const handleMouseMove = (e) => {
+  // ✅ Throttled mouse move
+  const handleMouseMove = useRafThrottle((e) => {
+    if (!containerRef.current) return
 
     const rect = containerRef.current.getBoundingClientRect()
 
@@ -82,23 +102,21 @@ export default function BannerCarousel({
     const y = (e.clientY - rect.top) / rect.height
 
     setMouse({ x, y })
-  }
+  })
 
   if (!banners.length) return null
 
   return (
-
     <section className="relative py-28 overflow-hidden">
 
-      {/* glow background */}
-
+      {/* ✅ Glow (dikurangi intensitas update) */}
       <motion.div
         animate={{
           background: `radial-gradient(circle at ${mouse.x * 100}% ${mouse.y * 100}%,
-          rgba(168,85,247,0.25),
-          transparent 60%)`
+          rgba(168,85,247,0.18),
+          transparent 65%)`
         }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.6 }}
         className="absolute inset-0"
       />
 
@@ -124,23 +142,24 @@ export default function BannerCarousel({
             const isActive =
               (i - 1 + extended.length) % extended.length === activeIndex
 
-            const tiltX = (mouse.y - 0.5) * 12
-            const tiltY = (mouse.x - 0.5) * -12
+            // ✅ Kurangi tilt intensity
+            const tiltX = (mouse.y - 0.5) * 6
+            const tiltY = (mouse.x - 0.5) * -6
 
             return (
-
               <motion.div
                 key={banner.id + "-" + i}
                 className="relative shrink-0"
                 animate={{
-                  scale: isActive ? 1 : 0.82,
-                  opacity: isActive ? 1 : 0.45,
-                  y: isActive ? 0 : 50
+                  scale: isActive ? 1 : 0.85,
+                  opacity: isActive ? 1 : 0.5,
+                  y: isActive ? 0 : 40
                 }}
+                transition={{ duration: 0.4 }}
                 style={{
                   width: itemWidth,
                   height: 380,
-                  perspective: 1200
+                  perspective: 1000
                 }}
               >
 
@@ -151,25 +170,23 @@ export default function BannerCarousel({
                           rotateX: tiltX,
                           rotateY: tiltY
                         }
-                      : {}
+                      : { rotateX: 0, rotateY: 0 }
                   }
-                  transition={{ duration: 0.35 }}
+                  transition={{ duration: 0.4 }}
                   className="relative w-full h-full rounded-3xl overflow-hidden group border border-white/10"
                 >
 
+                  {/* ✅ Priority hanya untuk aktif */}
                   <Image
                     src={banner.image_url}
                     alt={banner.title || "Banner"}
                     fill
-                    priority
-                    className="object-cover group-hover:scale-105 transition duration-700"
+                    priority={isActive}
+                    sizes="(max-width: 768px) 90vw, 1000px"
+                    className="object-cover group-hover:scale-105 transition duration-500"
                   />
 
-                  {/* cinematic overlay */}
-
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-                  {/* banner content */}
 
                   <div className="absolute bottom-10 left-10 right-10">
 
@@ -196,42 +213,36 @@ export default function BannerCarousel({
 
                   </div>
 
-                  {/* premium glow */}
-
+                  {/* ✅ Glow hanya active */}
                   {isActive && (
-                    <div className="absolute inset-0 shadow-[0_0_80px_rgba(168,85,247,0.45)] pointer-events-none" />
+                    <div className="absolute inset-0 shadow-[0_0_60px_rgba(168,85,247,0.35)] pointer-events-none" />
                   )}
 
                 </motion.div>
 
               </motion.div>
-
             )
           })}
         </motion.div>
 
         {/* indicators */}
-
         <div className="flex justify-center mt-14 gap-3">
 
           {banners.map((_, i) => (
-
             <button
               key={i}
               onClick={() => setPosition(i + 1)}
               className={`transition-all duration-300 rounded-full ${
                 activeIndex === i
-                  ? "w-8 h-[10px] bg-purple-500 shadow-[0_0_12px_rgba(168,85,247,0.9)]"
+                  ? "w-8 h-[10px] bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]"
                   : "w-3 h-[10px] bg-white/30 hover:bg-white/50"
               }`}
             />
-
           ))}
 
         </div>
 
       </div>
-
     </section>
   )
 }
