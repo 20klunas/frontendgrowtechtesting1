@@ -1,15 +1,9 @@
 "use client"
 
-import { useAdminAuth } from "./useAdminAuth"
+import { useAdminAuth } from "../providers/AdminAuthProvider"
 
 export function usePermission() {
-  const { permissions, admin, loading } = useAdminAuth()
-
-  const can = (key) => {
-    if (!key) return true
-    if (!permissions) return false
-    return permissions.includes("*") || permissions.includes(key)
-  }
+  const { permissions, admin, loading, can } = useAdminAuth()
 
   return { can, permissions, admin, loading }
 }
