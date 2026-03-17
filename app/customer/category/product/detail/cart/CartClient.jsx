@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 import useCart from "../../../hooks/useCart";
 import useVoucher from "../../../hooks/useVoucher";
-import useCheckoutAccess from "../../../hooks/useCheckoutAccess";
+import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess";
 import { authFetch } from "../../../lib/authFetch";
 
 export default function CartClient({ initialCart }) {
