@@ -238,7 +238,12 @@ export default function CartClient({ initialCart }) {
       {showConfetti && (
         <div className="confetti-container">
           {Array.from({ length: 25 }).map((_, i) => (
-            <span key={i} className="confetti" />
+            <span key={i} className="confetti"
+                style={{
+                    background: `hsl(${Math.random() * 360}, 100%, 60%)`,
+                    left: `${Math.random() * 100}%`,
+                }} 
+            />
           ))}
         </div>
       )}
@@ -467,86 +472,6 @@ export default function CartClient({ initialCart }) {
           </div>
         </div>
       </section>
-
-      <style jsx>{`
-        .animate-fade-in {
-          animation: fadeIn 0.35s ease forwards;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .flip-number {
-          display: inline-block;
-          transition: transform 0.6s ease;
-        }
-
-        .flip {
-          transform: rotateX(360deg);
-        }
-
-        .glow {
-          filter: blur(0.3px);
-          text-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
-        }
-
-        .discount-row {
-          opacity: 0;
-          transform: translateY(-6px);
-          transition: all 0.4s ease;
-        }
-
-        .discount-row.show {
-          opacity: 1;
-          transform: translateY(0);
-          animation: bounce 0.45s ease;
-        }
-
-        @keyframes bounce {
-          0% { transform: translateY(-8px); }
-          50% { transform: translateY(2px); }
-          100% { transform: translateY(0); }
-        }
-
-        .saved-badge {
-          margin-top: 8px;
-          font-size: 12px;
-          color: #22c55e;
-          background: rgba(34,197,94,0.1);
-          border: 1px solid rgba(34,197,94,0.3);
-          padding: 6px 10px;
-          border-radius: 999px;
-          text-align: center;
-        }
-
-        /* CONFETTI */
-        .confetti-container {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          overflow: hidden;
-        }
-
-        .confetti {
-          position: absolute;
-          width: 6px;
-          height: 10px;
-          background: hsl(${Math.random() * 360}, 100%, 60%);
-          top: -10px;
-          left: ${Math.random() * 100}%;
-          opacity: 0.7;
-          animation: fall 1.2s linear forwards;
-        }
-
-        @keyframes fall {
-          to {
-            transform: translateY(110vh) rotate(360deg);
-            opacity: 0;
-          }
-        }
-      `}</style>
     </main>
   );
 }
