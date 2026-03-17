@@ -22,6 +22,12 @@ export default function CustomerCategoryContent({
     ? initialSubcategories
     : [];
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const filteredSubcategories = useMemo(() => {
     const keyword = deferredSearch.trim().toLowerCase();
 
@@ -38,7 +44,10 @@ export default function CustomerCategoryContent({
     setCurrentPage(1);
   }, [deferredSearch, selectedCategory]);
 
-  const totalPages = Math.ceil(filteredSubcategories.length / itemsPerPage);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredSubcategories.length / itemsPerPage)
+  );
 
   const paginatedSubs = useMemo(() => {
     return filteredSubcategories.slice(
@@ -106,9 +115,11 @@ export default function CustomerCategoryContent({
         <section className="flex-1 space-y-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm text-white/70">
-              {selectedCategory
-                ? "Menampilkan produk kategori"
-                : "Menampilkan semua produk"}
+                {!mounted
+                    ? "Menampilkan semua produk"
+                    : selectedCategory
+                    ? "Menampilkan produk kategori"
+                    : "Menampilkan semua produk"}
             </span>
 
             <div className="relative w-full sm:w-72">

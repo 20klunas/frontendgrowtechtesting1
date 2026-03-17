@@ -1,7 +1,7 @@
 import "./globals.css"
 import { AuthProvider } from "../app/provider/AuthProvider"
-import Script from "next/script"
 import { MaintenanceProvider } from "./context/MaintenanceContext"
+import { WebsiteSettingsProvider } from "./context/WebsiteSettingsContext" // ✅ TAMBAH
 
 export const metadata = {
   title: "Growtech Central",
@@ -13,13 +13,16 @@ export default function RootLayout({ children }) {
     <html lang="id" className="dark" suppressHydrationWarning>
       <body>
 
-        <MaintenanceProvider>
+        <WebsiteSettingsProvider> {/* ✅ BUNGKUS GLOBAL */}
 
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <MaintenanceProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </MaintenanceProvider>
 
-        </MaintenanceProvider>
+        </WebsiteSettingsProvider>
+
       </body>
     </html>
   )
