@@ -423,3 +423,18 @@ function SkeletonCard() {
     </div>
   );
 }
+function StatItem({ title, subtitle }) {
+  return (
+    <div className="rounded-2xl border border-purple-800/40 bg-gradient-to-b from-zinc-900 to-black p-6 text-center hover:border-purple-500 transition">
+      
+      <h3 className="text-3xl font-bold text-purple-400 mb-2">
+        {title}
+      </h3>
+
+      <p className="text-gray-400 text-sm">
+        {subtitle}
+      </p>
+
+    </div>
+  );
+}
