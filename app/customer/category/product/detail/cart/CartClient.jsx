@@ -5,10 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import useCart from "../../../hooks/useCart";
-import useVoucher from "../../../hooks/useVoucher";
+import useCart from "../../../../../hooks/useCart";
+import useVoucher from "../../../../../hooks/useVoucher";
 import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess";
-import { authFetch } from "../../../lib/authFetch";
+import { authFetch } from "../../../../../lib/authFetch";
 
 export default function CartClient({ initialCart }) {
   const router = useRouter();
