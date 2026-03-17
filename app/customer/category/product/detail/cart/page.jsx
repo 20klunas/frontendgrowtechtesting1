@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import useCartPage from "../../../../../hooks/useCartPage";
+import useCartPage from "../../../../../hooks/useCart";
 import CartItem from "../../../../../components/customer/cart/CartItem";
 import CartSummary from "../../../../../components/customer/cart/CartSummary";
 import VoucherInput from "../../../../../components/customer/cart/VoucherInput";
