@@ -1,248 +1,108 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { motion } from "framer-motion"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-
-const GAP = 40
-
-const SPRING = {
-  type: "spring",
-  stiffness: 90,
-  damping: 22
-}
-
-// simple throttle via requestAnimationFrame
-function useRafThrottle(callback) {
-  const raf = useRef(null)
-
-  return (...args) => {
-    if (raf.current) return
-    raf.current = requestAnimationFrame(() => {
-      callback(...args)
-      raf.current = null
-    })
-  }
-}
+import { motion } from "framer-motion"
 
 export default function BannerCarousel({
   banners = [],
   autoplay = true,
-  autoplayDelay = 4500,
-  pauseOnHover = true,
-  loop = true
+  autoplayDelay = 4000
 }) {
 
-  const containerRef = useRef(null)
+  const [index, setIndex] = useState(0)
 
-  const [position, setPosition] = useState(1)
-  const [hovered, setHovered] = useState(false)
-  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 })
-  const [width, setWidth] = useState(1200)
-
-  const itemWidth = Math.min(width * 0.75, 1000)
-  const trackOffset = itemWidth + GAP
-
-  // ✅ Debounce resize
+  // ✅ autoplay super ringan
   useEffect(() => {
-    let timeout
+    if (!autoplay || banners.length <= 1) return
 
-    const handleResize = () => {
-      clearTimeout(timeout)
-      timeout = setTimeout(() => {
-        setWidth(window.innerWidth)
-      }, 150)
-    }
-
-    handleResize()
-    window.addEventListener("resize", handleResize)
-
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
-
-  // ✅ Extend banners (unchanged logic)
-  const extended = useMemo(() => {
-    if (banners.length >= 3) return banners
-    return [...banners, ...banners, ...banners]
-  }, [banners])
-
-  const renderItems = useMemo(() => {
-    if (!loop) return extended
-    return [extended[extended.length - 1], ...extended, extended[0]]
-  }, [extended, loop])
-
-  const activeIndex =
-    (position - 1 + extended.length) % extended.length
-
-  // ✅ Autoplay optimized
-  useEffect(() => {
-    if (!autoplay) return
-    if (pauseOnHover && hovered) return
-
-    const t = setInterval(() => {
-      setPosition((p) => p + 1)
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % banners.length)
     }, autoplayDelay)
 
-    return () => clearInterval(t)
-  }, [hovered, autoplay, autoplayDelay, pauseOnHover])
-
-  const centerOffset =
-    typeof window !== "undefined"
-      ? window.innerWidth / 2 - itemWidth / 2
-      : 0
-
-  // ✅ Throttled mouse move
-  const handleMouseMove = useRafThrottle((e) => {
-    if (!containerRef.current) return
-
-    const rect = containerRef.current.getBoundingClientRect()
-
-    const x = (e.clientX - rect.left) / rect.width
-    const y = (e.clientY - rect.top) / rect.height
-
-    setMouse({ x, y })
-  })
+    return () => clearInterval(interval)
+  }, [autoplay, autoplayDelay, banners.length])
 
   if (!banners.length) return null
 
   return (
-    <section className="relative py-28 overflow-hidden">
+    <section className="relative w-full overflow-hidden py-16">
 
-      {/* ✅ Glow (dikurangi intensitas update) */}
-      <motion.div
-        animate={{
-          background: `radial-gradient(circle at ${mouse.x * 100}% ${mouse.y * 100}%,
-          rgba(168,85,247,0.18),
-          transparent 65%)`
-        }}
-        transition={{ duration: 0.6 }}
-        className="absolute inset-0"
-      />
-
-      <div
-        ref={containerRef}
-        className="relative overflow-hidden"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onMouseMove={handleMouseMove}
-      >
+      {/* ✅ Slider */}
+      <div className="relative w-full max-w-6xl mx-auto overflow-hidden rounded-2xl">
 
         <motion.div
-          className="flex items-center"
-          animate={{
-            x: centerOffset - position * trackOffset
-          }}
-          transition={SPRING}
-          style={{ gap: GAP }}
+          className="flex"
+          animate={{ x: `-${index * 100}%` }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
         >
 
-          {renderItems.map((banner, i) => {
+          {banners.map((banner, i) => (
+            <div
+              key={banner.id || i}
+              className="relative w-full h-[320px] flex-shrink-0"
+            >
 
-            const isActive =
-              (i - 1 + extended.length) % extended.length === activeIndex
+              <Image
+                src={banner.image_url}
+                alt={banner.title || "Banner"}
+                fill
+                priority={i === 0} // ✅ hanya first image
+                sizes="100vw"
+                className="object-cover"
+              />
 
-            // ✅ Kurangi tilt intensity
-            const tiltX = (mouse.y - 0.5) * 6
-            const tiltY = (mouse.x - 0.5) * -6
+              {/* overlay */}
+              <div className="absolute inset-0 bg-black/40" />
 
-            return (
-              <motion.div
-                key={banner.id + "-" + i}
-                className="relative shrink-0"
-                animate={{
-                  scale: isActive ? 1 : 0.85,
-                  opacity: isActive ? 1 : 0.5,
-                  y: isActive ? 0 : 40
-                }}
-                transition={{ duration: 0.4 }}
-                style={{
-                  width: itemWidth,
-                  height: 380,
-                  perspective: 1000
-                }}
-              >
+              {/* content */}
+              <div className="absolute bottom-6 left-6 right-6 text-white">
 
-                <motion.div
-                  animate={
-                    isActive
-                      ? {
-                          rotateX: tiltX,
-                          rotateY: tiltY
-                        }
-                      : { rotateX: 0, rotateY: 0 }
-                  }
-                  transition={{ duration: 0.4 }}
-                  className="relative w-full h-full rounded-3xl overflow-hidden group border border-white/10"
-                >
+                {banner.title && (
+                  <h3 className="text-xl md:text-2xl font-bold mb-2">
+                    {banner.title}
+                  </h3>
+                )}
 
-                  {/* ✅ Priority hanya untuk aktif */}
-                  <Image
-                    src={banner.image_url}
-                    alt={banner.title || "Banner"}
-                    fill
-                    priority={isActive}
-                    sizes="(max-width: 768px) 90vw, 1000px"
-                    className="object-cover group-hover:scale-105 transition duration-500"
-                  />
+                {banner.subtitle && (
+                  <p className="text-sm text-gray-200 mb-3">
+                    {banner.subtitle}
+                  </p>
+                )}
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                {banner.link_url && (
+                  <Link
+                    href={banner.link_url}
+                    className="inline-block px-5 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition"
+                  >
+                    Lihat Promo
+                  </Link>
+                )}
 
-                  <div className="absolute bottom-10 left-10 right-10">
+              </div>
 
-                    {banner.title && (
-                      <h3 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg mb-3">
-                        {banner.title}
-                      </h3>
-                    )}
-
-                    {banner.subtitle && (
-                      <p className="text-gray-300 mb-5 max-w-md">
-                        {banner.subtitle}
-                      </p>
-                    )}
-
-                    {banner.link_url && (
-                      <Link
-                        href={banner.link_url}
-                        className="inline-block px-7 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 font-semibold shadow-lg shadow-purple-900/40 transition hover:scale-[1.03]"
-                      >
-                        Lihat Promo
-                      </Link>
-                    )}
-
-                  </div>
-
-                  {/* ✅ Glow hanya active */}
-                  {isActive && (
-                    <div className="absolute inset-0 shadow-[0_0_60px_rgba(168,85,247,0.35)] pointer-events-none" />
-                  )}
-
-                </motion.div>
-
-              </motion.div>
-            )
-          })}
-        </motion.div>
-
-        {/* indicators */}
-        <div className="flex justify-center mt-14 gap-3">
-
-          {banners.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setPosition(i + 1)}
-              className={`transition-all duration-300 rounded-full ${
-                activeIndex === i
-                  ? "w-8 h-[10px] bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]"
-                  : "w-3 h-[10px] bg-white/30 hover:bg-white/50"
-              }`}
-            />
+            </div>
           ))}
 
-        </div>
-
+        </motion.div>
       </div>
+
+      {/* ✅ indicators (simple) */}
+      <div className="flex justify-center mt-6 gap-2">
+        {banners.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setIndex(i)}
+            className={`h-2 rounded-full transition-all ${
+              index === i
+                ? "w-6 bg-purple-500"
+                : "w-2 bg-gray-400"
+            }`}
+          />
+        ))}
+      </div>
+
     </section>
   )
 }
