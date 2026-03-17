@@ -1,179 +1,148 @@
 "use client";
 
 import Image from "next/image";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import Cookies from "js-cookie";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "../../../lib/utils";
-import { motion } from "framer-motion";
-import { useAuth } from "../../../../app/hooks/useAuth";
-import {
-  getMaintenanceMessage,
-  isFeatureMaintenanceError,
-  isMaintenanceError,
-} from "../../../lib/maintenanceHandler";
-import useCatalogAccess from "../../../hooks/useCatalogAccess";
+import { useAuth } from "../../../hooks/useAuth";
+import { authFetch } from "../../../lib/authFetch";
+import { notifyCustomerCartChanged } from "../../../lib/customerCartEvents";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+const SORT_OPTIONS = [
+  { value: "latest", label: "Terbaru" },
+  { value: "bestseller", label: "Terlaris" },
+  { value: "favorite", label: "Favorit" },
+  { value: "popular", label: "Popular" },
+  { value: "rating", label: "Top Rated" },
+];
 
-export default function CustomerProductContent() {
+export default function CustomerProductContent({
+  initialProducts = [],
+  initialHeader = {},
+  initialSort = "latest",
+  subcategoryId = null,
+  maintenanceMessage = "",
+}) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const subcategoryId = searchParams.get("subcategory");
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
 
   const [addingId, setAddingId] = useState(null);
   const [checkoutLoadingId, setCheckoutLoadingId] = useState(null);
-  const [sort, setSort] = useState("latest");
 
-  // ===== FAVORITES =====
   const [favoriteIds, setFavoriteIds] = useState(new Set());
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null);
 
-  // ===== PAGINATION =====
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const [isSortPending, startSortTransition] = useTransition();
 
-  // ===== MAINTENANCE MODE =====
-  const [catalogMaintenance, setCatalogMaintenance] = useState("");
-  // const catalogDisabled = Boolean(catalogMaintenance);
-  const { catalogDisabled, catalogMessage } = useCatalogAccess();
+  const itemsPerPage = 6;
+  const products = Array.isArray(initialProducts) ? initialProducts : [];
+  const header = initialHeader || {};
+  const catalogDisabled = Boolean(maintenanceMessage);
+
+  const userTier = user?.tier?.toLowerCase() || "guest";
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [subcategoryId, initialSort]);
+
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        if (authLoading) return;
+
+        if (!user) {
+          setFavoriteIds(new Set());
+          return;
+        }
+
+        const json = await authFetch("/api/v1/favorites");
+
+        if (json?.success) {
+          const favoritesArray = Array.isArray(json?.data?.data)
+            ? json.data.data
+            : [];
+
+          const ids = new Set(favoritesArray.map((item) => item.product_id));
+          setFavoriteIds(ids);
+        } else {
+          setFavoriteIds(new Set());
+        }
+      } catch (error) {
+        console.error("fetchFavorites error:", error);
+        setFavoriteIds(new Set());
+      }
+    };
+
+    fetchFavorites();
+  }, [user, authLoading]);
 
   const totalPages = useMemo(() => {
     return Math.ceil((products?.length || 0) / itemsPerPage);
   }, [products]);
 
   const paginatedProducts = useMemo(() => {
-    return (products || []).slice(
+    return products.slice(
       (currentPage - 1) * itemsPerPage,
       currentPage * itemsPerPage
     );
   }, [products, currentPage]);
 
-  const { user } = useAuth();
-  const userTier = user?.tier?.toLowerCase() || "guest";
+  const handleSortChange = (nextSort) => {
+    const params = new URLSearchParams(searchParams?.toString() || "");
 
-  useEffect(() => {
-    fetchProducts();
-    fetchFavorites();
-    setCurrentPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subcategoryId, sort]);
-
-  /* ================= FETCH PRODUCTS ================= */
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      setCatalogMaintenance("");
-
-      let url = `${API}/api/v1/products?sort=${sort}&per_page=10`;
-
-      if (subcategoryId) {
-        url += `&subcategory_id=${subcategoryId}`;
-      }
-
-      const res = await fetch(url);
-
-      const contentType = res.headers.get("content-type");
-
-      if (!contentType?.includes("application/json")) {
-        const text = await res.text();
-        console.error("Non-JSON response:", text);
-        throw new Error("API did not return JSON");
-      }
-
-      const json = await res.json();
-
-      if (json.success) {
-        setProducts(json?.data?.data || []);
-      } else {
-        setProducts([]);
-      }
-
-    } catch (err) {
-
-      if (isFeatureMaintenanceError(err, "catalog_access")) {
-
-        setCatalogMaintenance(
-          getMaintenanceMessage(err, "Katalog sedang maintenance.")
-        );
-
-        setProducts([]);
-        return;
-      }
-
-      if (!isMaintenanceError(err)) {
-        console.error("Failed fetch products:", err);
-      }
-
-      setProducts([]);
-
-    } finally {
-      setLoading(false);
+    if (subcategoryId) {
+      params.set("subcategory", subcategoryId);
+    } else {
+      params.delete("subcategory");
     }
+
+    if (!nextSort || nextSort === "latest") {
+      params.delete("sort");
+    } else {
+      params.set("sort", nextSort);
+    }
+
+    const nextQuery = params.toString();
+    const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+
+    startSortTransition(() => {
+      router.replace(nextUrl, { scroll: false });
+    });
   };
 
-  /* ================= FETCH FAVORITES ================= */
-  const fetchFavorites = async () => {
-    try {
-      const token = Cookies.get("token");
-      if (!token) {
-        setFavoriteIds(new Set());
-        return;
-      }
+  const ensureLoggedIn = () => {
+    if (authLoading) return false;
 
-      const res = await fetch(`${API}/api/v1/favorites`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-
-      if (!res.ok) return;
-
-      const json = await res.json();
-      if (json?.success) {
-        const favoritesArray = Array.isArray(json?.data?.data)
-          ? json.data.data
-          : [];
-
-        const ids = new Set(favoritesArray.map((f) => f.product_id));
-        setFavoriteIds(ids);
-      }
-    } catch (e) {
-      console.error("fetchFavorites error:", e);
+    if (!user) {
+      router.push("/login");
+      return false;
     }
+
+    return true;
   };
 
-  /* ================= FAVORITE TOGGLE (hanya product_id) ================= */
   const toggleFavorite = async (productId) => {
     try {
-      const token = Cookies.get("token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
+      if (!ensureLoggedIn()) return;
 
       setFavoriteLoadingId(productId);
 
       const isFav = favoriteIds.has(productId);
 
       if (!isFav) {
-        // ADD favorite (tanpa rating)
-        const res = await fetch(`${API}/api/v1/favorites`, {
+        const json = await authFetch("/api/v1/favorites", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
           },
           body: JSON.stringify({ product_id: productId }),
         });
 
-        const json = await res.json().catch(() => null);
-        if (!res.ok || !json?.success) {
+        if (!json?.success) {
           alert(json?.error?.message || "Gagal menambahkan favorite");
           return;
         }
@@ -184,17 +153,11 @@ export default function CustomerProductContent() {
           return next;
         });
       } else {
-        // REMOVE favorite
-        const res = await fetch(`${API}/api/v1/favorites/${productId}`, {
+        const json = await authFetch(`/api/v1/favorites/${productId}`, {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
         });
 
-        const json = await res.json().catch(() => null);
-        if (!res.ok || !json?.success) {
+        if (!json?.success) {
           alert(json?.error?.message || "Gagal menghapus favorite");
           return;
         }
@@ -205,91 +168,24 @@ export default function CustomerProductContent() {
           return next;
         });
       }
-    } catch (e) {
-      console.error("toggleFavorite error:", e);
+    } catch (error) {
+      console.error("toggleFavorite error:", error);
       alert("Terjadi kesalahan");
     } finally {
       setFavoriteLoadingId(null);
     }
   };
 
-  /* ================= BUY NOW ================= */
-  const handleBuyNow = async (productId) => {
-    try {
-      const token = Cookies.get("token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
-      setCheckoutLoadingId(productId);
-
-      // 1) Add ke cart qty 1
-      const addRes = await fetch(`${API}/api/v1/cart/items`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          product_id: productId,
-          qty: 1,
-        }),
-      });
-
-      if (!addRes.ok) {
-        const text = await addRes.text();
-        console.error("Add to cart failed:", addRes.status, text);
-        alert("Gagal menambahkan produk");
-        return;
-      }
-
-      // 2) Checkout
-      const checkoutRes = await fetch(`${API}/api/v1/cart/checkout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          voucher_code: null,
-        }),
-      });
-
-      if (!checkoutRes.ok) {
-        const text = await checkoutRes.text();
-        console.error("Checkout failed:", checkoutRes.status, text);
-        alert("Checkout gagal");
-        return;
-      }
-
-      // 3) Redirect
-      router.push("/customer/category/product/detail/lengkapipembelian");
-      window.dispatchEvent(new Event("cart-updated"));
-    } catch (err) {
-      console.error("Buy now error:", err);
-      alert("Terjadi kesalahan");
-    } finally {
-      setCheckoutLoadingId(null);
-    }
-  };
-
-  /* ================= ADD TO CART ================= */
   const addToCart = async (productId) => {
     try {
-      const token = Cookies.get("token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
+      if (!ensureLoggedIn()) return;
 
       setAddingId(productId);
 
-      const res = await fetch(`${API}/api/v1/cart/items`, {
+      const json = await authFetch("/api/v1/cart/items", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           product_id: productId,
@@ -297,26 +193,66 @@ export default function CustomerProductContent() {
         }),
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("Add to cart error:", res.status, text);
-        alert("Gagal menambahkan ke keranjang");
+      if (!json?.success) {
+        alert(json?.error?.message || "Gagal menambahkan ke keranjang");
         return;
       }
 
-      const json = await res.json();
-      if (json.success) {
-        window.dispatchEvent(new Event("cart-updated"));
-      }
-    } catch (err) {
-      console.error("Add to cart failed:", err);
+      notifyCustomerCartChanged();
+    } catch (error) {
+      console.error("Add to cart failed:", error);
       alert("Terjadi kesalahan");
     } finally {
       setAddingId(null);
     }
   };
 
-  const header = products?.[0];
+  const handleBuyNow = async (productId) => {
+    try {
+      if (!ensureLoggedIn()) return;
+
+      setCheckoutLoadingId(productId);
+
+      const addJson = await authFetch("/api/v1/cart/items", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          product_id: productId,
+          qty: 1,
+        }),
+      });
+
+      if (!addJson?.success) {
+        alert(addJson?.error?.message || "Gagal menambahkan produk");
+        return;
+      }
+
+      const checkoutJson = await authFetch("/api/v1/cart/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          voucher_code: null,
+        }),
+      });
+
+      if (!checkoutJson?.success) {
+        alert(checkoutJson?.error?.message || "Checkout gagal");
+        return;
+      }
+
+      notifyCustomerCartChanged();
+      router.push("/customer/category/product/detail/lengkapipembelian");
+    } catch (error) {
+      console.error("Buy now error:", error);
+      alert("Terjadi kesalahan");
+    } finally {
+      setCheckoutLoadingId(null);
+    }
+  };
 
   const getTierBadgeClass = (tier) => {
     switch (tier) {
@@ -331,75 +267,64 @@ export default function CustomerProductContent() {
     }
   };
 
+  const headerImage =
+    header?.subcategory?.image_url ||
+    products?.[0]?.subcategory?.image_url ||
+    "/placeholder.png";
+
   return (
-    <section className="max-w-6xl mx-auto px-8 py-10 text-white">
-      {/* ================= HEADER ================= */}
-      <div className="mb-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        <div className="rounded-xl overflow-hidden border border-purple-700">
+    <section className="mx-auto max-w-6xl px-8 py-10 text-white">
+      <div className="mb-10 grid grid-cols-1 items-start gap-6 md:grid-cols-2">
+        <div className="overflow-hidden rounded-xl border border-purple-700">
           <Image
-            src={header?.subcategory?.image_url || "/placeholder.png"}
+            src={headerImage}
             width={600}
             height={360}
             alt="Header"
-            className="w-full h-[260px] object-cover"
+            className="h-[260px] w-full object-cover"
             priority
           />
         </div>
 
         <div>
-          <span className="inline-block mb-2 text-xs font-medium text-purple-400 uppercase tracking-wide">
+          <span className="mb-2 inline-block text-xs font-medium uppercase tracking-wide text-purple-400">
             {header?.category?.name || "Kategori"}
           </span>
 
-          <h1 className="text-2xl font-bold text-purple-300 mb-3">
+          <h1 className="mb-3 text-2xl font-bold text-purple-300">
             {header?.subcategory?.name || "Produk"}
           </h1>
 
-          <p className="text-sm text-gray-300 leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-300">
             {header?.subcategory?.description ||
               "Deskripsi subkategori akan tampil di sini"}
           </p>
         </div>
       </div>
 
-      <div className="flex justify-end mb-6">
+      <div className="mb-6 flex justify-end">
         <select
-          disabled={catalogDisabled}
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="bg-black border border-purple-700 text-white px-3 py-2 rounded-lg"
+          disabled={catalogDisabled || isSortPending}
+          value={initialSort}
+          onChange={(e) => handleSortChange(e.target.value)}
+          className="rounded-lg border border-purple-700 bg-black px-3 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <option value="latest">Terbaru</option>
-          <option value="bestseller">Terlaris</option>
-          <option value="favorite">Favorit</option>
-          <option value="popular">Popular</option>
-          <option value="rating">Top Rated</option>
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </div>
 
-      {/* ================= GRID ================= */}
       {catalogDisabled ? (
-
         <FeatureMaintenanceCard
           title="Katalog sedang maintenance"
-          message={catalogMessage}
+          message={maintenanceMessage}
         />
-
       ) : (
-        <motion.div
-          key={currentPage}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          {loading ? (
-            <>
-              <SkeletonVariant />
-              <SkeletonVariant />
-              <SkeletonVariant />
-            </>
-          ) : products.length === 0 ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {products.length === 0 ? (
             <EmptyState />
           ) : (
             paginatedProducts.map((product) => {
@@ -413,15 +338,6 @@ export default function CustomerProductContent() {
                 pricing?.guest ??
                 0;
 
-              const price = pricing?.member;
-
-              const isAdding = addingId === product.id;
-              const isOutOfStock = (product.available_stock ?? 0) <= 0;
-
-              const isFav = favoriteIds.has(product.id);
-              const favLoading = favoriteLoadingId === product.id;
-
-              // ===== DISKON =====
               const discountPrice = product.discount_price;
               const discountPercent = product.discount_percent;
 
@@ -433,31 +349,33 @@ export default function CustomerProductContent() {
                 discountPrice ?? calculatedDiscountPrice ?? originalPrice;
 
               const isDiscounted = finalPrice < originalPrice;
+              const isAdding = addingId === product.id;
+              const isOutOfStock = (product.available_stock ?? 0) <= 0;
+              const isFav = favoriteIds.has(product.id);
+              const favLoading = favoriteLoadingId === product.id;
 
               return (
                 <div
                   key={product.id}
-                  className="rounded-2xl border border-purple-700 bg-black overflow-hidden"
+                  className="overflow-hidden rounded-2xl border border-purple-700 bg-black"
                 >
-                  {/* IMAGE + FAVORITE */}
                   <div className="relative h-[160px] bg-white">
                     <Image
                       src={product?.subcategory?.image_url || "/placeholder.png"}
                       width={300}
                       height={200}
                       alt={product.name}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
 
-                    {/* FAVORITE BUTTON (hanya product_id) */}
                     <button
                       onClick={() => toggleFavorite(product.id)}
                       disabled={favLoading}
                       className={cn(
-                        "absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center border transition select-none",
+                        "absolute right-3 top-3 flex h-10 w-10 select-none items-center justify-center rounded-full border transition",
                         isFav
-                          ? "bg-pink-500/20 border-pink-400 text-pink-400"
-                          : "bg-black/40 border-white/20 text-white",
+                          ? "border-pink-400 bg-pink-500/20 text-pink-400"
+                          : "border-white/20 bg-black/40 text-white",
                         "disabled:opacity-60"
                       )}
                       title={isFav ? "Hapus dari Favorite" : "Tambah ke Favorite"}
@@ -467,9 +385,9 @@ export default function CustomerProductContent() {
                   </div>
 
                   <div className="p-4">
-                    <h3 className="font-semibold mb-1">{product.name}</h3>
+                    <h3 className="mb-1 font-semibold">{product.name}</h3>
 
-                    <p className="text-xs text-gray-400 mb-1">
+                    <p className="mb-1 text-xs text-gray-400">
                       Stok Tersedia {product.available_stock ?? 0}
                     </p>
 
@@ -478,8 +396,7 @@ export default function CustomerProductContent() {
                         <p className="text-xs text-red-400">⚠ Stok hampir habis</p>
                       )}
 
-                    {/* RATING DISPLAY */}
-                    <div className="flex items-center text-yellow-400 text-sm mb-2">
+                    <div className="mb-2 flex items-center text-sm text-yellow-400">
                       <span className="mr-1">
                         {"★".repeat(Math.round(product.rating || 0))}
                         {"☆".repeat(5 - Math.round(product.rating || 0))}
@@ -491,7 +408,7 @@ export default function CustomerProductContent() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="mb-3 flex items-center justify-between">
                       <div className="flex flex-col gap-1">
                         {isDiscounted && (
                           <span className="text-xs text-gray-400 line-through">
@@ -509,7 +426,7 @@ export default function CustomerProductContent() {
 
                         {userTier !== "guest" && (
                           <span
-                            className={`text-[10px] px-2 py-0.5 rounded uppercase w-fit font-semibold ${getTierBadgeClass(
+                            className={`w-fit rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${getTierBadgeClass(
                               userTier
                             )}`}
                           >
@@ -518,7 +435,7 @@ export default function CustomerProductContent() {
                         )}
                       </div>
 
-                      <span className="text-xs px-2 py-1 rounded bg-purple-800 text-purple-200">
+                      <span className="rounded bg-purple-800 px-2 py-1 text-xs text-purple-200">
                         {product.type || "Otomatis"}
                       </span>
                     </div>
@@ -528,10 +445,10 @@ export default function CustomerProductContent() {
                         onClick={() => handleBuyNow(product.id)}
                         disabled={checkoutLoadingId === product.id || isOutOfStock}
                         className={cn(
-                          "flex-1 rounded-lg py-2 text-sm font-semibold transition relative",
+                          "relative flex-1 rounded-lg py-2 text-sm font-semibold transition",
                           isOutOfStock
-                            ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-                            : "bg-purple-600 hover:bg-purple-700 text-white",
+                            ? "cursor-not-allowed bg-zinc-800 text-zinc-500"
+                            : "bg-purple-600 text-white hover:bg-purple-700",
                           "disabled:opacity-70"
                         )}
                       >
@@ -542,12 +459,11 @@ export default function CustomerProductContent() {
                           : "Beli Sekarang"}
                       </button>
 
-                      {/* ADD TO CART */}
                       <button
                         onClick={() => addToCart(product.id)}
                         disabled={isAdding || isOutOfStock}
                         className={cn(
-                          "w-10 h-10 flex items-center justify-center rounded-lg border border-purple-600 hover:bg-purple-600/20 transition disabled:opacity-50",
+                          "flex h-10 w-10 items-center justify-center rounded-lg border border-purple-600 transition hover:bg-purple-600/20 disabled:opacity-50",
                           isOutOfStock && "cursor-not-allowed opacity-50"
                         )}
                         title={isOutOfStock ? "Stok habis" : "Tambah ke keranjang"}
@@ -560,16 +476,15 @@ export default function CustomerProductContent() {
               );
             })
           )}
-        </motion.div>
+        </div>
       )}
 
-      {/* ================= PAGINATION ================= */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-10 gap-2">
+      {totalPages > 1 && !catalogDisabled && (
+        <div className="mt-10 flex justify-center gap-2">
           <button
             onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 rounded-lg border border-purple-700 text-purple-300 hover:bg-purple-700/30 disabled:opacity-40 transition"
+            className="rounded-lg border border-purple-700 px-4 py-2 text-purple-300 transition hover:bg-purple-700/30 disabled:opacity-40"
           >
             ←
           </button>
@@ -583,10 +498,10 @@ export default function CustomerProductContent() {
                 key={page}
                 onClick={() => setCurrentPage(page)}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-semibold transition",
+                  "rounded-lg px-4 py-2 text-sm font-semibold transition",
                   isActive
                     ? "bg-purple-600 text-white shadow-lg shadow-purple-700/40"
-                    : "bg-black text-purple-300 border border-purple-700 hover:bg-purple-700/30"
+                    : "border border-purple-700 bg-black text-purple-300 hover:bg-purple-700/30"
                 )}
               >
                 {page}
@@ -597,7 +512,7 @@ export default function CustomerProductContent() {
           <button
             onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 rounded-lg border border-purple-700 text-purple-300 hover:bg-purple-700/30 disabled:opacity-40 transition"
+            className="rounded-lg border border-purple-700 px-4 py-2 text-purple-300 transition hover:bg-purple-700/30 disabled:opacity-40"
           >
             →
           </button>
@@ -607,39 +522,18 @@ export default function CustomerProductContent() {
   );
 }
 
-/* ================= MAINTENANCE MODE COMPONENT ================= */
 function FeatureMaintenanceCard({ title, message }) {
   return (
     <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 text-center">
-      <h3 className="text-xl font-semibold text-amber-300 mb-2">
-        {title}
-      </h3>
-      <p className="text-amber-100/90">
-        {message}
-      </p>
-    </div>
-  );
-}
-
-/* ================= UI COMPONENTS ================= */
-
-function SkeletonVariant() {
-  return (
-    <div className="rounded-2xl border border-purple-700 bg-black overflow-hidden animate-pulse">
-      <div className="h-[160px] bg-zinc-800" />
-      <div className="p-4 space-y-3">
-        <div className="h-4 bg-zinc-800 rounded w-3/4" />
-        <div className="h-3 bg-zinc-800 rounded w-1/2" />
-        <div className="h-3 bg-zinc-800 rounded w-1/3" />
-        <div className="h-10 bg-zinc-800 rounded" />
-      </div>
+      <h3 className="mb-2 text-xl font-semibold text-amber-300">{title}</h3>
+      <p className="text-amber-100/90">{message}</p>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="col-span-full text-center py-20 text-zinc-500">
+    <div className="col-span-full py-20 text-center text-zinc-500">
       Tidak ada produk
     </div>
   );

@@ -90,6 +90,9 @@ export async function middleware(request) {
   const isAuthRoute = pathname === "/login" || pathname === "/register";
   const isOtpRoute = pathname.startsWith("/verify-otp");
 
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-current-path', request.nextUrl.pathname)
+
   if (isProtectedRoute && !token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -137,7 +140,11 @@ export async function middleware(request) {
     return userMaintenance;
   }
 
-  return NextResponse.next();
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 }
 
 export const config = {

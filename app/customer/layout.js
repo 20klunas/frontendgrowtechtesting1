@@ -1,17 +1,18 @@
-"use client";
+import NavbarCustomer from '../components/NavbarCustomer'
+import Footer from '../components/FooterCustomer'
+import CustomerProviders from '../components/CustomerProviders'
+import { getWebsiteBrandServer } from '../lib/serverWebsiteSettings'
 
-import NavbarCustomer from "../../app/components/NavbarCustomer";
-import Footer from "../../app/components/FooterCustomer";
-import { WebsiteSettingsProvider } from "../../app/context/WebsiteSettingsContext";
+export default async function CustomerLayout({ children }) {
+  const brand = await getWebsiteBrandServer()
 
-export default function CustomerLayout({ children }) {
   return (
-    <WebsiteSettingsProvider>
+    <CustomerProviders initialBrand={brand}>
       <div className="min-h-screen flex flex-col">
-        <NavbarCustomer />
+        <NavbarCustomer brand={brand} />
         <main className="flex-1">{children}</main>
         <Footer />
       </div>
-    </WebsiteSettingsProvider>
-  );
+    </CustomerProviders>
+  )
 }

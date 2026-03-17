@@ -1,120 +1,114 @@
-"use client";
+'use client'
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { publicFetch } from "../lib/publicFetch";
-import { isMaintenanceError } from "../lib/maintenanceHandler";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import { publicFetch } from '../lib/publicFetch'
 
-const WebsiteSettingsContext = createContext(null);
+const WebsiteSettingsContext = createContext(null)
 
-let cachedSettings = null;
-let inFlightSettingsPromise = null;
+function parseSettingValue(value) {
+  if (typeof value !== 'string') return value
+
+  const trimmed = value.trim()
+
+  if (
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']'))
+  ) {
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      return value
+    }
+  }
+
+  return value
+}
 
 function normalizeSettings(rows = []) {
   return rows.reduce((acc, row) => {
-    acc[row.key] = row.value;
-    return acc;
-  }, {});
+    if (!row?.key) return acc
+    acc[row.key] = parseSettingValue(row.value)
+    return acc
+  }, {})
 }
 
-async function loadWebsiteSettings() {
-  if (cachedSettings) {
-    return cachedSettings;
-  }
-
-  if (!inFlightSettingsPromise) {
-    inFlightSettingsPromise = (async () => {
-      const res = await publicFetch("/api/v1/content/settings?group=website");
-      const mapped = normalizeSettings(res?.data || []);
-      cachedSettings = mapped;
-      return mapped;
-    })().finally(() => {
-      inFlightSettingsPromise = null;
-    });
-  }
-
-  return inFlightSettingsPromise;
-}
-
-export function WebsiteSettingsProvider({ children }) {
-  const [loading, setLoading] = useState(!cachedSettings);
-  const [settings, setSettings] = useState(cachedSettings || {});
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let active = true;
-
-    if (cachedSettings) {
-      setSettings(cachedSettings);
-      setLoading(false);
-      return;
+export function WebsiteSettingsProvider({
+  children,
+  initialBrand = {},
+  initialSettings = null,
+}) {
+  const initialResolvedSettings =
+    initialSettings || {
+      brand: initialBrand || {},
     }
 
-    const fetchSettings = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const [settings, setSettings] = useState(initialResolvedSettings)
+  const [brand, setBrand] = useState(initialResolvedSettings?.brand || {})
+  const [loading, setLoading] = useState(
+    !initialSettings && !Object.keys(initialBrand || {}).length
+  )
 
-        const mapped = await loadWebsiteSettings();
+  const refreshWebsiteSettings = useCallback(async () => {
+    try {
+      setLoading(true)
 
-        if (!active) return;
+      const res = await publicFetch('/api/v1/content/settings?group=website')
+      const normalized = normalizeSettings(res?.data || [])
 
-        setSettings(mapped);
-      } catch (err) {
-        if (!active) return;
-
-        if (!isMaintenanceError(err)) {
-          console.error("Failed fetch website settings:", err);
-        }
-
-        setError(err);
-      } finally {
-        if (active) setLoading(false);
+      setSettings(normalized)
+      setBrand(normalized?.brand || {})
+    } catch (err) {
+      if (err?.message !== 'System Maintenance') {
+        console.error('Failed fetch website settings:', err)
       }
-    };
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-    fetchSettings();
+  useEffect(() => {
+    if (Object.keys(initialResolvedSettings?.brand || {}).length > 0) {
+      setLoading(false)
+      return
+    }
 
-    return () => {
-      active = false;
-    };
-  }, []);
+    refreshWebsiteSettings()
+  }, [initialResolvedSettings, refreshWebsiteSettings])
 
-  const brand = settings?.brand || {};
-  const footer = settings?.footer || {};
-  const seo = settings?.seo || {};
-
-  const value = useMemo(() => {
-    return {
-      loading,
+  const value = useMemo(
+    () => ({
       settings,
       brand,
-      footer,
-      seo,
-      error,
-    };
-  }, [loading, settings, brand, footer, seo, error]);
+      loading,
+      setSettings,
+      setBrand,
+      refreshWebsiteSettings,
+    }),
+    [settings, brand, loading, refreshWebsiteSettings]
+  )
 
   return (
     <WebsiteSettingsContext.Provider value={value}>
       {children}
     </WebsiteSettingsContext.Provider>
-  );
+  )
 }
 
 export function useWebsiteSettings() {
-  const context = useContext(WebsiteSettingsContext);
+  const context = useContext(WebsiteSettingsContext)
 
   if (!context) {
-    // ✅ SAFE fallback (penting untuk build & SSR)
-    return {
-      loading: true,
-      settings: {},
-      brand: {},
-      footer: {},
-      seo: {},
-      error: null,
-    };
+    throw new Error(
+      'useWebsiteSettings must be used inside WebsiteSettingsProvider'
+    )
   }
 
-  return context;
+  return context
 }

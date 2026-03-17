@@ -1,12 +1,29 @@
-"use client";
-
-import { Suspense } from "react";
+import { getProductPageData } from "../../../lib/serverCatalogFetch";
 import CustomerProductContent from "./CustomerProductContent";
 
-export default function Page() {
+function getSingleParam(value) {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return typeof value === "string" ? value : null;
+}
+
+export default async function Page({ searchParams }) {
+  const params = searchParams || {};
+
+  const subcategoryId = getSingleParam(params?.subcategory);
+  const sort = getSingleParam(params?.sort) ?? "latest";
+
+  const { products, header, maintenanceMessage } = await getProductPageData({
+    subcategoryId,
+    sort,
+  });
+
   return (
-    <Suspense fallback={<div className="text-white p-8">Loading...</div>}>
-      <CustomerProductContent />
-    </Suspense>
+    <CustomerProductContent
+      initialProducts={products}
+      initialHeader={header}
+      initialSort={sort}
+      subcategoryId={subcategoryId}
+      maintenanceMessage={maintenanceMessage}
+    />
   );
 }
