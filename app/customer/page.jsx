@@ -235,6 +235,26 @@ export default function CustomerHomePage() {
         </div>
       </section>
 
+      {/* ============================================ */}
+      {/* STATS */}
+      {/* ============================================ */}
+
+      <section className="w-full pb-20">
+
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+
+            <StatItem title="10K+" subtitle="Produk Terjual"/>
+            <StatItem title="100%" subtitle="Aman & Terpercaya"/>
+            <StatItem title="24/7" subtitle="Dukungan Pelanggan"/>
+
+          </div>
+
+        </div>
+
+      </section>
+
 
       {/* BANNER */}
 
