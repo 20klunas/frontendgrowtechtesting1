@@ -6,6 +6,8 @@ import { isMaintenanceError } from "../lib/maintenanceHandler";
 
 const WebsiteSettingsContext = createContext(null);
 
+let cachedSettings = null;
+
 function normalizeSettings(rows = []) {
   return rows.reduce((acc, row) => {
     acc[row.key] = row.value;
@@ -14,15 +16,17 @@ function normalizeSettings(rows = []) {
 }
 
 export function WebsiteSettingsProvider({ children }) {
-  const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState({});
-  const [brand, setBrand] = useState({});
-  const [footer, setFooter] = useState({});
-  const [seo, setSeo] = useState({});
+  const [loading, setLoading] = useState(!cachedSettings);
+  const [settings, setSettings] = useState(cachedSettings || {});
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let active = true;
+
+    if (cachedSettings) {
+      setLoading(false);
+      return;
+    }
 
     const fetchSettings = async () => {
       try {
@@ -30,14 +34,14 @@ export function WebsiteSettingsProvider({ children }) {
         setError(null);
 
         const res = await publicFetch("/api/v1/content/settings?group=website");
+
         const mapped = normalizeSettings(res?.data || []);
 
         if (!active) return;
 
+        cachedSettings = mapped;
+
         setSettings(mapped);
-        setBrand(mapped.brand || {});
-        setFooter(mapped.footer || {});
-        setSeo(mapped.seo || {});
       } catch (err) {
         if (!active) return;
 
@@ -47,9 +51,7 @@ export function WebsiteSettingsProvider({ children }) {
 
         setError(err);
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     };
 
@@ -60,6 +62,10 @@ export function WebsiteSettingsProvider({ children }) {
     };
   }, []);
 
+  const brand = settings?.brand || {};
+  const footer = settings?.footer || {};
+  const seo = settings?.seo || {};
+
   const value = useMemo(() => {
     return {
       loading,
@@ -69,7 +75,7 @@ export function WebsiteSettingsProvider({ children }) {
       seo,
       error,
     };
-  }, [loading, settings, brand, footer, seo, error]);
+  }, [loading, settings, error]); 
 
   return (
     <WebsiteSettingsContext.Provider value={value}>
@@ -82,7 +88,9 @@ export function useWebsiteSettings() {
   const context = useContext(WebsiteSettingsContext);
 
   if (!context) {
-    throw new Error("useWebsiteSettings must be used within WebsiteSettingsProvider");
+    throw new Error(
+      "useWebsiteSettings must be used within WebsiteSettingsProvider"
+    );
   }
 
   return context;

@@ -9,13 +9,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X } from "lucide-react"
 import { useAuth } from "../../app/hooks/useAuth"
 import { cn } from "../lib/utils"
-
-/* ================= UTIL ================= */
-const normalizeSettings = (rows = []) =>
-  rows.reduce((acc, row) => {
-    acc[row.key] = row.value
-    return acc
-  }, {})
+import { useWebsiteSettings } from '../context/WebsiteSettingsContext'
 
 /* ================= BREADCRUMB ================= */
 function Breadcrumb() {
@@ -46,25 +40,18 @@ function Breadcrumb() {
 
 /* ================= NAVBAR ================= */
 export default function Navbar() {
-  const API = process.env.NEXT_PUBLIC_API_URL
   const pathname = usePathname()
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
 
-  const [brand, setBrand] = useState({})
+  // ✅ ambil dari context (SINGLE SOURCE)
+  const { brand, loading } = useWebsiteSettings()
+
   const [scrolled, setScrolled] = useState(false)
   const [active, setActive] = useState(pathname)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  /* fetch brand */
-  useEffect(() => {
-    fetch(`${API}/api/v1/content/settings?group=website`)
-      .then(res => res.json())
-      .then(res => setBrand(normalizeSettings(res?.data)?.brand || {}))
-      .catch(console.error)
-  }, [API])
-
-  /* navbar shrink + scroll spy */
+  /* navbar shrink */
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 30)
@@ -73,9 +60,10 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
+  /* route change */
   useEffect(() => {
     setActive(pathname)
-    setMobileOpen(false) // auto close menu saat pindah halaman
+    setMobileOpen(false)
   }, [pathname])
 
   const navItems = [
@@ -86,7 +74,7 @@ export default function Navbar() {
   const isActive = (href) =>
     active === href || active.startsWith(`${href}/`)
 
-  /* ================= SEO BREADCRUMB SCHEMA ================= */
+  /* ================= SEO BREADCRUMB ================= */
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -103,6 +91,9 @@ export default function Navbar() {
           .join("/")}`,
       })),
   }
+
+  // ✅ loading safety
+  const siteName = brand?.site_name || "Growtech Central"
 
   return (
     <>
@@ -129,13 +120,13 @@ export default function Navbar() {
           <div className="flex items-center gap-2 sm:gap-3">
             <Image
               src="/logoherosection.png"
-              alt="Growtech"
+              alt={siteName}
               width={36}
               height={36}
               className="w-8 h-8 sm:w-9 sm:h-9"
             />
             <span className="font-semibold text-white text-sm sm:text-lg">
-              {brand.site_name || "Growtech Central"}
+              {siteName}
             </span>
           </div>
 

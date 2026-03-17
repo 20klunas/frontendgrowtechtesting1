@@ -1,30 +1,14 @@
 'use client'
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
-
-const normalizeSettings = (rows = []) =>
-  rows.reduce((acc, row) => {
-    acc[row.key] = row.value
-    return acc
-  }, {})
+import { useWebsiteSettings } from '../context/WebsiteSettingsContext'
 
 export default function Footer() {
-  const API = process.env.NEXT_PUBLIC_API_URL
+  // ✅ ambil dari global context
+  const { brand, footer, loading } = useWebsiteSettings()
 
-  const [brand, setBrand] = useState({})
-  const [footer, setFooter] = useState({})
-
-  useEffect(() => {
-    fetch(`${API}/api/v1/content/settings?group=website`)
-      .then(res => res.json())
-      .then(res => {
-        const data = normalizeSettings(res?.data)
-        setBrand(data.brand || {})
-        setFooter(data.footer || {})
-      })
-      .catch(console.error)
-  }, [API])
+  // ✅ fallback aman
+  const siteName = brand?.site_name || "Growtech Central"
 
   return (
     <footer className="
@@ -46,16 +30,16 @@ export default function Footer() {
         {/* BRAND */}
         <div className="space-y-3 text-center md:text-left">
           <h3 className="text-lg font-semibold">
-            {brand.site_name || "Growtech Central"}
+            {siteName}
           </h3>
 
-          {footer.footer_desc && (
+          {footer?.footer_desc && (
             <p className="text-sm text-gray-400 leading-relaxed">
               {footer.footer_desc}
             </p>
           )}
 
-          {brand.version && (
+          {brand?.version && (
             <p className="text-xs text-gray-500">
               Version {brand.version}
             </p>
@@ -91,7 +75,7 @@ export default function Footer() {
             Kontak
           </h4>
 
-          {brand.phone && (
+          {brand?.phone && (
             <a
               href={brand.phone}
               target="_blank"
@@ -101,7 +85,7 @@ export default function Footer() {
             </a>
           )}
 
-          {brand.email && (
+          {brand?.email && (
             <a
               href={`mailto:${brand.email}`}
               className="footer-link block"
@@ -110,7 +94,6 @@ export default function Footer() {
             </a>
           )}
         </div>
-
 
       </div>
 
@@ -129,8 +112,7 @@ export default function Footer() {
         text-xs text-gray-500
       ">
         <span>
-          © {new Date().getFullYear()} {brand.site_name || "Growtech Central"}.
-          All rights reserved.
+          © {new Date().getFullYear()} {siteName}. All rights reserved.
         </span>
 
         <div className="flex items-center gap-4">
