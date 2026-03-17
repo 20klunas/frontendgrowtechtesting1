@@ -91,7 +91,7 @@ export default function LoginPage() {
     }
   };
 
-  const { user, loading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
 
   useEffect(() => {
     const token = Cookies.get("token")
@@ -103,13 +103,13 @@ export default function LoginPage() {
 
   useEffect(() => {
 
-    if (loading) return
+    if (authLoading) return
 
     if (user) {
       router.replace("/customer")
     }
 
-  }, [user, loading])
+  }, [user, authLoading, router])
 
   const handleLogin = async (e) => {
     e.preventDefault();
