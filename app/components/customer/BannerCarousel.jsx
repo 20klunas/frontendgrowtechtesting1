@@ -1,27 +1,45 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { motion } from "framer-motion"
 
 export default function BannerCarousel({
   banners = [],
   autoplay = true,
   autoplayDelay = 4000
 }) {
-
   const [index, setIndex] = useState(0)
+  const intervalRef = useRef(null)
 
-  // ✅ autoplay super ringan
+  // ✅ autoplay super ringan + aman
   useEffect(() => {
     if (!autoplay || banners.length <= 1) return
 
-    const interval = setInterval(() => {
-      setIndex((prev) => (prev + 1) % banners.length)
-    }, autoplayDelay)
+    const start = () => {
+      intervalRef.current = setInterval(() => {
+        setIndex((prev) => (prev + 1) % banners.length)
+      }, autoplayDelay)
+    }
 
-    return () => clearInterval(interval)
+    const stop = () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+
+    start()
+
+    // ✅ pause saat tab tidak aktif (hemat CPU)
+    const handleVisibility = () => {
+      if (document.hidden) stop()
+      else start()
+    }
+
+    document.addEventListener("visibilitychange", handleVisibility)
+
+    return () => {
+      stop()
+      document.removeEventListener("visibilitychange", handleVisibility)
+    }
   }, [autoplay, autoplayDelay, banners.length])
 
   if (!banners.length) return null
@@ -29,26 +47,23 @@ export default function BannerCarousel({
   return (
     <section className="relative w-full overflow-hidden py-16">
 
-      {/* ✅ Slider */}
       <div className="relative w-full max-w-6xl mx-auto overflow-hidden rounded-2xl">
 
-        <motion.div
-          className="flex"
-          animate={{ x: `-${index * 100}%` }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
+        {/* ✅ GPU-based animation (SUPER RINGAN) */}
+        <div
+          className="flex will-change-transform transition-transform duration-500 ease-in-out"
+          style={{ transform: `translate3d(-${index * 100}%, 0, 0)` }}
         >
-
           {banners.map((banner, i) => (
             <div
               key={banner.id || i}
               className="relative w-full h-[320px] flex-shrink-0"
             >
-
               <Image
                 src={banner.image_url}
                 alt={banner.title || "Banner"}
                 fill
-                priority={i === 0} // ✅ hanya first image
+                priority={i === 0}
                 sizes="100vw"
                 className="object-cover"
               />
@@ -58,7 +73,6 @@ export default function BannerCarousel({
 
               {/* content */}
               <div className="absolute bottom-6 left-6 right-6 text-white">
-
                 {banner.title && (
                   <h3 className="text-xl md:text-2xl font-bold mb-2">
                     {banner.title}
@@ -79,16 +93,13 @@ export default function BannerCarousel({
                     Lihat Promo
                   </Link>
                 )}
-
               </div>
-
             </div>
           ))}
-
-        </motion.div>
+        </div>
       </div>
 
-      {/* ✅ indicators (simple) */}
+      {/* indicators */}
       <div className="flex justify-center mt-6 gap-2">
         {banners.map((_, i) => (
           <button
@@ -102,7 +113,6 @@ export default function BannerCarousel({
           />
         ))}
       </div>
-
     </section>
   )
 }
