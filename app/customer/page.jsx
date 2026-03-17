@@ -6,7 +6,7 @@ import { X, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import Script from "next/script";
-import useTopUpAccess from "../../hooks/useTopUpAccess";
+import useTopUpAccess from "../hooks/useTopUpAccess";
 
 /* ================= DATA ================= */
 
