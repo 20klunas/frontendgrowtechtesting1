@@ -46,11 +46,14 @@ export default function CustomerProductContent() {
   }, [products]);
 
   const paginatedProducts = useMemo(() => {
-    return (products || []).slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
-  }, [products, currentPage]);
+
+    if (!products?.length) return [];
+
+    const start = (currentPage - 1) * itemsPerPage;
+
+    return products.slice(start, start + itemsPerPage);
+
+  }, [products, currentPage, itemsPerPage]);
 
   const { user } = useAuth();
   const userTier = user?.tier?.toLowerCase() || "guest";
@@ -74,7 +77,9 @@ export default function CustomerProductContent() {
         url += `&subcategory_id=${subcategoryId}`;
       }
 
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        cache: "no-store"
+      });
 
       const contentType = res.headers.get("content-type");
 

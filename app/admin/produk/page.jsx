@@ -5,17 +5,22 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { productService } from "../../services/productService";
 import PermissionGate from "../../components/admin/PermissionGate";
+import { useProducts } from "./hooks/useProducts"
 export default function ProdukPage() {
   const router = useRouter();
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const [page, setPage] = useState(1);
-  const [meta, setMeta] = useState(null);
+  const {
+    products,
+    meta,
+    loading,
+    reload
+  } = useProducts(search, page)
+
   const [processingId, setProcessingId] = useState(null);
 
   const [toast, setToast] = useState(null);
@@ -65,7 +70,7 @@ export default function ProdukPage() {
       setProducts(res.data || []);
       setMeta(res.meta || null);
 
-      loadLicenseSummary(res.data || []);
+      // loadLicenseSummary(res.data || []);
 
 
     } catch (err) {

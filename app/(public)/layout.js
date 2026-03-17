@@ -1,12 +1,18 @@
 import NavbarPublic from "../../app/components/Navbar";
 import Footer from "../../app/components/Footer";
+import { getWebsiteSettings } from "../lib/api/website";
 
-export default function PublicLayout({ children }) {
+export default async function PublicLayout({ children }) {
+
+  const { brand, footer } = await getWebsiteSettings();
+
   return (
     <>
-      <NavbarPublic />
+      <NavbarPublic brand={brand} />
+
       {children}
-      <Footer />
+
+      <Footer brand={brand} footer={footer} />
     </>
   );
 }

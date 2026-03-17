@@ -9,186 +9,115 @@ import { Eye, EyeOff } from "lucide-react";
 import { publicFetch } from "../../lib/publicFetch";
 
 export default function LoginPage() {
+
   const router = useRouter();
   const API = process.env.NEXT_PUBLIC_API_URL;
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [setLoading] = useState(false);
-  const { setUser } = useAuth();
-  const [showPassword, setShowPassword] = useState(false);
-  const [authDisabled,setAuthDisabled] = useState(false)
-  const [authMessage,setAuthMessage] = useState("")
+  const { user, login, loading } = useAuth();
 
-  const [popup, setPopup] = useState({
-    open: false,
-    type: "info",
-    message: ""
+  const [email,setEmail] = useState("");
+  const [password,setPassword] = useState("");
+  const [showPassword,setShowPassword] = useState(false);
+  const [submitting,setSubmitting] = useState(false);
+
+  const [popup,setPopup] = useState({
+    open:false,
+    type:"info",
+    message:""
   });
 
-  const saveSession = (token, user) => {
-    Cookies.set("token", token, {
-      path: "/",
-      sameSite: "lax",
-    });
+  useEffect(()=>{
 
-    Cookies.set("role", user.role || "user", {
-      path: "/",
-      sameSite: "lax",
-    });
+    if(loading) return
 
-    Cookies.set("user_name", user.name || user.full_name || "", {
-      path: "/",
-      sameSite: "lax",
-    });
+    if(user){
 
-    Cookies.set("user_email", user.email || "", {
-      path: "/",
-      sameSite: "lax",
-    });
-  };
-
-  const fetchProfile = async (token) => {
-    const profileRes = await fetch(`${API}/api/v1/auth/me/profile`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
-
-    const profileJson = await profileRes.json();
-
-    if (!profileJson.success) {
-      throw new Error(
-        profileJson?.error?.message ||
-          profileJson?.message ||
-          "Gagal mengambil profile user"
-      );
-    }
-
-    const user = profileJson?.data;
-
-    if (!user) {
-      throw new Error("Data user tidak ditemukan");
-    }
-
-    return user;
-  };
-
-  const saveSessionAndRedirect = async (token) => {
-    const user = await fetchProfile(token);
-
-    saveSession(token, user);
-    setUser(user);
-
-    if (user.role === "admin") {
-      router.replace("/admin/dashboard");
-    } else {
-      await new Promise((r) => setTimeout(r, 100))
+      if(user.role==="admin"){
+      router.replace("/admin/dashboard")
+      }else{
       router.replace("/customer")
-    }
-  };
+      }
 
-  const { user, loading } = useAuth()
-
-  useEffect(() => {
-    const token = Cookies.get("token")
-
-    if (token) {
-      router.replace("/customer")
-    }
-  }, [user, loading])
-
-  useEffect(() => {
-
-    if (loading) return
-
-    if (user) {
-      router.replace("/customer")
     }
 
-  }, [user, loading])
+  },[user,loading])
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e)=>{
     e.preventDefault();
-    setLoading(true);
 
-    try {
-      if (!API) {
+    try{
+
+      setSubmitting(true);
+
+      if(!API){
         throw new Error("NEXT_PUBLIC_API_URL belum diset");
       }
 
-      const json = await publicFetch("/api/v1/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
+      const res = await publicFetch("/api/v1/auth/login",{
+        method:"POST",
+        body:JSON.stringify({email,password})
       });
 
-      if (json?.data?.requires_2fa) {
-        router.push(`/verify-otp?challenge_id=${json.data.challenge_id}`);
+      if(res?.data?.requires_2fa){
+        router.push(`/verify-otp?challenge_id=${res.data.challenge_id}`);
         return;
       }
 
-      const token = json?.data?.token;
+      const token = res?.data?.token;
+      const userData = res?.data?.user;
 
-      if (!token) {
-        throw new Error("Token login tidak ditemukan");
+      if(!token || !userData){
+        throw new Error("Token atau user tidak ditemukan");
       }
 
-      await saveSessionAndRedirect(token);
-    } catch (err) {
-      if (!err?.isMaintenance) {
-        setPopup({
-          open: true,
-          type: "error",
-          message: err?.message || "Sedang Maintenance, coba beberapa saat lagi."
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+      Cookies.set("token",token,{
+        path:"/",
+        sameSite:"lax"
+      });
 
-  const handleGoogleLogin = async () => {
+      login(userData,token);
 
-    try {
-
-      if (!API) {
-        setPopup({
-          open: true,
-          type: "error",
-          message: "API belum dikonfigurasi"
-        });
-        return;
+      if(userData.role === "admin"){
+        router.replace("/admin/dashboard");
+      }else{
+        router.replace("/customer");
       }
 
-      window.location.href = `${API}/api/v1/auth/google/redirect`;
-
-    } catch (err) {
-
-      if (err?.isMaintenance) {
-        setPopup({
-          open: true,
-          type: "error",
-          message: err.message || "Login sedang maintenance"
-        });
-        return;
-      }
+    }catch(err){
 
       setPopup({
-        open: true,
-        type: "error",
-        message: "Gagal memulai login Google"
+        open:true,
+        type:"error",
+        message:err?.message || "Login gagal"
       });
 
+    }finally{
+      setSubmitting(false);
     }
-
   };
 
-  const handleDiscordLogin = () => {
-    if (!API) {
-      alert("NEXT_PUBLIC_API_URL belum diset");
+  const handleGoogleLogin = ()=>{
+
+    if(!API){
+      setPopup({
+        open:true,
+        type:"error",
+        message:"API belum dikonfigurasi"
+      });
+      return;
+    }
+
+    window.location.href = `${API}/api/v1/auth/google/redirect`;
+  };
+
+  const handleDiscordLogin = ()=>{
+
+    if(!API){
+      setPopup({
+        open:true,
+        type:"error",
+        message:"API belum dikonfigurasi"
+      });
       return;
     }
 
@@ -197,9 +126,12 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 pt-16">
+
       <div className="w-full max-w-md rounded-2xl border border-purple-400/60 bg-black p-8">
+
         {popup.open && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+
             <div className="w-[380px] rounded-2xl border border-purple-500 bg-black p-6 shadow-xl">
 
               <h2 className="text-lg font-semibold text-purple-300 mb-3">
@@ -211,26 +143,30 @@ export default function LoginPage() {
               </p>
 
               <button
-                onClick={() => setPopup({ ...popup, open: false })}
+                onClick={()=>setPopup({...popup,open:false})}
                 className="w-full rounded-lg bg-purple-600 py-2 font-semibold hover:bg-purple-700 transition"
               >
                 Tutup
               </button>
 
             </div>
+
           </div>
         )}
+
         <h1 className="text-center text-2xl font-semibold text-purple-300 mb-6">
           Login
         </h1>
 
         <form className="space-y-4" onSubmit={handleLogin}>
+
           <div>
             <label className="text-sm text-purple-300">Email</label>
+
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e)=>setEmail(e.target.value)}
               placeholder="growtech@email.com"
               required
               className="mt-1 w-full rounded-lg border border-purple-400/50 bg-black px-4 py-2 text-white outline-none focus:border-purple-500"
@@ -241,10 +177,11 @@ export default function LoginPage() {
             <label className="text-sm text-purple-300">Password</label>
 
             <div className="relative mt-1">
+
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e)=>setPassword(e.target.value)}
                 placeholder="********"
                 required
                 className="w-full rounded-lg border border-purple-400/50 bg-black px-4 py-2 pr-10 text-white outline-none focus:border-purple-500"
@@ -252,11 +189,12 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={()=>setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 hover:text-purple-200"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
               </button>
+
             </div>
           </div>
 
@@ -271,11 +209,12 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={submitting}
             className="mt-4 w-full rounded-xl bg-[#2B044D] py-3 font-semibold text-white transition hover:bg-[#3a0a6a] disabled:opacity-50"
           >
-            {loading ? "Logging in..." : "Login"}
+            {submitting ? "Logging in..." : "Login"}
           </button>
+
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-400">
@@ -286,15 +225,19 @@ export default function LoginPage() {
         </p>
 
         <div className="mt-6 border-t border-purple-400/30 pt-4 text-center">
-          <p className="mb-3 text-sm text-gray-400">Masuk dengan</p>
+
+          <p className="mb-3 text-sm text-gray-400">
+            Masuk dengan
+          </p>
 
           <div className="flex gap-3">
+
             <button
               type="button"
               onClick={handleGoogleLogin}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/50 py-2 text-sm hover:bg-purple-400/10"
             >
-              <Image src="/icons/google-icon.svg" alt="Google" width={18} height={18} />
+              <Image src="/icons/google-icon.svg" alt="Google" width={18} height={18}/>
               Google
             </button>
 
@@ -303,12 +246,16 @@ export default function LoginPage() {
               onClick={handleDiscordLogin}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/50 py-2 text-sm hover:bg-purple-400/10"
             >
-              <Image src="/icons/discord-icon.svg" alt="Discord" width={18} height={18} />
+              <Image src="/icons/discord-icon.svg" alt="Discord" width={18} height={18}/>
               Discord
             </button>
+
           </div>
+
         </div>
+
       </div>
+
     </main>
   );
 }

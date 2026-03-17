@@ -1,7 +1,7 @@
 "use client"
 
 import { useAdminAuth } from "./useAdminAuth"
-
+import useSWR from "swr"
 export function usePermission() {
   const { permissions, admin, loading } = useAdminAuth()
 

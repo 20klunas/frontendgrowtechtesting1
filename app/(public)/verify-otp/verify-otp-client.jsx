@@ -11,7 +11,7 @@ export default function VerifyOtpClient() {
   const router = useRouter();
   const params = useSearchParams();
   const challengeId = params.get("challenge_id");
-  const { setUser } = useAuth();
+  const { login } = useAuth();
   const API = process.env.NEXT_PUBLIC_API_URL;
 
   const [code, setCode] = useState("");
@@ -90,15 +90,13 @@ export default function VerifyOtpClient() {
       });
 
       const token = json?.data?.token;
+      const user = json?.data?.user;
 
-      if (!token) {
-        throw new Error("Token tidak ditemukan setelah verifikasi OTP");
+      if (!token || !user) {
+        throw new Error("Token atau user tidak ditemukan");
       }
 
-      const user = await fetchProfile(token);
-
-      saveSession(token, user);
-      setUser(user);
+      login(user, token);
 
       // await new Promise((r) => setTimeout(r, 100));
 

@@ -1,127 +1,61 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import ProductCard from "../../components/customer/SubCategoryCard";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { authFetch } from "../../lib/authFetch";
-import {
-  getMaintenanceMessage,
-  isFeatureMaintenanceError,
-  isMaintenanceError,
-} from "../../lib/maintenanceHandler";
 import useCatalogAccess from "../../hooks/useCatalogAccess";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function CategoryPage() {
 
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
 
-  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const itemsPerPage = 6;
-
-  const [catalogMaintenance, setCatalogMaintenance] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const { catalogDisabled, catalogMessage } = useCatalogAccess();
 
+  const itemsPerPage = 6;
 
-  /* ================= FILTER ================= */
-
-  const safeSubcategories = Array.isArray(subcategories) ? subcategories : [];
-
-  const filteredSubcategories = safeSubcategories
-    .filter((sub) =>
-      sub?.name?.toLowerCase().includes(search.toLowerCase())
-    )
-    .filter((sub) =>
-      selectedCategory ? sub?.category_id === selectedCategory : true
-    );
-
-
-
-  /* ================= PAGINATION ================= */
+  /* ================= FETCH DATA ================= */
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [search, selectedCategory]);
-
-  const totalPages = Math.ceil(filteredSubcategories.length / itemsPerPage);
-
-  const paginatedSubs = filteredSubcategories.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-
-  /* ================= FETCH ================= */
-
-  useEffect(() => {
-    fetchCategories();
-    fetchSubcategories();
+    fetchData();
   }, []);
 
-  const fetchCategories = async () => {
-    try {
-
-      const json = await authFetch("/api/v1/catalog/categories");
-
-      if (json.success) {
-        setCategories(json.data);
-      }
-
-    } catch (err) {
-      console.error("Failed fetch categories:", err);
-    }
-  };
-
-
-  const fetchSubcategories = async (categoryId = null) => {
-
+  const fetchData = async () => {
     try {
 
       setLoading(true);
-      setCatalogMaintenance("");
 
-      const url = categoryId
-        ? `${API}/api/v1/catalog/categories/${categoryId}/subcategories`
-        : `${API}/api/v1/catalog/subcategories`;
+      const [catRes, subRes] = await Promise.all([
+        authFetch("/api/v1/catalog/categories"),
+        authFetch("/api/v1/catalog/subcategories"),
+      ]);
 
-      const json = await authFetch(url.replace(API, ""));
-
-      if (json?.success) {
-        const subs = Array.isArray(json.data)
-          ? json.data
-          : json.data?.data || [];
-
-        setSubcategories(subs);
-      } else {
-        console.warn("Invalid subcategory response:", json);
-        setSubcategories([]);
+      if (catRes?.success) {
+        setCategories(catRes.data || []);
       }
 
+      if (subRes?.success) {
+
+        const subs = Array.isArray(subRes.data)
+          ? subRes.data
+          : subRes.data?.data || [];
+
+        setSubcategories(subs);
+
+      } else {
+        setSubcategories([]);
+      }
 
     } catch (err) {
 
-      if (isFeatureMaintenanceError(err, "catalog_access")) {
-
-        setCatalogMaintenance(
-          getMaintenanceMessage(err, "Katalog sedang maintenance.")
-        );
-
-        setSubcategories([]);
-        return;
-      }
-
-      if (!isMaintenanceError(err)) {
-        console.error("Failed fetch subcategories:", err);
-      }
-
+      console.error("Catalog fetch error:", err);
       setSubcategories([]);
 
     } finally {
@@ -129,33 +63,77 @@ export default function CategoryPage() {
     }
   };
 
+  /* ================= FILTER ================= */
+
+  const filteredSubcategories = useMemo(() => {
+
+    let data = subcategories;
+
+    if (selectedCategory) {
+      data = data.filter((s) => s.category_id === selectedCategory);
+    }
+
+    if (search) {
+      const keyword = search.toLowerCase();
+      data = data.filter((s) =>
+        s?.name?.toLowerCase().includes(keyword)
+      );
+    }
+
+    return data;
+
+  }, [subcategories, selectedCategory, search]);
+
+  /* ================= PAGINATION ================= */
+
+  const totalPages = useMemo(() => {
+
+    return Math.ceil(filteredSubcategories.length / itemsPerPage);
+
+  }, [filteredSubcategories]);
+
+  const paginatedSubs = useMemo(() => {
+
+    const start = (currentPage - 1) * itemsPerPage;
+
+    return filteredSubcategories.slice(
+      start,
+      start + itemsPerPage
+    );
+
+  }, [filteredSubcategories, currentPage]);
+
+  /* reset page */
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory]);
+
+  /* ================= HANDLER ================= */
 
   const handleCategoryClick = (categoryId) => {
-
     setSelectedCategory(categoryId);
-
-    fetchSubcategories(categoryId);
   };
 
+  /* ================= RENDER ================= */
 
   return (
+
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
-      {/* ================= TITLE ================= */}
+      {/* TITLE */}
 
       <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
 
-        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">
           Produk
         </h1>
 
       </div>
 
-
       <div className="flex flex-col lg:flex-row gap-8">
 
-
-        {/* ================= SIDEBAR ================= */}
+        {/* SIDEBAR */}
 
         <aside
           className="
@@ -166,43 +144,28 @@ export default function CategoryPage() {
           border border-purple-800/40
           rounded-2xl
           p-4
-          flex
-          lg:flex-col
-          gap-2
-          overflow-x-auto
-          lg:overflow-visible
-          backdrop-blur
+          flex lg:flex-col gap-2
+          overflow-x-auto lg:overflow-visible
         "
         >
 
-          <h4 className="hidden lg:block text-white/70 mb-3 text-sm tracking-wide">
+          <h4 className="hidden lg:block text-white/70 mb-3 text-sm">
             Kategori
           </h4>
 
-
           <button
-            disabled={catalogDisabled}
             onClick={() => handleCategoryClick(null)}
             className={`
-
-            whitespace-nowrap
-            px-4 py-2
-            rounded-lg
-            text-sm
-            transition
-            border
-
-            ${
-              !selectedCategory
-                ? "bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-700/30"
-                : "border-purple-700 text-purple-300 hover:bg-purple-700/20"
-            }
-
-          `}
+              px-4 py-2 rounded-lg text-sm border transition
+              ${
+                !selectedCategory
+                  ? "bg-purple-600 text-white border-purple-500"
+                  : "border-purple-700 text-purple-300 hover:bg-purple-700/20"
+              }
+            `}
           >
             Semua Kategori
           </button>
-
 
           {categories.map((cat) => (
 
@@ -210,21 +173,13 @@ export default function CategoryPage() {
               key={cat.id}
               onClick={() => handleCategoryClick(cat.id)}
               className={`
-
-              whitespace-nowrap
-              px-4 py-2
-              rounded-lg
-              text-sm
-              transition
-              border
-
-              ${
-                selectedCategory === cat.id
-                  ? "bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-700/30"
-                  : "border-purple-700 text-purple-300 hover:bg-purple-700/20"
-              }
-
-            `}
+                px-4 py-2 rounded-lg text-sm border transition
+                ${
+                  selectedCategory === cat.id
+                    ? "bg-purple-600 text-white border-purple-500"
+                    : "border-purple-700 text-purple-300 hover:bg-purple-700/20"
+                }
+              `}
             >
               {cat.name}
             </button>
@@ -233,22 +188,19 @@ export default function CategoryPage() {
 
         </aside>
 
-
-        {/* ================= CONTENT ================= */}
+        {/* CONTENT */}
 
         <section className="flex-1 space-y-6">
 
+          {/* SEARCH */}
 
-          {/* ================= TOOLBAR ================= */}
-
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
 
             <span className="text-white/70 text-sm">
               {selectedCategory
                 ? "Menampilkan produk kategori"
                 : "Menampilkan semua produk"}
             </span>
-
 
             <div className="relative w-full sm:w-72">
 
@@ -270,9 +222,6 @@ export default function CategoryPage() {
                   pl-10 pr-3 py-2
                   text-sm
                   text-white
-                  focus:outline-none
-                  focus:ring-2
-                  focus:ring-purple-600
                 "
               />
 
@@ -280,9 +229,7 @@ export default function CategoryPage() {
 
           </div>
 
-
-
-          {/* ================= GRID ================= */}
+          {/* GRID */}
 
           {catalogDisabled ? (
 
@@ -297,37 +244,24 @@ export default function CategoryPage() {
               key={currentPage}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="
-                grid
-                grid-cols-1
-                sm:grid-cols-2
-                lg:grid-cols-3
-                gap-6
-              "
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
             >
 
               {paginatedSubs.map((sub) => (
-
                 <ProductCard key={sub.id} subcategory={sub} />
-
               ))}
 
               {filteredSubcategories.length === 0 && (
-
                 <p className="text-white/60">
                   Produk tidak ditemukan
                 </p>
-
               )}
 
             </motion.div>
 
           )}
 
-
-
-          {/* ================= PAGINATION ================= */}
+          {/* PAGINATION */}
 
           {totalPages > 1 && (
 
@@ -336,69 +270,45 @@ export default function CategoryPage() {
               <button
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className="
-                px-4 py-2
-                rounded-lg
-                border border-purple-700
-                text-purple-300
-                hover:bg-purple-700/30
-                disabled:opacity-40
-                transition
-              "
+                className="px-4 py-2 border border-purple-700 rounded-lg text-purple-300"
               >
                 ←
               </button>
 
-
               {Array.from({ length: totalPages }).map((_, i) => {
 
                 const page = i + 1;
-                const isActive = page === currentPage;
 
                 return (
 
-                  <motion.button
+                  <button
                     key={page}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
                     onClick={() => setCurrentPage(page)}
                     className={`
 
-                    px-4 py-2
-                    rounded-lg
-                    text-sm
-                    font-semibold
-                    transition
+                      px-4 py-2 rounded-lg text-sm
 
-                    ${
-                      isActive
-                        ? "bg-purple-600 text-white shadow-lg shadow-purple-700/40"
-                        : "bg-black text-purple-300 border border-purple-700 hover:bg-purple-700/30"
-                    }
+                      ${
+                        page === currentPage
+                          ? "bg-purple-600 text-white"
+                          : "border border-purple-700 text-purple-300"
+                      }
 
-                  `}
+                    `}
                   >
                     {page}
-                  </motion.button>
+                  </button>
 
                 );
-              })}
 
+              })}
 
               <button
                 onClick={() =>
                   setCurrentPage((p) => Math.min(p + 1, totalPages))
                 }
                 disabled={currentPage === totalPages}
-                className="
-                px-4 py-2
-                rounded-lg
-                border border-purple-700
-                text-purple-300
-                hover:bg-purple-700/30
-                disabled:opacity-40
-                transition
-              "
+                className="px-4 py-2 border border-purple-700 rounded-lg text-purple-300"
               >
                 →
               </button>
@@ -407,7 +317,6 @@ export default function CategoryPage() {
 
           )}
 
-
         </section>
 
       </div>
@@ -415,8 +324,6 @@ export default function CategoryPage() {
     </main>
   );
 }
-
-
 
 function FeatureMaintenanceCard({ title, message }) {
 

@@ -7,6 +7,7 @@ import {
   isFeatureMaintenanceError,
   isMaintenanceError,
 } from "../lib/maintenanceHandler";
+import useSWR from "swr";
 
 export default function useTopUpAccess() {
   const [topupDisabled, setTopupDisabled] = useState(false);
@@ -18,7 +19,7 @@ export default function useTopUpAccess() {
 
     const checkTopup = async () => {
       try {
-        await authFetch("/api/v1/wallet/topups/init", {
+        await useSWR("/api/v1/wallet/topups/init", {
           method: "POST",
           body: JSON.stringify({ amount: 1000, gateway_code: "test" })
         });

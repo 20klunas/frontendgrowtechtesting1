@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { publicFetch } from "../lib/publicFetch";
+import useSWR from "swr";
 
 export default function useCheckoutAccess() {
   const [loading, setLoading] = useState(true);
@@ -13,7 +14,7 @@ export default function useCheckoutAccess() {
 
     const checkAccess = async () => {
       try {
-        const res = await publicFetch("/api/v1/content/settings?group=system");
+        const res = await useSWR("/api/v1/content/settings?group=system");
 
         const settings = {};
         (res?.data || []).forEach((item) => {

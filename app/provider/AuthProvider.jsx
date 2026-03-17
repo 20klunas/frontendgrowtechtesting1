@@ -1,86 +1,68 @@
-'use client'
+"use client"
 
-import { createContext, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { createContext, useContext, useEffect, useState } from "react"
 import Cookies from "js-cookie"
 
 export const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
 
-  const router = useRouter()
-  const API = process.env.NEXT_PUBLIC_API_URL
+  const [user,setUser] = useState(null)
+  const [loading,setLoading] = useState(true)
 
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
+  useEffect(()=>{
 
     const token = Cookies.get("token")
 
-    if (!token) {
-      setUser(null)
+    if(!token){
       setLoading(false)
       return
     }
 
-    if (user) {
-      setLoading(false)
-      return
-    }
+    try{
 
-    const fetchMe = async () => {
+      const cachedUser = localStorage.getItem("user")
 
-      try {
+      if(token && cachedUser){
 
-        const res = await fetch(`${API}/api/v1/auth/me/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
+      const parsedUser = JSON.parse(cachedUser)
 
-        const json = await res.json()
-        setUser(json.data)
-
-      } catch (err) {
-
-        Cookies.remove("token")
-        setUser(null)
-
-      } finally {
-
-        setLoading(false)
+      setUser(parsedUser)
 
       }
 
-    }
+    }catch{}
 
-    fetchMe()
+    setLoading(false)
 
-  }, []) 
+  },[])
 
-  const logout = async () => {
-    const token = Cookies.get("token")
+  const login = (user,token)=>{
 
-    try {
-      await fetch(`${API}/api/v1/auth/logout`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-    } catch (err) {
-      console.error("Logout error:", err)
-    }
+    Cookies.set("token",token,{path:"/"})
 
-    Cookies.remove("token")
-    setUser(null)
-    router.push("/login")
+    localStorage.setItem("user",JSON.stringify(user))
+
+    setUser(user)
+
   }
 
-  return (
-    <AuthContext.Provider value={{ user, setUser, loading, logout }}>
+  const logout = ()=>{
+
+    Cookies.remove("token")
+
+    localStorage.removeItem("user")
+
+    setUser(null)
+
+  }
+
+  return(
+    <AuthContext.Provider value={{user,setUser,login,logout,loading}}>
       {children}
     </AuthContext.Provider>
   )
+
 }
+
+export const useAuth = ()=>useContext(AuthContext)
