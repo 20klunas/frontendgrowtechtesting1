@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { productService } from "../services/productService"
+import { productService } from "../../../services/productService"
 
 export function useProducts(search, page) {
 
