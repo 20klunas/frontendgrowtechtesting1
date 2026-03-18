@@ -54,25 +54,38 @@ function isFeatureMaintenancePayload(payload, featureKey) {
   return text.includes(feature);
 }
 
+async function getServerToken() {
+  try {
+    const cookieStore = await cookies();
+    return cookieStore.get("token")?.value || "";
+  } catch {
+    return "";
+  }
+}
+
 async function fetchJson(path, options = {}) {
-  const { auth = false, revalidate = 60 } = options;
+  const {
+    revalidate = 60,
+    cacheMode,
+    extraHeaders = {},
+  } = options;
 
   const headers = {
     Accept: "application/json",
+    ...extraHeaders,
   };
 
-  if (auth) {
-    const token = cookies().get("token")?.value;
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
+  const fetchOptions = {
+    headers,
+  };
+
+  if (cacheMode) {
+    fetchOptions.cache = cacheMode;
+  } else {
+    fetchOptions.next = { revalidate };
   }
 
-  const response = await fetch(buildApiUrl(path), {
-    headers,
-    ...(auth ? { cache: "no-store" } : { next: { revalidate } }),
-  });
-
+  const response = await fetch(buildApiUrl(path), fetchOptions);
   const payload = await parseJsonSafe(response);
 
   if (!response.ok) {
@@ -87,6 +100,55 @@ async function fetchJson(path, options = {}) {
   return payload;
 }
 
+async function getPopularProductsServerSafe() {
+  const result = {
+    products: [],
+    catalogMaintenance: "",
+  };
+
+  const token = await getServerToken();
+
+  try {
+    const extraHeaders = {};
+    if (token) {
+      extraHeaders.Authorization = `Bearer ${token}`;
+    }
+
+    const payload = await fetchJson(
+      "/api/v1/catalog/products?sort=popular&per_page=4",
+      token
+        ? {
+            cacheMode: "no-store",
+            extraHeaders,
+          }
+        : {
+            revalidate: 60,
+          }
+    );
+
+    result.products = payload?.data?.data || [];
+    return result;
+  } catch (error) {
+    const payload = error?.payload;
+    const status = error?.status;
+
+    if (isFeatureMaintenancePayload(payload, "catalog_access")) {
+      result.catalogMaintenance = getErrorMessage(
+        payload,
+        "Katalog sedang maintenance."
+      );
+      return result;
+    }
+
+    if (status === 401 || status === 403) {
+      return result;
+    }
+
+    console.error("Failed to fetch popular products on server:", error);
+    return result;
+  }
+}
+
 export async function getCustomerHomeServerData() {
   const result = {
     popup: null,
@@ -98,7 +160,7 @@ export async function getCustomerHomeServerData() {
   const [bannersResult, popupResult, productsResult] = await Promise.allSettled([
     fetchJson("/api/v1/content/banners", { revalidate: 120 }),
     fetchJson("/api/v1/content/popup", { revalidate: 60 }),
-    fetchJson("/api/v1/catalog/products?sort=popular&per_page=4"), 
+    getPopularProductsServerSafe(),
   ]);
 
   if (bannersResult.status === "fulfilled") {
@@ -117,18 +179,14 @@ export async function getCustomerHomeServerData() {
   }
 
   if (productsResult.status === "fulfilled") {
-    result.products = productsResult.value?.data?.data || [];
+    result.products = productsResult.value?.products || [];
+    result.catalogMaintenance =
+      productsResult.value?.catalogMaintenance || "";
   } else {
-    const payload = productsResult.reason?.payload;
-
-    if (isFeatureMaintenancePayload(payload, "catalog_access")) {
-      result.catalogMaintenance = getErrorMessage(
-        payload,
-        "Katalog sedang maintenance."
-      );
-    } else {
-      console.error("Failed to fetch popular products:", productsResult.reason);
-    }
+    console.error(
+      "Failed to prepare popular products result:",
+      productsResult.reason
+    );
   }
 
   return result;
