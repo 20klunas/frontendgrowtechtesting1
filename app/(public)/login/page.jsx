@@ -55,7 +55,7 @@ export default function LoginPage() {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
-      cache: "no-store",
+      next: { revalidate: 30 }, // cache 5 menit
     });
 
     const profileJson = await profileRes.json();

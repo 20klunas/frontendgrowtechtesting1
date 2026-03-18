@@ -9,7 +9,7 @@ export default async function CartPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value ?? null;
 
-  const cartResult = await fetchCartPageData(token, { cache: "no-store" });
+  const cartResult = await fetchCartPageData(token, { next: { revalidate: 30 } }); // cache 5 menit
 
   if (!token || cartResult.unauthorized) {
     return (

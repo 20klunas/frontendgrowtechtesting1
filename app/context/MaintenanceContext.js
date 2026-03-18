@@ -176,7 +176,7 @@ async function fetchFeatureAccess() {
     headers: {
       Accept: "application/json",
     },
-    cache: "no-store",
+    next: { revalidate: 30 }, // cache 5 menit
   });
 
   const json = await res.json().catch(() => ({}));

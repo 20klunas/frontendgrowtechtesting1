@@ -78,7 +78,7 @@ async function checkUserAreaMaintenance(request, pathname, token, role) {
   }
 }
 
-export async function middleware(request) {
+export async function proxy(request) {
   const token = request.cookies.get("token")?.value;
   const role = request.cookies.get("role")?.value;
   const { pathname } = request.nextUrl;

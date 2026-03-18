@@ -52,10 +52,10 @@ export default function Footer() {
             Informasi
           </h4>
 
-          <FooterLink href="/faq">FAQ</FooterLink>
-          <FooterLink href="/contact">Contact Us</FooterLink>
-          <FooterLink href="/terms">Ketentuan Layanan</FooterLink>
-          <FooterLink href="/privacy">Kebijakan Privasi</FooterLink>
+          <FooterLink href="/customer/faq">FAQ</FooterLink>
+          <FooterLink href="/customer/contact">Contact Us</FooterLink>
+          <FooterLink href="/customer/terms">Ketentuan Layanan</FooterLink>
+          <FooterLink href="/customer/privacy">Kebijakan Privasi</FooterLink>
         </div>
 
         {/* AKUN */}

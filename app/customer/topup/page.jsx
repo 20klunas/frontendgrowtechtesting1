@@ -13,9 +13,9 @@ export default async function TopUpPage() {
   const token = cookieStore.get("token")?.value ?? null;
 
   const [gatewaysResult, walletResult, historyResult] = await Promise.allSettled([
-    fetchAvailableGateways({ cache: "no-store" }),
-    fetchWalletSummary(token, { cache: "no-store" }),
-    fetchWalletLedger(token, { cache: "no-store" }),
+    fetchAvailableGateways({ next: { revalidate: 30 } }), // cache 5 menit
+    fetchWalletSummary(token, { next: { revalidate: 30 } }), // cache 5 menit
+    fetchWalletLedger(token, { next: { revalidate: 30 } }), // cache 5 menit
   ]);
 
   const initialGateways =

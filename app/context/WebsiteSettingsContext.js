@@ -44,11 +44,13 @@ export function WebsiteSettingsProvider({
   initialBrand = {},
   initialSettings = null,
 }) {
-  const initialResolvedSettings =
-    initialSettings || {
-      brand: initialBrand || {},
-    }
-
+  const initialResolvedSettings = useMemo(() => {
+    return (
+      initialSettings || {
+        brand: initialBrand || {},
+      }
+    )
+  }, [initialSettings, initialBrand])
   const [settings, setSettings] = useState(initialResolvedSettings)
   const [brand, setBrand] = useState(initialResolvedSettings?.brand || {})
   const [loading, setLoading] = useState(
@@ -74,21 +76,21 @@ export function WebsiteSettingsProvider({
   }, [])
 
   useEffect(() => {
-    if (Object.keys(initialResolvedSettings?.brand || {}).length > 0) {
+    if (initialSettings) {
+      setSettings(initialSettings)
+      setBrand(initialSettings?.brand || {})
       setLoading(false)
       return
     }
 
     refreshWebsiteSettings()
-  }, [initialResolvedSettings, refreshWebsiteSettings])
+  }, [initialSettings, refreshWebsiteSettings])
 
   const value = useMemo(
     () => ({
       settings,
       brand,
       loading,
-      setSettings,
-      setBrand,
       refreshWebsiteSettings,
     }),
     [settings, brand, loading, refreshWebsiteSettings]
