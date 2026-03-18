@@ -98,9 +98,7 @@ export async function getCustomerHomeServerData() {
   const [bannersResult, popupResult, productsResult] = await Promise.allSettled([
     fetchJson("/api/v1/content/banners", { revalidate: 120 }),
     fetchJson("/api/v1/content/popup", { revalidate: 60 }),
-    fetchJson("/api/v1/catalog/products?sort=popular&per_page=4", {
-      auth: true,
-    }),
+    fetchJson("/api/v1/catalog/products?sort=popular&per_page=4"), 
   ]);
 
   if (bannersResult.status === "fulfilled") {
