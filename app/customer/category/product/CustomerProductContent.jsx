@@ -7,99 +7,148 @@ import Cookies from "js-cookie";
 import { cn } from "../../../lib/utils";
 import { motion } from "framer-motion";
 import { useAuth } from "../../../../app/hooks/useAuth";
+import { authFetch } from "../../../lib/authFetch";
 import {
   getMaintenanceMessage,
   isFeatureMaintenanceError,
   isMaintenanceError,
 } from "../../../lib/maintenanceHandler";
 import useCatalogAccess from "../../../hooks/useCatalogAccess";
+
 export const dynamic = "force-dynamic";
+
 const API = process.env.NEXT_PUBLIC_API_URL;
+const ITEMS_PER_PAGE = 6;
+
+function normalizeId(value) {
+  if (value === null || value === undefined || value === "") return null;
+
+  const num = Number(value);
+  return Number.isNaN(num) ? value : num;
+}
+
+function normalizeProductsResponse(json) {
+  const paginator = json?.data ?? {};
+  return {
+    items: Array.isArray(paginator?.data) ? paginator.data : [],
+    currentPage: Number(paginator?.current_page || 1),
+    lastPage: Number(paginator?.last_page || 1),
+    total: Number(paginator?.total || 0),
+    perPage: Number(paginator?.per_page || ITEMS_PER_PAGE),
+  };
+}
+
+function normalizeSubcategoriesResponse(json) {
+  if (Array.isArray(json?.data)) return json.data;
+  if (Array.isArray(json?.data?.subcategories)) return json.data.subcategories;
+  if (Array.isArray(json?.data?.data)) return json.data.data;
+  return [];
+}
 
 export default function CustomerProductContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const subcategoryId = searchParams.get("subcategory");
+
+  const subcategoryId =
+    searchParams.get("subcategory_id") || searchParams.get("subcategory");
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [subcategoryInfo, setSubcategoryInfo] = useState(null);
+  const [subcategoryLoading, setSubcategoryLoading] = useState(true);
 
   const [addingId, setAddingId] = useState(null);
   const [checkoutLoadingId, setCheckoutLoadingId] = useState(null);
   const [sort, setSort] = useState("latest");
 
-  // ===== FAVORITES =====
   const [favoriteIds, setFavoriteIds] = useState(new Set());
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null);
 
-  // ===== PAGINATION =====
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+    perPage: ITEMS_PER_PAGE,
+  });
 
-  // ===== MAINTENANCE MODE =====
   const [catalogMaintenance, setCatalogMaintenance] = useState("");
-  // const catalogDisabled = Boolean(catalogMaintenance);
   const { catalogDisabled, catalogMessage } = useCatalogAccess();
-
-  const totalPages = useMemo(() => {
-    return Math.ceil((products?.length || 0) / itemsPerPage);
-  }, [products]);
-
-  const paginatedProducts = useMemo(() => {
-    return (products || []).slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
-  }, [products, currentPage]);
 
   const { user } = useAuth();
   const userTier = user?.tier?.toLowerCase() || "guest";
 
+  const resolvedSubcategory = subcategoryInfo || products?.[0]?.subcategory || null;
+  const resolvedCategory = resolvedSubcategory?.category || products?.[0]?.category || null;
+
+  const headerImage =
+    resolvedSubcategory?.image_url ||
+    resolvedSubcategory?.image ||
+    products?.[0]?.subcategory?.image_url ||
+    "/placeholder.png";
+
+  const headerCategoryName = resolvedCategory?.name || "Kategori";
+  const headerSubcategoryName = resolvedSubcategory?.name || "Produk";
+  const headerDescription =
+    resolvedSubcategory?.description || "Deskripsi subkategori akan tampil di sini";
+
+  const totalPages = Math.max(1, Number(pagination?.lastPage || 1));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [subcategoryId, sort]);
+
   useEffect(() => {
     fetchProducts();
     fetchFavorites();
-    setCurrentPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subcategoryId, sort]);
+  }, [subcategoryId, sort, currentPage]);
 
-  /* ================= FETCH PRODUCTS ================= */
+  useEffect(() => {
+    fetchSubcategoryInfo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subcategoryId]);
+
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setCatalogMaintenance("");
 
-      let url = `${API}/api/v1/products?sort=${sort}&per_page=10`;
+      const params = new URLSearchParams();
+      params.set("sort", sort);
+      params.set("per_page", String(ITEMS_PER_PAGE));
+      params.set("page", String(currentPage));
 
       if (subcategoryId) {
-        url += `&subcategory_id=${subcategoryId}`;
+        params.set("subcategory_id", String(subcategoryId));
       }
 
-      const res = await fetch(url);
+      const json = await authFetch(`/api/v1/products?${params.toString()}`);
 
-      const contentType = res.headers.get("content-type");
-
-      if (!contentType?.includes("application/json")) {
-        const text = await res.text();
-        console.error("Non-JSON response:", text);
-        throw new Error("API did not return JSON");
-      }
-
-      const json = await res.json();
-
-      if (json.success) {
-        setProducts(json?.data?.data || []);
+      if (json?.success) {
+        const parsed = normalizeProductsResponse(json);
+        setProducts(parsed.items);
+        setPagination({
+          currentPage: parsed.currentPage,
+          lastPage: parsed.lastPage,
+          total: parsed.total,
+          perPage: parsed.perPage,
+        });
       } else {
         setProducts([]);
+        setPagination({
+          currentPage: 1,
+          lastPage: 1,
+          total: 0,
+          perPage: ITEMS_PER_PAGE,
+        });
       }
-
     } catch (err) {
-
       if (isFeatureMaintenanceError(err, "catalog_access")) {
-
         setCatalogMaintenance(
           getMaintenanceMessage(err, "Katalog sedang maintenance.")
         );
-
         setProducts([]);
         return;
       }
@@ -109,13 +158,50 @@ export default function CustomerProductContent() {
       }
 
       setProducts([]);
-
+      setPagination({
+        currentPage: 1,
+        lastPage: 1,
+        total: 0,
+        perPage: ITEMS_PER_PAGE,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= FETCH FAVORITES ================= */
+  const fetchSubcategoryInfo = async () => {
+    try {
+      if (!subcategoryId) {
+        setSubcategoryInfo(null);
+        setSubcategoryLoading(false);
+        return;
+      }
+
+      setSubcategoryLoading(true);
+
+      const json = await authFetch("/api/v1/subcategories");
+
+      if (!json?.success) {
+        setSubcategoryInfo(null);
+        return;
+      }
+
+      const list = normalizeSubcategoriesResponse(json);
+      const found = list.find(
+        (item) => String(normalizeId(item?.id)) === String(normalizeId(subcategoryId))
+      );
+
+      setSubcategoryInfo(found || null);
+    } catch (err) {
+      if (!isMaintenanceError(err)) {
+        console.error("Failed fetch subcategory info:", err);
+      }
+      setSubcategoryInfo(null);
+    } finally {
+      setSubcategoryLoading(false);
+    }
+  };
+
   const fetchFavorites = async () => {
     try {
       const token = Cookies.get("token");
@@ -147,7 +233,6 @@ export default function CustomerProductContent() {
     }
   };
 
-  /* ================= FAVORITE TOGGLE (hanya product_id) ================= */
   const toggleFavorite = async (productId) => {
     try {
       const token = Cookies.get("token");
@@ -161,7 +246,6 @@ export default function CustomerProductContent() {
       const isFav = favoriteIds.has(productId);
 
       if (!isFav) {
-        // ADD favorite (tanpa rating)
         const res = await fetch(`${API}/api/v1/favorites`, {
           method: "POST",
           headers: {
@@ -184,7 +268,6 @@ export default function CustomerProductContent() {
           return next;
         });
       } else {
-        // REMOVE favorite
         const res = await fetch(`${API}/api/v1/favorites/${productId}`, {
           method: "DELETE",
           headers: {
@@ -213,7 +296,6 @@ export default function CustomerProductContent() {
     }
   };
 
-  /* ================= BUY NOW ================= */
   const handleBuyNow = async (productId) => {
     try {
       const token = Cookies.get("token");
@@ -224,7 +306,6 @@ export default function CustomerProductContent() {
 
       setCheckoutLoadingId(productId);
 
-      // 1) Add ke cart qty 1
       const addRes = await fetch(`${API}/api/v1/cart/items`, {
         method: "POST",
         headers: {
@@ -244,7 +325,6 @@ export default function CustomerProductContent() {
         return;
       }
 
-      // 2) Checkout
       const checkoutRes = await fetch(`${API}/api/v1/cart/checkout`, {
         method: "POST",
         headers: {
@@ -263,7 +343,6 @@ export default function CustomerProductContent() {
         return;
       }
 
-      // 3) Redirect
       router.push("/customer/category/product/detail/lengkapipembelian");
       window.dispatchEvent(new Event("cart-updated"));
     } catch (err) {
@@ -274,7 +353,6 @@ export default function CustomerProductContent() {
     }
   };
 
-  /* ================= ADD TO CART ================= */
   const addToCart = async (productId) => {
     try {
       const token = Cookies.get("token");
@@ -316,8 +394,6 @@ export default function CustomerProductContent() {
     }
   };
 
-  const header = products?.[0];
-
   const getTierBadgeClass = (tier) => {
     switch (tier) {
       case "member":
@@ -331,43 +407,51 @@ export default function CustomerProductContent() {
     }
   };
 
+  const showMaintenance = catalogDisabled || Boolean(catalogMaintenance || catalogMessage);
+
   return (
-    <section className="max-w-6xl mx-auto px-8 py-10 text-white">
-      {/* ================= HEADER ================= */}
-      <div className="mb-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        <div className="rounded-xl overflow-hidden border border-purple-700">
+    <section className="mx-auto max-w-6xl px-8 py-10 text-white">
+      <div className="mb-10 grid grid-cols-1 items-start gap-6 md:grid-cols-2">
+        <div className="overflow-hidden rounded-xl border border-purple-700">
           <Image
-            src={header?.subcategory?.image_url || "/placeholder.png"}
+            src={headerImage}
             width={600}
             height={360}
-            alt="Header"
-            className="w-full h-[260px] object-cover"
+            alt={headerSubcategoryName}
+            className="h-[260px] w-full object-cover"
             priority
           />
         </div>
 
         <div>
-          <span className="inline-block mb-2 text-xs font-medium text-purple-400 uppercase tracking-wide">
-            {header?.category?.name || "Kategori"}
+          <span className="mb-2 inline-block text-xs font-medium uppercase tracking-wide text-purple-400">
+            {headerCategoryName}
           </span>
 
-          <h1 className="text-2xl font-bold text-purple-300 mb-3">
-            {header?.subcategory?.name || "Produk"}
+          <h1 className="mb-3 text-2xl font-bold text-purple-300">
+            {subcategoryId ? headerSubcategoryName : "Semua Produk"}
           </h1>
 
-          <p className="text-sm text-gray-300 leading-relaxed">
-            {header?.subcategory?.description ||
-              "Deskripsi subkategori akan tampil di sini"}
+          <p className="text-sm leading-relaxed text-gray-300">
+            {subcategoryId
+              ? headerDescription
+              : "Menampilkan semua produk yang aktif dan telah dipublikasikan."}
           </p>
+
+          {!loading && !subcategoryLoading && (
+            <p className="mt-3 text-xs text-gray-400">
+              Total produk: {pagination.total || 0}
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="flex justify-end mb-6">
+      <div className="mb-6 flex justify-end">
         <select
-          disabled={catalogDisabled}
+          disabled={showMaintenance}
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="bg-black border border-purple-700 text-white px-3 py-2 rounded-lg"
+          className="rounded-lg border border-purple-700 bg-black px-3 py-2 text-white"
         >
           <option value="latest">Terbaru</option>
           <option value="bestseller">Terlaris</option>
@@ -377,21 +461,18 @@ export default function CustomerProductContent() {
         </select>
       </div>
 
-      {/* ================= GRID ================= */}
-      {catalogDisabled ? (
-
+      {showMaintenance ? (
         <FeatureMaintenanceCard
           title="Katalog sedang maintenance"
-          message={catalogMessage}
+          message={catalogMessage || catalogMaintenance}
         />
-
       ) : (
         <motion.div
-          key={currentPage}
+          key={`${subcategoryId || "all"}-${sort}-${currentPage}`}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 gap-6 md:grid-cols-3"
         >
           {loading ? (
             <>
@@ -402,18 +483,13 @@ export default function CustomerProductContent() {
           ) : products.length === 0 ? (
             <EmptyState />
           ) : (
-            paginatedProducts.map((product) => {
+            products.map((product) => {
               const pricing = Array.isArray(product.tier_pricing)
                 ? product.tier_pricing[0]
                 : product.tier_pricing;
 
               const originalPrice =
-                pricing?.[userTier] ??
-                pricing?.member ??
-                pricing?.guest ??
-                0;
-
-              const price = pricing?.member;
+                pricing?.[userTier] ?? pricing?.member ?? pricing?.guest ?? 0;
 
               const isAdding = addingId === product.id;
               const isOutOfStock = (product.available_stock ?? 0) <= 0;
@@ -421,7 +497,6 @@ export default function CustomerProductContent() {
               const isFav = favoriteIds.has(product.id);
               const favLoading = favoriteLoadingId === product.id;
 
-              // ===== DISKON =====
               const discountPrice = product.discount_price;
               const discountPercent = product.discount_percent;
 
@@ -437,27 +512,25 @@ export default function CustomerProductContent() {
               return (
                 <div
                   key={product.id}
-                  className="rounded-2xl border border-purple-700 bg-black overflow-hidden"
+                  className="overflow-hidden rounded-2xl border border-purple-700 bg-black"
                 >
-                  {/* IMAGE + FAVORITE */}
                   <div className="relative h-[160px] bg-white">
                     <Image
                       src={product?.subcategory?.image_url || "/placeholder.png"}
                       width={300}
                       height={200}
                       alt={product.name}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
 
-                    {/* FAVORITE BUTTON (hanya product_id) */}
                     <button
                       onClick={() => toggleFavorite(product.id)}
                       disabled={favLoading}
                       className={cn(
-                        "absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center border transition select-none",
+                        "absolute right-3 top-3 flex h-10 w-10 select-none items-center justify-center rounded-full border transition",
                         isFav
-                          ? "bg-pink-500/20 border-pink-400 text-pink-400"
-                          : "bg-black/40 border-white/20 text-white",
+                          ? "border-pink-400 bg-pink-500/20 text-pink-400"
+                          : "border-white/20 bg-black/40 text-white",
                         "disabled:opacity-60"
                       )}
                       title={isFav ? "Hapus dari Favorite" : "Tambah ke Favorite"}
@@ -467,9 +540,9 @@ export default function CustomerProductContent() {
                   </div>
 
                   <div className="p-4">
-                    <h3 className="font-semibold mb-1">{product.name}</h3>
+                    <h3 className="mb-1 font-semibold">{product.name}</h3>
 
-                    <p className="text-xs text-gray-400 mb-1">
+                    <p className="mb-1 text-xs text-gray-400">
                       Stok Tersedia {product.available_stock ?? 0}
                     </p>
 
@@ -478,8 +551,7 @@ export default function CustomerProductContent() {
                         <p className="text-xs text-red-400">⚠ Stok hampir habis</p>
                       )}
 
-                    {/* RATING DISPLAY */}
-                    <div className="flex items-center text-yellow-400 text-sm mb-2">
+                    <div className="mb-2 flex items-center text-sm text-yellow-400">
                       <span className="mr-1">
                         {"★".repeat(Math.round(product.rating || 0))}
                         {"☆".repeat(5 - Math.round(product.rating || 0))}
@@ -491,11 +563,11 @@ export default function CustomerProductContent() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="mb-3 flex items-center justify-between">
                       <div className="flex flex-col gap-1">
                         {isDiscounted && (
                           <span className="text-xs text-gray-400 line-through">
-                            Rp {originalPrice.toLocaleString("id-ID")}
+                            Rp {Number(originalPrice).toLocaleString("id-ID")}
                           </span>
                         )}
 
@@ -504,12 +576,12 @@ export default function CustomerProductContent() {
                             isDiscounted ? "text-green-400" : "text-white"
                           }`}
                         >
-                          Rp {finalPrice.toLocaleString("id-ID")}
+                          Rp {Number(finalPrice).toLocaleString("id-ID")}
                         </span>
 
                         {userTier !== "guest" && (
                           <span
-                            className={`text-[10px] px-2 py-0.5 rounded uppercase w-fit font-semibold ${getTierBadgeClass(
+                            className={`w-fit rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${getTierBadgeClass(
                               userTier
                             )}`}
                           >
@@ -518,7 +590,7 @@ export default function CustomerProductContent() {
                         )}
                       </div>
 
-                      <span className="text-xs px-2 py-1 rounded bg-purple-800 text-purple-200">
+                      <span className="rounded bg-purple-800 px-2 py-1 text-xs text-purple-200">
                         {product.type || "Otomatis"}
                       </span>
                     </div>
@@ -528,10 +600,10 @@ export default function CustomerProductContent() {
                         onClick={() => handleBuyNow(product.id)}
                         disabled={checkoutLoadingId === product.id || isOutOfStock}
                         className={cn(
-                          "flex-1 rounded-lg py-2 text-sm font-semibold transition relative",
+                          "relative flex-1 rounded-lg py-2 text-sm font-semibold transition",
                           isOutOfStock
-                            ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-                            : "bg-purple-600 hover:bg-purple-700 text-white",
+                            ? "cursor-not-allowed bg-zinc-800 text-zinc-500"
+                            : "bg-purple-600 text-white hover:bg-purple-700",
                           "disabled:opacity-70"
                         )}
                       >
@@ -542,12 +614,11 @@ export default function CustomerProductContent() {
                           : "Beli Sekarang"}
                       </button>
 
-                      {/* ADD TO CART */}
                       <button
                         onClick={() => addToCart(product.id)}
                         disabled={isAdding || isOutOfStock}
                         className={cn(
-                          "w-10 h-10 flex items-center justify-center rounded-lg border border-purple-600 hover:bg-purple-600/20 transition disabled:opacity-50",
+                          "flex h-10 w-10 items-center justify-center rounded-lg border border-purple-600 transition hover:bg-purple-600/20 disabled:opacity-50",
                           isOutOfStock && "cursor-not-allowed opacity-50"
                         )}
                         title={isOutOfStock ? "Stok habis" : "Tambah ke keranjang"}
@@ -563,13 +634,12 @@ export default function CustomerProductContent() {
         </motion.div>
       )}
 
-      {/* ================= PAGINATION ================= */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-10 gap-2">
+      {totalPages > 1 && !showMaintenance && !loading && (
+        <div className="mt-10 flex justify-center gap-2">
           <button
             onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 rounded-lg border border-purple-700 text-purple-300 hover:bg-purple-700/30 disabled:opacity-40 transition"
+            className="rounded-lg border border-purple-700 px-4 py-2 text-purple-300 transition hover:bg-purple-700/30 disabled:opacity-40"
           >
             ←
           </button>
@@ -583,10 +653,10 @@ export default function CustomerProductContent() {
                 key={page}
                 onClick={() => setCurrentPage(page)}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-semibold transition",
+                  "rounded-lg px-4 py-2 text-sm font-semibold transition",
                   isActive
                     ? "bg-purple-600 text-white shadow-lg shadow-purple-700/40"
-                    : "bg-black text-purple-300 border border-purple-700 hover:bg-purple-700/30"
+                    : "border border-purple-700 bg-black text-purple-300 hover:bg-purple-700/30"
                 )}
               >
                 {page}
@@ -597,7 +667,7 @@ export default function CustomerProductContent() {
           <button
             onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 rounded-lg border border-purple-700 text-purple-300 hover:bg-purple-700/30 disabled:opacity-40 transition"
+            className="rounded-lg border border-purple-700 px-4 py-2 text-purple-300 transition hover:bg-purple-700/30 disabled:opacity-40"
           >
             →
           </button>
@@ -607,31 +677,24 @@ export default function CustomerProductContent() {
   );
 }
 
-/* ================= MAINTENANCE MODE COMPONENT ================= */
 function FeatureMaintenanceCard({ title, message }) {
   return (
     <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 text-center">
-      <h3 className="text-xl font-semibold text-amber-300 mb-2">
-        {title}
-      </h3>
-      <p className="text-amber-100/90">
-        {message}
-      </p>
+      <h3 className="mb-2 text-xl font-semibold text-amber-300">{title}</h3>
+      <p className="text-amber-100/90">{message}</p>
     </div>
   );
 }
 
-/* ================= UI COMPONENTS ================= */
-
 function SkeletonVariant() {
   return (
-    <div className="rounded-2xl border border-purple-700 bg-black overflow-hidden animate-pulse">
+    <div className="animate-pulse overflow-hidden rounded-2xl border border-purple-700 bg-black">
       <div className="h-[160px] bg-zinc-800" />
-      <div className="p-4 space-y-3">
-        <div className="h-4 bg-zinc-800 rounded w-3/4" />
-        <div className="h-3 bg-zinc-800 rounded w-1/2" />
-        <div className="h-3 bg-zinc-800 rounded w-1/3" />
-        <div className="h-10 bg-zinc-800 rounded" />
+      <div className="space-y-3 p-4">
+        <div className="h-4 w-3/4 rounded bg-zinc-800" />
+        <div className="h-3 w-1/2 rounded bg-zinc-800" />
+        <div className="h-3 w-1/3 rounded bg-zinc-800" />
+        <div className="h-10 rounded bg-zinc-800" />
       </div>
     </div>
   );
@@ -639,7 +702,7 @@ function SkeletonVariant() {
 
 function EmptyState() {
   return (
-    <div className="col-span-full text-center py-20 text-zinc-500">
+    <div className="col-span-full py-20 text-center text-zinc-500">
       Tidak ada produk
     </div>
   );
