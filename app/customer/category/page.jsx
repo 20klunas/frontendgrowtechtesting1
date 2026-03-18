@@ -1,14 +1,7 @@
-"use client";
-
-import { Suspense } from "react";
-import CustomerProductContent from "./CustomerProductContent";
+import CustomerCategoryContent from "./CustomerCategoryContent";
 
 export const dynamic = "force-dynamic";
 
-export default function Page() {
-  return (
-    <Suspense fallback={<div className="p-8 text-white">Loading...</div>}>
-      <CustomerProductContent />
-    </Suspense>
-  );
+export default function CategoryPage() {
+  return <CustomerCategoryContent />;
 }
