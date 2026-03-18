@@ -338,7 +338,7 @@ export default function TopUpClient({
 
             <div className="space-y-2 text-sm">
               <Row label="Jumlah Top Up" value={formatRupiah(amount)} />
-              <Row label="Fee Admin" value={formatRupiah(fee)} />
+              {/* <Row label="Fee Admin" value={formatRupiah(fee)} /> */}
             </div>
 
             <div className="border-t border-purple-700 mt-4 pt-4 flex justify-between font-semibold">
