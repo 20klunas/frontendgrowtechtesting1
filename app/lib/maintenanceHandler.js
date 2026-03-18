@@ -10,6 +10,14 @@ const FEATURE_KEYS = new Set([
   "topup_access",
 ]);
 
+const AUTH_ROUTES = [
+  "/login",
+  "/register",
+  "/verify-otp",
+  "/forgot-password",
+  "/reset-password",
+];
+
 export function getMaintenanceMeta(data = {}) {
   return {
     isMaintenance: Boolean(data?.meta?.maintenance),
@@ -69,6 +77,13 @@ export function handleMaintenance(res, data) {
     typeof window !== "undefined" &&
     isRedirectMaintenanceKey(meta.key)
   ) {
+    const pathname = window.location.pathname;
+
+    // 🔥 WHITELIST AUTH ROUTES
+    if (meta.key === "public_access" && AUTH_ROUTES.includes(pathname)) {
+      return; // jangan redirect
+    }
+
     window.location.replace(buildMaintenanceRedirectUrl(meta));
   }
 

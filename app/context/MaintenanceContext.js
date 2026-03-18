@@ -155,18 +155,11 @@ function normalizeFeatureAccess(data) {
   return {
     fullMaintenance,
     fullMaintenanceMessage,
-    catalogDisabled: fullMaintenance || catalog.disabled,
-    catalogMessage: fullMaintenance
-      ? fullMaintenanceMessage
-      : catalog.disabled
-      ? catalog.message
-      : "",
-    topupDisabled: fullMaintenance || topup.disabled,
-    topupMessage: fullMaintenance
-      ? fullMaintenanceMessage
-      : topup.disabled
-      ? topup.message
-      : "",
+    catalogDisabled: catalog.disabled,
+    catalogMessage: catalog.disabled ? catalog.message : "",
+
+    topupDisabled: topup.disabled,
+    topupMessage: topup.disabled ? topup.message : "",
   };
 }
 
@@ -176,7 +169,7 @@ async function fetchFeatureAccess() {
     headers: {
       Accept: "application/json",
     },
-    next: { revalidate: 30 }, // cache 5 menit
+    cache: 'no-store', // cache 5 menit
   });
 
   const json = await res.json().catch(() => ({}));

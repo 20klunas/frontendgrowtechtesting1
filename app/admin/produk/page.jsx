@@ -176,7 +176,7 @@ export default function ProdukPage() {
             }
           );
 
-          const text = await res.text();   // 👈 penting
+          const text = await res.text();
 
           console.log("SUMMARY RAW:", p.id, text);
 
