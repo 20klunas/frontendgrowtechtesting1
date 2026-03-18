@@ -1,10 +1,10 @@
-import NavbarCustomer from '../components/NavbarCustomer'
-import Footer from '../components/FooterCustomer'
-import CustomerProviders from '../components/CustomerProviders'
-import { getWebsiteBrandServer } from '../lib/serverWebsiteSettings'
+import NavbarCustomer from "../components/NavbarCustomer";
+import Footer from "../components/FooterCustomer";
+import CustomerProviders from "../components/CustomerProviders";
+import { getWebsiteBrandServer } from "../lib/serverWebsiteSettings";
 
 export default async function CustomerLayout({ children }) {
-  const brand = await getWebsiteBrandServer()
+  const brand = await getWebsiteBrandServer();
 
   return (
     <CustomerProviders initialBrand={brand}>
@@ -14,5 +14,5 @@ export default async function CustomerLayout({ children }) {
         <Footer />
       </div>
     </CustomerProviders>
-  )
+  );
 }
