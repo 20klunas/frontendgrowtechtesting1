@@ -38,6 +38,10 @@ function resolveCacheMode(url, explicitCache) {
     return "force-cache";
   }
 
+  if (path.startsWith("/api/")) {
+    return "no-cache";
+  }
+
   return "default";
 }
 

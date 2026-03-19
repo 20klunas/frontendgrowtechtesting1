@@ -53,6 +53,7 @@ export function WebsiteSettingsProvider({
   }, [initialSettings, initialBrand])
   const [settings, setSettings] = useState(initialResolvedSettings)
   const [brand, setBrand] = useState(initialResolvedSettings?.brand || {})
+  const [footer, setFooter] = useState(initialResolvedSettings?.footer || {})
   const [loading, setLoading] = useState(
     !initialSettings && !Object.keys(initialBrand || {}).length
   )
@@ -66,6 +67,7 @@ export function WebsiteSettingsProvider({
 
       setSettings(normalized)
       setBrand(normalized?.brand || {})
+      setFooter(normalized?.footer || {})
     } catch (err) {
       if (err?.message !== 'System Maintenance') {
         console.error('Failed fetch website settings:', err)
@@ -90,10 +92,11 @@ export function WebsiteSettingsProvider({
     () => ({
       settings,
       brand,
+      footer,
       loading,
       refreshWebsiteSettings,
     }),
-    [settings, brand, loading, refreshWebsiteSettings]
+    [settings, brand, footer, loading, refreshWebsiteSettings]
   )
 
   return (
