@@ -1,32 +1,42 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { ChevronDown } from "lucide-react"
-import { useMemo, useState } from "react"
-import { adminMenu } from "../../rbac/adminMenu"
-import { usePermission } from "../../hooks/usePermission"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronDown } from "lucide-react";
+import { useMemo, useState } from "react";
+import { adminMenu } from "../../rbac/adminMenu";
+import { usePermission } from "../../hooks/usePermission";
 
 export default function AdminSidebar({ open, setOpen, collapsed }) {
-  const pathname = usePathname()
-  const { can, loading } = usePermission()
+  const pathname = usePathname();
+  const { can, hasAdminFlag, loading } = usePermission();
 
   const visibleGroups = useMemo(() => {
-    if (loading) return []
+    if (loading) return [];
+
+    const canViewItem = (item) => {
+      if (item.adminFlag) {
+        return hasAdminFlag(item.adminFlag);
+      }
+
+      if (item.permission) {
+        return can(item.permission);
+      }
+
+      return true;
+    };
 
     return adminMenu
       .map((group) => {
-        const visibleItems = (group.items || []).filter(
-          (item) => !item.permission || can(item.permission)
-        )
+        const visibleItems = (group.items || []).filter(canViewItem);
 
         return {
           ...group,
           items: visibleItems,
-        }
+        };
       })
-      .filter((group) => group.items.length > 0)
-  }, [can, loading])
+      .filter((group) => group.items.length > 0);
+  }, [can, hasAdminFlag, loading]);
 
   return (
     <>
@@ -43,14 +53,11 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
           h-[calc(100vh-56px)]
           ${collapsed ? "w-20" : "w-64"}
           flex flex-col
-
           bg-[var(--card)]
           border-r border-[var(--card-border)]
           backdrop-blur-lg
           shadow-lg
-
           transition-all duration-300
-
           ${open ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -81,7 +88,7 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
         </nav>
       </aside>
     </>
-  )
+  );
 }
 
 function SidebarGroup({ title, children }) {
@@ -92,11 +99,11 @@ function SidebarGroup({ title, children }) {
       </div>
       <div className="space-y-1">{children}</div>
     </div>
-  )
+  );
 }
 
 function SidebarItem({ label, href, icon: Icon, pathname, collapsed }) {
-  const active = pathname === href || pathname.startsWith(`${href}/`)
+  const active = pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <Link
@@ -120,15 +127,15 @@ function SidebarItem({ label, href, icon: Icon, pathname, collapsed }) {
 
       {!collapsed && <span className="truncate">{label}</span>}
     </Link>
-  )
+  );
 }
 
 function SidebarDropdown({ label, icon: Icon, pathname, items }) {
   const isAnyActive = items.some(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
-  )
+  );
 
-  const [open, setOpen] = useState(isAnyActive)
+  const [open, setOpen] = useState(isAnyActive);
 
   return (
     <div className="rounded-lg overflow-hidden">
@@ -158,7 +165,7 @@ function SidebarDropdown({ label, icon: Icon, pathname, items }) {
         <div className="mt-1 ml-3 space-y-1 border-l border-purple-700/40 pl-3">
           {items.map((item) => {
             const active =
-              pathname === item.href || pathname.startsWith(`${item.href}/`)
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (
               <Link
@@ -175,10 +182,10 @@ function SidebarDropdown({ label, icon: Icon, pathname, items }) {
               >
                 {item.label}
               </Link>
-            )
+            );
           })}
         </div>
       )}
     </div>
-  )
+  );
 }

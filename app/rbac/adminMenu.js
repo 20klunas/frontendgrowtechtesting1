@@ -10,7 +10,7 @@ import {
   FileText,
   ShieldCheck,
   Shield,
-} from "lucide-react"
+} from "lucide-react";
 
 export const adminMenu = [
   {
@@ -54,10 +54,16 @@ export const adminMenu = [
     icon: Users,
     items: [
       {
-        label: "Pengguna",
+        label: "Customer",
         href: "/admin/pengguna",
         icon: Users,
         permission: "manage_users",
+      },
+      {
+        label: "Admin",
+        href: "/admin/pengguna/admin",
+        icon: Users,
+        adminFlag: "can_manage_rbac",
       },
       {
         label: "Referral",
@@ -115,14 +121,14 @@ export const adminMenu = [
         label: "Akses Admin",
         href: "/admin/akses-admin",
         icon: ShieldCheck,
-        permission: "manage_admins",
+        adminFlag: "can_manage_rbac",
       },
       {
         label: "Audit Logs",
-        icon: Shield,
         href: "/admin/access/logs",
-        permission: "rbac.manage"
-      }
+        icon: Shield,
+        adminFlag: "can_view_audit_logs",
+      },
     ],
   },
-]
+];

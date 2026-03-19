@@ -3,10 +3,18 @@
 import { useAdminAuth } from "./useAdminAuth";
 
 export function usePermission() {
-  const { permissions, admin, loading, can, refreshAdminAuth } = useAdminAuth();
+  const {
+    permissions,
+    admin,
+    loading,
+    can,
+    hasAdminFlag,
+    refreshAdminAuth,
+  } = useAdminAuth();
 
   return {
     can,
+    hasAdminFlag,
     permissions,
     admin,
     loading,

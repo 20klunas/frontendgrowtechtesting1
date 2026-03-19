@@ -102,7 +102,9 @@ async function loadAdminMe(force = false) {
 
       const payload = {
         admin: json.data || null,
-        permissions: json.data?.permissions || [],
+        permissions: Array.isArray(json.data?.permissions)
+          ? json.data.permissions
+          : [],
       };
 
       cachedAdminToken = token;
@@ -129,7 +131,7 @@ export function AdminAuthProvider({ children }) {
 
   const applyPayload = useCallback((payload) => {
     setAdmin(payload?.admin || null);
-    setPermissions(payload?.permissions || []);
+    setPermissions(Array.isArray(payload?.permissions) ? payload.permissions : []);
   }, []);
 
   const refreshAdminAuth = useCallback(
@@ -225,9 +227,19 @@ export function AdminAuthProvider({ children }) {
   const can = useCallback(
     (key) => {
       if (!key) return true;
+      if (admin?.is_super_admin) return true;
       return permissions.includes("*") || permissions.includes(key);
     },
-    [permissions]
+    [permissions, admin]
+  );
+
+  const hasAdminFlag = useCallback(
+    (flag) => {
+      if (!flag) return true;
+      if (admin?.is_super_admin) return true;
+      return Boolean(admin?.[flag]);
+    },
+    [admin]
   );
 
   const value = useMemo(() => {
@@ -236,9 +248,10 @@ export function AdminAuthProvider({ children }) {
       permissions,
       loading,
       can,
+      hasAdminFlag,
       refreshAdminAuth,
     };
-  }, [admin, permissions, loading, can, refreshAdminAuth]);
+  }, [admin, permissions, loading, can, hasAdminFlag, refreshAdminAuth]);
 
   return (
     <AdminAuthContext.Provider value={value}>
