@@ -363,6 +363,16 @@ html:not(.dark) .admin .voucher-modal p {
   --muted: #9ca3af;
 }
 
+/* CUSTOM SCROLLBAR */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.4);
+  border-radius: 10px;
+}
+
 /* CART PAGE CUSTOMER */
 
 .animate-fade-in {

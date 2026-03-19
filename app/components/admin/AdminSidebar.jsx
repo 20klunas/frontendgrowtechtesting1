@@ -37,30 +37,12 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
         />
       )}
 
-      {/* <aside
-        className={`
-          fixed left-0 top-14 z-40
-          h-[calc(100vh-56px)]
-          ${collapsed ? "w-20" : "w-64"}
-
-          bg-gradient-to-b 
-          from-purple-100 
-          to-white
-
-          dark:from-[#2a0446] 
-          dark:to-[#12001f]
-
-          border-r border-purple-200 dark:border-purple-800/40
-          transition-all duration-300
-
-          ${open ? "translate-x-0" : "-translate-x-full"}
-        `}
-      > */}
       <aside
         className={`
           fixed left-0 top-14 z-40
           h-[calc(100vh-56px)]
           ${collapsed ? "w-20" : "w-64"}
+          flex flex-col
 
           bg-[var(--card)]
           border-r border-[var(--card-border)]
@@ -72,7 +54,7 @@ export default function AdminSidebar({ open, setOpen, collapsed }) {
           ${open ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <nav className="flex-1 overflow-y-auto overscroll-contain px-3 py-5 pb-24 space-y-6 text-sm">
+        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-5 pb-24 space-y-6 text-sm">
           {visibleGroups.map((group) => (
             <SidebarGroup key={group.group} title={group.group}>
               {group.dropdown ? (
