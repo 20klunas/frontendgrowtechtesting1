@@ -157,7 +157,7 @@ export default function KategoriPage() {
             <table className="w-full text-sm text-gray-300">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th>ID</th>
+                  {/* <th>ID</th> */}
                   <th>Nama Kategori</th>
                   <th className="text-center">Aksi</th>
                 </tr>
@@ -168,7 +168,7 @@ export default function KategoriPage() {
                     key={item.id}
                     className="border-b border-white/5 hover:bg-purple-900/20 text-center"
                   >
-                    <td className="text-center">{item.id}</td>
+                    {/* <td className="text-center">{item.id}</td> */}
                     <td className="text-white text-center">{item.name}</td>
                     <td className="text-center space-x-2">
                       <button

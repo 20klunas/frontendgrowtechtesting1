@@ -1,13 +1,12 @@
-import NavbarPublic from "../../app/components/Navbar";
-import Footer from "../../app/components/Footer";
-import { WebsiteSettingsProvider } from "../context/WebsiteSettingsContext";
+import NavbarPublic from "../../app/components/Navbar"
+import Footer from "../../app/components/Footer"
+
 export default function PublicLayout({ children }) {
   return (
-    <WebsiteSettingsProvider>
-
+    <>
       <NavbarPublic />
       {children}
       <Footer />
-    </WebsiteSettingsProvider>
-  );
+    </>
+  )
 }

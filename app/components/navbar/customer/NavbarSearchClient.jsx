@@ -1,118 +1,220 @@
-'use client'
+"use client";
 
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { authFetch } from '../../../lib/authFetch'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { authFetch } from "../../../lib/authFetch";
 import {
   getMaintenanceMessage,
   isFeatureMaintenanceError,
   isMaintenanceError,
-} from '../../../lib/maintenanceHandler'
+} from "../../../lib/maintenanceHandler";
+import { useAppTransition } from "../../../hooks/useAppTransition";
+
+const SUBCATEGORY_CACHE_TTL = 5 * 60 * 1000;
+const SUBCATEGORY_STORAGE_KEY = "navbar-search-subcategories-v1";
+
+let subcategoryCache = null;
+let subcategoryCacheExpiry = 0;
+let subcategoryPromise = null;
+
+function canUseSessionStorage() {
+  return typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
+}
+
+function readSubcategoryCache() {
+  if (subcategoryCache && subcategoryCacheExpiry > Date.now()) {
+    return subcategoryCache;
+  }
+
+  if (!canUseSessionStorage()) {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(SUBCATEGORY_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed?.expiresAt || parsed.expiresAt <= Date.now()) {
+      window.sessionStorage.removeItem(SUBCATEGORY_STORAGE_KEY);
+      return null;
+    }
+
+    subcategoryCache = Array.isArray(parsed.data) ? parsed.data : [];
+    subcategoryCacheExpiry = parsed.expiresAt;
+
+    return subcategoryCache;
+  } catch {
+    return null;
+  }
+}
+
+function writeSubcategoryCache(rows) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+
+  subcategoryCache = safeRows;
+  subcategoryCacheExpiry = Date.now() + SUBCATEGORY_CACHE_TTL;
+
+  if (!canUseSessionStorage()) {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      SUBCATEGORY_STORAGE_KEY,
+      JSON.stringify({
+        data: safeRows,
+        expiresAt: subcategoryCacheExpiry,
+      })
+    );
+  } catch {}
+}
+
+async function loadSubcategories() {
+  const cached = readSubcategoryCache();
+  if (cached) {
+    return cached;
+  }
+
+  if (subcategoryPromise) {
+    return subcategoryPromise;
+  }
+
+  subcategoryPromise = authFetch("/api/v1/catalog/subcategories", {
+    cache: "force-cache",
+  })
+    .then((json) => {
+      const rows = Array.isArray(json?.data) ? json.data : [];
+      writeSubcategoryCache(rows);
+      return rows;
+    })
+    .finally(() => {
+      subcategoryPromise = null;
+    });
+
+  return subcategoryPromise;
+}
 
 export default function NavbarSearchClient() {
-  const router = useRouter()
+  const router = useRouter();
+  const { beginTransition } = useAppTransition();
 
-  const [search, setSearch] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchInteracted, setSearchInteracted] = useState(false)
+  const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchInteracted, setSearchInteracted] = useState(false);
 
-  const [subcategories, setSubcategories] = useState([])
-  const [subcategoriesLoading, setSubcategoriesLoading] = useState(false)
-  const [subcategoriesLoaded, setSubcategoriesLoaded] = useState(false)
-  const [searchMaintenance, setSearchMaintenance] = useState('')
+  const [subcategories, setSubcategories] = useState(() => readSubcategoryCache() || []);
+  const [subcategoriesLoading, setSubcategoriesLoading] = useState(false);
+  const [subcategoriesLoaded, setSubcategoriesLoaded] = useState(() => Boolean(readSubcategoryCache()));
+  const [searchMaintenance, setSearchMaintenance] = useState("");
 
-  const searchRef = useRef(null)
-  const deferredSearch = useDeferredValue(search)
+  const searchRef = useRef(null);
+  const deferredSearch = useDeferredValue(search);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setSearchOpen(false)
+        setSearchOpen(false);
       }
-    }
+    };
 
-    document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
-  }, [])
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   const ensureSubcategoriesLoaded = async () => {
-    if (subcategoriesLoaded || subcategoriesLoading) return
+    if (subcategoriesLoaded && subcategories.length > 0) return;
+    if (subcategoriesLoading) return;
+
+    const cached = readSubcategoryCache();
+    if (cached) {
+      setSubcategories(cached);
+      setSubcategoriesLoaded(true);
+      return;
+    }
 
     try {
-      setSubcategoriesLoading(true)
-      setSearchMaintenance('')
+      setSubcategoriesLoading(true);
+      setSearchMaintenance("");
 
-      const json = await authFetch('/api/v1/catalog/subcategories')
-
-      if (json?.success) {
-        setSubcategories(Array.isArray(json.data) ? json.data : [])
-        setSubcategoriesLoaded(true)
-      } else {
-        setSubcategories([])
-      }
+      const rows = await loadSubcategories();
+      setSubcategories(rows);
+      setSubcategoriesLoaded(true);
     } catch (err) {
-      if (isFeatureMaintenanceError(err, 'catalog_access')) {
+      if (isFeatureMaintenanceError(err, "catalog_access")) {
         setSearchMaintenance(
-          getMaintenanceMessage(err, 'Katalog sedang maintenance.')
-        )
-        setSubcategories([])
-        return
+          getMaintenanceMessage(err, "Katalog sedang maintenance.")
+        );
+        setSubcategories([]);
+        return;
       }
 
       if (!isMaintenanceError(err)) {
-        console.error('Failed fetch subcategories:', err)
+        console.error("Failed fetch subcategories:", err);
       }
 
-      setSubcategories([])
+      setSubcategories([]);
     } finally {
-      setSubcategoriesLoading(false)
+      setSubcategoriesLoading(false);
     }
-  }
+  };
 
   const filteredSubs = useMemo(() => {
-    const keyword = deferredSearch.trim().toLowerCase()
+    const keyword = deferredSearch.trim().toLowerCase();
 
-    if (!searchInteracted) return []
-    if (!keyword) return []
+    if (!searchInteracted) return [];
+    if (keyword.length < 2) return [];
 
-    return subcategories.filter((sub) =>
-      sub?.name?.toLowerCase()?.includes(keyword)
-    )
-  }, [deferredSearch, subcategories, searchInteracted])
+    return subcategories
+      .filter((sub) => {
+        const haystack = [
+          sub?.name,
+          sub?.provider,
+          sub?.category?.name,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return haystack.includes(keyword);
+      })
+      .slice(0, 8);
+  }, [deferredSearch, subcategories, searchInteracted]);
 
   const handleSearchFocus = () => {
-    setSearchInteracted(true)
-    setSearchOpen(true)
-    ensureSubcategoriesLoaded()
-  }
+    setSearchInteracted(true);
+    setSearchOpen(true);
+    ensureSubcategoriesLoaded();
+  };
 
   const handleSearchChange = (e) => {
-    const value = e.target.value
+    const value = e.target.value;
 
-    setSearch(value)
-    setSearchInteracted(true)
-    setSearchOpen(true)
+    setSearch(value);
+    setSearchInteracted(true);
+    setSearchOpen(true);
 
-    if (value.trim()) {
-      ensureSubcategoriesLoaded()
+    if (value.trim().length >= 2) {
+      ensureSubcategoriesLoaded();
     }
-  }
+  };
 
   const handleSelectSub = (subId) => {
     if (searchMaintenance) {
-      alert(searchMaintenance)
-      return
+      alert(searchMaintenance);
+      return;
     }
 
-    setSearch('')
-    setSearchOpen(false)
+    setSearch("");
+    setSearchOpen(false);
 
-    router.replace(`/customer/category/product?subcategory=${subId}`)
-  }
+    beginTransition("/customer/category/product", "Menyiapkan hasil pencarian...");
+    router.replace(`/customer/category/product?subcategory=${subId}`);
+  };
 
   const placeholder = subcategoriesLoading
-    ? 'Memuat katalog...'
-    : searchMaintenance || 'Cari produk...'
+    ? "Memuat katalog..."
+    : searchMaintenance || "Cari produk...";
 
   return (
     <div ref={searchRef} className="group relative ml-6 hidden w-[320px] lg:block">
@@ -162,55 +264,43 @@ export default function NavbarSearchClient() {
         "
       />
 
-      <div
-        className="
-          pointer-events-none
-          absolute inset-0 rounded-full
-          bg-gradient-to-r from-purple-500/10 to-indigo-500/10
-          opacity-0 transition
-          group-hover:opacity-100
-        "
-      />
-
       {searchOpen && (
-        <div
-          className="
-            absolute left-0 top-12 z-50 w-full overflow-hidden rounded-xl
-            border border-purple-700/50 bg-[#14002a] shadow-2xl
-          "
-        >
+        <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-purple-700/40 bg-[#12001f] shadow-2xl">
           {searchMaintenance ? (
-            <div className="px-4 py-3 text-sm text-white/70">
+            <div className="px-4 py-4 text-sm text-purple-200">
               {searchMaintenance}
             </div>
-          ) : subcategoriesLoading ? (
-            <div className="px-4 py-3 text-sm text-white/60">
+          ) : subcategoriesLoading && filteredSubs.length === 0 ? (
+            <div className="px-4 py-4 text-sm text-white/60">
               Memuat subkategori...
             </div>
-          ) : !searchInteracted || !search.trim() ? (
-            <div className="px-4 py-3 text-xs text-white/40">
-              Ketik nama produk ...
+          ) : filteredSubs.length === 0 ? (
+            <div className="px-4 py-4 text-sm text-white/60">
+              Tidak ada hasil yang cocok.
             </div>
-          ) : filteredSubs.length > 0 ? (
-            filteredSubs.map((sub) => (
-              <button
-                key={sub.id}
-                onClick={() => handleSelectSub(sub.id)}
-                className="
-                  w-full px-4 py-2.5 text-left text-sm text-white/80 transition
-                  hover:bg-purple-700/30 hover:text-white
-                "
-              >
-                {sub.name}
-              </button>
-            ))
           ) : (
-            <div className="px-4 py-3 text-sm text-white/50">
-              Tidak ada subkategori
+            <div className="max-h-80 overflow-y-auto py-2">
+              {filteredSubs.map((sub) => (
+                <button
+                  key={sub.id}
+                  type="button"
+                  onClick={() => handleSelectSub(sub.id)}
+                  className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-purple-700/20"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-1 text-sm font-medium text-white">
+                      {sub?.name}
+                    </p>
+                    <p className="mt-1 line-clamp-1 text-xs text-purple-300/80">
+                      {[sub?.provider, sub?.category?.name].filter(Boolean).join(" • ")}
+                    </p>
+                  </div>
+                </button>
+              ))}
             </div>
           )}
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -1,15 +1,15 @@
 import NavbarCustomer from "../components/NavbarCustomer";
 import Footer from "../components/FooterCustomer";
 import CustomerProviders from "../components/CustomerProviders";
-import { getWebsiteBrandServer } from "../lib/serverWebsiteSettings";
+import { getServerShellBootstrap } from "../lib/serverShellBootstrap";
 
 export default async function CustomerLayout({ children }) {
-  const brand = await getWebsiteBrandServer();
+  const initialShellData = await getServerShellBootstrap();
 
   return (
-    <CustomerProviders initialBrand={brand}>
-      <div className="min-h-screen flex flex-col">
-        <NavbarCustomer brand={brand} />
+    <CustomerProviders initialShellData={initialShellData}>
+      <div className="min-h-screen flex flex-col bg-black text-white">
+        <NavbarCustomer initialShellData={initialShellData} />
         <main className="flex-1">{children}</main>
         <Footer />
       </div>

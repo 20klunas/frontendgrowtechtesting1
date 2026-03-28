@@ -1,210 +1,207 @@
-"use client";
+"use client"
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { Search } from "lucide-react";
-import ProductCard from "../../components/customer/SubCategoryCard";
-import { authFetch } from "../../lib/authFetch";
-import useCatalogAccess from "../../hooks/useCatalogAccess";
-import {
-  getMaintenanceMessage,
-  isFeatureMaintenanceError,
-  isMaintenanceError,
-} from "../../lib/maintenanceHandler";
-
-export const dynamic = "force-dynamic";
+import { useDeferredValue, useEffect, useMemo, useState } from "react"
+import { motion } from "framer-motion"
+import { Search } from "lucide-react"
+import ProductCard from "../../components/customer/SubCategoryCard"
+import { authFetch } from "../../lib/authFetch"
+import useCatalogAccess from "../../hooks/useCatalogAccess"
 
 function normalizeId(value) {
-  if (value === null || value === undefined || value === "") return null;
+  if (value === null || value === undefined || value === "") return null
 
-  const num = Number(value);
-  return Number.isNaN(num) ? value : num;
+  const num = Number(value)
+  return Number.isNaN(num) ? value : num
 }
 
 function normalizeCategoriesResponse(json) {
-  if (Array.isArray(json?.data)) return json.data;
-  if (Array.isArray(json?.data?.categories)) return json.data.categories;
-  if (Array.isArray(json?.data?.data)) return json.data.data;
-  return [];
+  if (Array.isArray(json?.data)) return json.data
+  if (Array.isArray(json?.data?.categories)) return json.data.categories
+  if (Array.isArray(json?.data?.data)) return json.data.data
+  return []
 }
 
 function normalizeSubcategoriesResponse(json) {
-  if (Array.isArray(json?.data)) return json.data;
-  if (Array.isArray(json?.data?.subcategories)) return json.data.subcategories;
-  if (Array.isArray(json?.data?.data)) return json.data.data;
-  return [];
+  if (Array.isArray(json?.data)) return json.data
+  if (Array.isArray(json?.data?.subcategories)) return json.data.subcategories
+  if (Array.isArray(json?.data?.data)) return json.data.data
+  return []
 }
 
 export default function CustomerCategoryContent({
-  initialCategories = [],
-  initialSubcategories = [],
+  initialCategories = null,
+  initialSubcategories = null,
   maintenanceMessage = "",
 }) {
-  const [categories, setCategories] = useState(
-    Array.isArray(initialCategories) ? initialCategories : []
-  );
-  const [subcategories, setSubcategories] = useState(
-    Array.isArray(initialSubcategories) ? initialSubcategories : []
-  );
+  const hasInitialCategories = Array.isArray(initialCategories)
+  const hasInitialSubcategories = Array.isArray(initialSubcategories)
 
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [categories, setCategories] = useState(
+    hasInitialCategories ? initialCategories : []
+  )
+  const [subcategories, setSubcategories] = useState(
+    hasInitialSubcategories ? initialSubcategories : []
+  )
+
+  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [search, setSearch] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
 
   const [loadingCategories, setLoadingCategories] = useState(
-    !Array.isArray(initialCategories) || initialCategories.length === 0
-  );
+    !hasInitialCategories
+  )
   const [loadingSubcategories, setLoadingSubcategories] = useState(
-    !Array.isArray(initialSubcategories)
-  );
+    !hasInitialSubcategories
+  )
 
   const [catalogMaintenance, setCatalogMaintenance] = useState(
     maintenanceMessage || ""
-  );
+  )
 
-  const deferredSearch = useDeferredValue(search);
-  const itemsPerPage = 6;
+  const deferredSearch = useDeferredValue(search)
+  const itemsPerPage = 6
 
-  const { catalogDisabled, catalogMessage } = useCatalogAccess();
-
-  const effectiveMaintenanceMessage =
-    catalogMessage || catalogMaintenance || maintenanceMessage || "";
-
-  const isCatalogUnavailable =
-    Boolean(catalogDisabled) || Boolean(effectiveMaintenanceMessage);
-
-  const selectedCategoryName = useMemo(() => {
-    const active = categories.find(
-      (cat) => normalizeId(cat?.id) === normalizeId(selectedCategory)
-    );
-
-    return active?.name || null;
-  }, [categories, selectedCategory]);
+  const { catalogDisabled, catalogMessage } = useCatalogAccess()
 
   useEffect(() => {
-    let active = true;
+    setCatalogMaintenance(maintenanceMessage || "")
+  }, [maintenanceMessage])
+
+  useEffect(() => {
+    if (hasInitialCategories) {
+      setCategories(initialCategories)
+      setLoadingCategories(false)
+      return
+    }
+
+    let active = true
 
     const fetchCategories = async () => {
       try {
-        setLoadingCategories(true);
+        setLoadingCategories(true)
 
-        const json = await authFetch("/api/v1/catalog/categories");
+        const json = await authFetch("/api/v1/catalog/categories", {
+          revalidate: 10,
+        })
 
-        if (!active) return;
+        if (!active) return
 
-        if (json?.success) {
-          const data = normalizeCategoriesResponse(json);
-          setCategories(Array.isArray(data) ? data : []);
-          return;
-        }
-
-        setCategories([]);
+        const data = normalizeCategoriesResponse(json)
+        setCategories(Array.isArray(data) ? data : [])
       } catch (err) {
-        if (!active) return;
-        console.error("Failed fetch categories:", err);
-        setCategories([]);
+        if (!active) return
+        console.error("Failed fetch categories:", err)
+        setCategories([])
       } finally {
-        if (active) {
-          setLoadingCategories(false);
-        }
+        if (active) setLoadingCategories(false)
       }
-    };
+    }
 
-    fetchCategories();
+    fetchCategories()
 
     return () => {
-      active = false;
-    };
-  }, []);
+      active = false
+    }
+  }, [hasInitialCategories, initialCategories])
 
   useEffect(() => {
-    let active = true;
+    let active = true
 
     const fetchSubcategories = async () => {
       try {
-        setLoadingSubcategories(true);
-        setCatalogMaintenance("");
+        setLoadingSubcategories(true)
+        setCatalogMaintenance("")
 
-        const categoryId = normalizeId(selectedCategory);
-
+        const categoryId = normalizeId(selectedCategory)
         const url =
           categoryId !== null
             ? `/api/v1/catalog/categories/${categoryId}/subcategories`
-            : "/api/v1/catalog/subcategories";
+            : "/api/v1/catalog/subcategories"
 
-        const json = await authFetch(url);
+        const json = await authFetch(url, {
+          revalidate: 10,
+        })
 
-        if (!active) return;
+        if (!active) return
 
-        if (json?.success) {
-          const subs = normalizeSubcategoriesResponse(json);
-          setSubcategories(Array.isArray(subs) ? subs : []);
-        } else {
-          console.warn("Invalid subcategory response:", json);
-          setSubcategories([]);
-        }
+        const subs = normalizeSubcategoriesResponse(json)
+        setSubcategories(Array.isArray(subs) ? subs : [])
       } catch (err) {
-        if (!active) return;
-
-        if (isFeatureMaintenanceError(err, "catalog_access")) {
-          setCatalogMaintenance(
-            getMaintenanceMessage(err, "Katalog sedang maintenance.")
-          );
-          setSubcategories([]);
-          return;
-        }
-
-        if (!isMaintenanceError(err)) {
-          console.error("Failed fetch subcategories:", err);
-        }
-
-        setSubcategories([]);
+        if (!active) return
+        console.error("Failed fetch subcategories:", err)
+        setSubcategories([])
       } finally {
-        if (active) {
-          setLoadingSubcategories(false);
-        }
+        if (active) setLoadingSubcategories(false)
       }
-    };
+    }
 
-    fetchSubcategories();
+    if (selectedCategory === null && hasInitialSubcategories) {
+      setSubcategories(initialSubcategories)
+      setLoadingSubcategories(false)
+      return
+    }
+
+    fetchSubcategories()
 
     return () => {
-      active = false;
-    };
-  }, [selectedCategory]);
+      active = false
+    }
+  }, [selectedCategory, hasInitialSubcategories, initialSubcategories])
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [deferredSearch, selectedCategory]);
+    setCurrentPage(1)
+  }, [deferredSearch, selectedCategory])
 
   const filteredSubcategories = useMemo(() => {
-    const keyword = deferredSearch.trim().toLowerCase();
+    const keyword = deferredSearch.trim().toLowerCase()
+    const source = Array.isArray(subcategories) ? subcategories : []
 
-    return subcategories.filter((sub) => {
-      const name = sub?.name?.toLowerCase?.() || "";
-      return keyword ? name.includes(keyword) : true;
-    });
-  }, [subcategories, deferredSearch]);
+    return source.filter((sub) => {
+      // 🔥 FILTER CATEGORY DI SINI
+      if (selectedCategory !== null) {
+        if (normalizeId(sub?.category?.id) !== normalizeId(selectedCategory)) {
+          return false
+        }
+      }
+
+      const haystack = [sub?.name, sub?.provider, sub?.category?.name]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+
+      return keyword ? haystack.includes(keyword) : true
+    })
+  }, [subcategories, deferredSearch, selectedCategory])
+
+  const selectedCategoryName = useMemo(() => {
+    const selected = (Array.isArray(categories) ? categories : []).find(
+      (cat) => normalizeId(cat?.id) === normalizeId(selectedCategory)
+    )
+    return selected?.name || ""
+  }, [categories, selectedCategory])
 
   const totalPages = Math.max(
     1,
     Math.ceil(filteredSubcategories.length / itemsPerPage)
-  );
+  )
 
   const paginatedSubs = useMemo(() => {
     return filteredSubcategories.slice(
       (currentPage - 1) * itemsPerPage,
       currentPage * itemsPerPage
-    );
-  }, [filteredSubcategories, currentPage]);
+    )
+  }, [filteredSubcategories, currentPage])
 
   const handleCategoryClick = (categoryId) => {
-    setSelectedCategory(categoryId);
-    setSearch("");
-    setCurrentPage(1);
-  };
+    setSelectedCategory(categoryId)
+    setSearch("")
+    setCurrentPage(1)
+  }
 
-  const isLoading = loadingCategories || loadingSubcategories;
+  const isLoading = loadingCategories || loadingSubcategories
+  const isCatalogUnavailable = catalogDisabled || Boolean(catalogMaintenance)
+  const effectiveMaintenanceMessage =
+    catalogMaintenance || catalogMessage || "Katalog sedang maintenance."
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -242,9 +239,9 @@ export default function CustomerCategoryContent({
             Semua Kategori
           </button>
 
-          {categories.map((cat) => {
-            const catId = normalizeId(cat?.id);
-            const isActive = normalizeId(selectedCategory) === catId;
+          {(Array.isArray(categories) ? categories : []).map((cat) => {
+            const catId = normalizeId(cat?.id)
+            const isActive = normalizeId(selectedCategory) === catId
 
             return (
               <button
@@ -263,7 +260,7 @@ export default function CustomerCategoryContent({
               >
                 {cat.name}
               </button>
-            );
+            )
           })}
         </aside>
 
@@ -312,11 +309,7 @@ export default function CustomerCategoryContent({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25 }}
-              className="
-                grid grid-cols-1 gap-6
-                sm:grid-cols-2
-                lg:grid-cols-3
-              "
+              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
             >
               {paginatedSubs.map((sub) => (
                 <ProductCard key={sub.id} subcategory={sub} />
@@ -333,18 +326,14 @@ export default function CustomerCategoryContent({
               <button
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className="
-                  rounded-lg border border-purple-700 px-4 py-2
-                  text-purple-300 transition hover:bg-purple-700/30
-                  disabled:opacity-40
-                "
+                className="rounded-lg border border-purple-700 px-4 py-2 text-purple-300 transition hover:bg-purple-700/30 disabled:opacity-40"
               >
                 ←
               </button>
 
               {Array.from({ length: totalPages }).map((_, i) => {
-                const page = i + 1;
-                const isActive = page === currentPage;
+                const page = i + 1
+                const isActive = page === currentPage
 
                 return (
                   <motion.button
@@ -363,19 +352,13 @@ export default function CustomerCategoryContent({
                   >
                     {page}
                   </motion.button>
-                );
+                )
               })}
 
               <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(p + 1, totalPages))
-                }
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="
-                  rounded-lg border border-purple-700 px-4 py-2
-                  text-purple-300 transition hover:bg-purple-700/30
-                  disabled:opacity-40
-                "
+                className="rounded-lg border border-purple-700 px-4 py-2 text-purple-300 transition hover:bg-purple-700/30 disabled:opacity-40"
               >
                 →
               </button>
@@ -384,7 +367,7 @@ export default function CustomerCategoryContent({
         </section>
       </div>
     </main>
-  );
+  )
 }
 
 function FeatureMaintenanceCard({ title, message }) {
@@ -393,5 +376,5 @@ function FeatureMaintenanceCard({ title, message }) {
       <h3 className="mb-2 text-xl font-semibold text-amber-300">{title}</h3>
       <p className="text-amber-100/90">{message}</p>
     </div>
-  );
+  )
 }

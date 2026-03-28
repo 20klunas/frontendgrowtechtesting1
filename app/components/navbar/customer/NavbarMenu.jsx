@@ -1,35 +1,43 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '../../../lib/utils'
+import { usePathname } from "next/navigation";
+import { cn } from "../../../lib/utils";
+import AppTransitionLink from "../../AppTransitionLink";
 
 const NAV_ITEMS = [
-  { label: 'Home', href: '/customer' },
-  { label: 'Product', href: '/customer/category' },
-]
+  {
+    label: "Home",
+    href: "/customer",
+    message: "Menyiapkan beranda customer...",
+  },
+  {
+    label: "Product",
+    href: "/customer/category",
+    message: "Menyiapkan katalog produk...",
+  },
+];
 
 export default function NavbarMenu() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   const isActive = (href) => {
-    if (!pathname) return false
+    if (!pathname) return false;
     return pathname === href || pathname.startsWith(`${href}/`)
-  }
+  };
 
   return (
     <>
-      {/* Desktop */}
       <div className="relative hidden items-center gap-8 lg:flex">
         {NAV_ITEMS.map((item) => (
-          <Link
+          <AppTransitionLink
             key={item.href}
             href={item.href}
+            transitionMessage={item.message}
             className={cn(
-              'relative px-2 py-1 text-sm font-medium transition',
+              "relative px-2 py-1 text-sm font-medium transition",
               isActive(item.href)
-                ? 'text-white'
-                : 'text-white/70 hover:text-white'
+                ? "text-white"
+                : "text-white/70 hover:text-white"
             )}
           >
             {item.label}
@@ -37,27 +45,25 @@ export default function NavbarMenu() {
             {isActive(item.href) && (
               <span className="absolute -bottom-2 left-0 right-0 h-[2px] rounded-full bg-purple-500" />
             )}
-          </Link>
+          </AppTransitionLink>
         ))}
       </div>
 
-      {/* Mobile */}
       <div className="flex items-center gap-3 lg:hidden">
         {NAV_ITEMS.map((item) => (
-          <Link
+          <AppTransitionLink
             key={item.href}
             href={item.href}
+            transitionMessage={item.message}
             className={cn(
-              'text-sm font-medium',
-              isActive(item.href)
-                ? 'text-purple-300'
-                : 'text-white/80'
+              "text-sm font-medium",
+              isActive(item.href) ? "text-purple-300" : "text-white/80"
             )}
           >
             {item.label}
-          </Link>
+          </AppTransitionLink>
         ))}
       </div>
     </>
-  )
+  );
 }

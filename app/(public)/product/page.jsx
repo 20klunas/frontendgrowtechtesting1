@@ -1,168 +1,162 @@
-"use client";
+"use client"
 
-import { useEffect, useState, useMemo } from "react";
-import ProductCard from "../../components/ProductCard";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react"
+import { motion } from "framer-motion"
+import ProductCard from "../../components/ProductCard"
 import { publicFetch } from "../../lib/publicFetch"
-const API = process.env.NEXT_PUBLIC_API_URL;
+
+function normalizeCollection(json) {
+  if (Array.isArray(json?.data)) return json.data
+  if (Array.isArray(json?.data?.data)) return json.data.data
+  if (Array.isArray(json?.data?.categories)) return json.data.categories
+  if (Array.isArray(json?.data?.subcategories)) return json.data.subcategories
+  return []
+}
 
 export default function ProductPage() {
+  const [categories, setCategories] = useState([])
+  const [subcategories, setSubcategories] = useState([])
+  const [selectedCategory, setSelectedCategory] = useState(null)
 
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  const [sort, setSort] = useState("terbaru");
-
-  const [loading, setLoading] = useState(true);
-
-  /* =========================
-     DEBOUNCE SEARCH
-  ========================= */
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [sort, setSort] = useState("latest")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 400);
+      setDebouncedSearch(search.trim().toLowerCase())
+    }, 300)
 
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  /* =========================
-     FETCH DATA
-  ========================= */
+    return () => clearTimeout(timer)
+  }, [search])
 
   useEffect(() => {
-    fetchCategories();
-    fetchSubcategories();
-  }, []);
+    let active = true
 
-  const fetchCategories = async () => {
-    try {
-      const json = await publicFetch(`/api/v1/categories`);
+    const bootstrap = async () => {
+      try {
+        setLoading(true)
 
-      if (json.success) {
-        setCategories(json.data);
+        const [categoriesJson, subcategoriesJson] = await Promise.all([
+          publicFetch("/api/v1/categories", { revalidate: 10 }),
+          publicFetch("/api/v1/subcategories", { revalidate: 10 }),
+        ])
+
+        if (!active) return
+
+        setCategories(normalizeCollection(categoriesJson))
+        setSubcategories(normalizeCollection(subcategoriesJson))
+      } catch (err) {
+        if (err.message !== "System Maintenance") {
+          console.error("Failed bootstrap product page:", err)
+        }
+
+        if (active) {
+          setCategories([])
+          setSubcategories([])
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
       }
-    } catch (err) {
-
-      if (err.message === "System Maintenance") {
-        return;
-      }
-
-      console.error("Failed fetch categories:", err);
-
     }
-  };
 
-  const fetchSubcategories = async (categoryId = null) => {
-    try {
+    bootstrap()
 
-      setLoading(true);
-
-      const url = categoryId
-        ? `${API}/api/v1/categories/${categoryId}/subcategories`
-        : `${API}/api/v1/subcategories`;
-
-      const json = await publicFetch(url.replace(API,""));
-
-      if (json.success) {
-
-        const data = Array.isArray(json.data)
-          ? json.data
-          : json.data?.data || [];
-
-        setSubcategories(data);
-      }
-
-      setLoading(false);
-
-    } catch (err) {
-
-      if (err.message === "System Maintenance") {
-        return;
-      }
-
-      console.error("Failed fetch subcategories:", err);
-
+    return () => {
+      active = false
     }
-  };
+  }, [])
 
-  /* =========================
-     CATEGORY CLICK
-  ========================= */
+  const fetchSubcategoriesByCategory = async (categoryId = null) => {
+    try {
+      setLoading(true)
+
+      const json = categoryId
+        ? await publicFetch(`/api/v1/categories/${categoryId}/subcategories`, {
+            revalidate: 10,
+          })
+        : await publicFetch("/api/v1/subcategories", { revalidate: 10 })
+
+      setSubcategories(normalizeCollection(json))
+    } catch (err) {
+      if (err.message !== "System Maintenance") {
+        console.error("Failed fetch subcategories:", err)
+      }
+      setSubcategories([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleCategoryClick = (categoryId) => {
-    setSelectedCategory(categoryId);
-    fetchSubcategories(categoryId);
-  };
-
-  /* =========================
-     FILTER + SORT
-  ========================= */
+    setSelectedCategory(categoryId)
+    fetchSubcategoriesByCategory(categoryId)
+  }
 
   const filteredSubcategories = useMemo(() => {
+    let data = Array.isArray(subcategories) ? [...subcategories] : []
 
-    let data = (Array.isArray(subcategories) ? subcategories : []).filter((sub) =>
-      (sub.name || "").toLowerCase().includes(debouncedSearch.toLowerCase())
-    );
+    if (debouncedSearch) {
+      data = data.filter((sub) => {
+        const haystack = [
+          sub?.name,
+          sub?.provider,
+          sub?.category?.name,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
 
-    if (sort === "termurah") {
-      data = [...data].sort((a, b) => a.price - b.price);
+        return haystack.includes(debouncedSearch)
+      })
     }
 
-    if (sort === "terlaris") {
-      data = [...data].sort((a, b) => b.sold - a.sold);
+    if (sort === "latest") {
+      data.sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0))
+    } else if (sort === "name_asc") {
+      data.sort((a, b) =>
+        String(a?.name || "").localeCompare(String(b?.name || ""))
+      )
+    } else if (sort === "name_desc") {
+      data.sort((a, b) =>
+        String(b?.name || "").localeCompare(String(a?.name || ""))
+      )
     }
 
-    if (sort === "terbaru") {
-      data = [...data].sort((a, b) => b.id - a.id);
-    }
-
-    return data;
-
-  }, [subcategories, debouncedSearch, sort]);
+    return data
+  }, [subcategories, debouncedSearch, sort])
 
   return (
-    <main className="min-h-screen text-white px-4 sm:px-6 lg:px-10 py-8">
-
-      {/* ================= TITLE ================= */}
-
+    <main className="min-h-screen px-4 py-8 text-white sm:px-6 lg:px-10">
       <motion.h1
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-3xl font-bold mb-8"
+        className="mb-8 text-3xl font-bold"
       >
         Produk
       </motion.h1>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-
-        {/* ================= SIDEBAR ================= */}
-
-        <aside className="
-          lg:w-64
-          backdrop-blur-xl
-          bg-white/5
-          border border-white/10
-          rounded-2xl
-          p-4
-        ">
-
-          <h4 className="text-sm font-semibold mb-3 text-purple-400">
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <aside
+          className="
+            rounded-2xl border border-white/10
+            bg-white/5 p-4 backdrop-blur-xl
+            lg:w-64
+          "
+        >
+          <h4 className="mb-3 text-sm font-semibold text-purple-400">
             Kategori
           </h4>
 
-          <div className="
-            flex lg:flex-col
-            gap-2
-            overflow-x-auto lg:overflow-visible
-            whitespace-nowrap
-          ">
-
+          <div
+            className="
+              flex gap-2 overflow-x-auto whitespace-nowrap
+              lg:flex-col lg:overflow-visible
+            "
+          >
             <CategoryButton
               active={!selectedCategory}
               onClick={() => handleCategoryClick(null)}
@@ -179,81 +173,50 @@ export default function ProductPage() {
                 {cat.name}
               </CategoryButton>
             ))}
-
           </div>
         </aside>
 
-        {/* ================= CONTENT ================= */}
-
         <section className="flex-1">
-
-          {/* ================= TOOLBAR ================= */}
-
-          <div className="
-            flex flex-col sm:flex-row
-            gap-3
-            sm:items-center
-            sm:justify-between
-            backdrop-blur-xl
-            bg-white/5
-            border border-white/10
-            rounded-2xl
-            p-4
-            mb-5
-          ">
-
+          <div
+            className="
+              mb-5 flex flex-col gap-3 rounded-2xl
+              border border-white/10 bg-white/5 p-4
+              backdrop-blur-xl
+              sm:flex-row sm:items-center sm:justify-between
+            "
+          >
             <span className="text-sm text-white/60">
               Menampilkan {filteredSubcategories.length} produk
             </span>
 
-            <div className="flex flex-col sm:flex-row gap-2">
-
-              {/* SEARCH */}
-
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 placeholder="Cari produk..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="
-                  bg-black/30
-                  border border-white/10
-                  rounded-lg
-                  px-3 py-2
-                  text-sm
-                  outline-none
-                  w-full sm:w-56
-                  focus:border-purple-500
+                  w-full rounded-lg border border-white/10
+                  bg-black/30 px-3 py-2 text-sm outline-none
+                  focus:border-purple-500 sm:w-56
                 "
               />
-
-              {/* SORT */}
 
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
                 className="
-                  bg-black/30
-                  border border-white/10
-                  rounded-lg
-                  px-3 py-2
-                  text-sm
-                  outline-none
-                  w-full sm:w-40
-                  focus:border-purple-500
+                  w-full rounded-lg border border-white/10
+                  bg-black/30 px-3 py-2 text-sm outline-none
+                  focus:border-purple-500 sm:w-44
                 "
               >
                 <option value="latest">Terbaru</option>
-                <option value="bestseller">Terlaris</option>
-                <option value="favorite">Favorit</option>
-                <option value="popular">Popular</option>
-                <option value="rating">Top Rated</option>
+                <option value="name_asc">Nama A-Z</option>
+                <option value="name_desc">Nama Z-A</option>
               </select>
-
             </div>
           </div>
-
-          {/* ================= GRID ================= */}
 
           {loading ? (
             <SkeletonGrid />
@@ -261,85 +224,59 @@ export default function ProductPage() {
             <motion.div
               layout
               className="
-                grid
-                grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5
-                gap-4
+                grid grid-cols-2 gap-4
+                sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5
               "
             >
-
               {filteredSubcategories.map((sub) => (
                 <motion.div
                   key={sub.id}
                   layout
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.25 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <ProductCard subcategory={sub} />
                 </motion.div>
               ))}
 
               {filteredSubcategories.length === 0 && (
-                <p className="text-white/40 col-span-full text-center py-10">
+                <p className="col-span-full py-10 text-center text-white/40">
                   Produk tidak ditemukan
                 </p>
               )}
-
             </motion.div>
           )}
-
         </section>
-
       </div>
-
     </main>
-  );
+  )
 }
-
-/* =========================
-   CATEGORY BUTTON
-========================= */
 
 function CategoryButton({ active, children, ...props }) {
   return (
     <button
       {...props}
-      className={`
-        px-3 py-2 rounded-lg text-sm transition
-        ${
-          active
-            ? "bg-purple-600 text-white"
-            : "bg-white/5 hover:bg-white/10 text-white/70"
-        }
-      `}
+      className={`rounded-lg px-3 py-2 text-sm transition ${
+        active
+          ? "bg-purple-600 text-white"
+          : "bg-white/5 text-white/70 hover:bg-white/10"
+      }`}
     >
       {children}
     </button>
-  );
+  )
 }
-
-/* =========================
-   SKELETON LOADING
-========================= */
 
 function SkeletonGrid() {
   return (
-    <div className="
-      grid
-      grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5
-      gap-4
-    ">
-      {[...Array(10)].map((_, i) => (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {Array.from({ length: 10 }).map((_, i) => (
         <div
           key={i}
-          className="
-            h-48
-            rounded-xl
-            bg-white/5
-            animate-pulse
-          "
+          className="h-48 animate-pulse rounded-2xl border border-white/10 bg-white/5"
         />
       ))}
     </div>
-  );
+  )
 }

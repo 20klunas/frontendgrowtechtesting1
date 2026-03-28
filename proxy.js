@@ -55,7 +55,7 @@ async function checkUserAreaMaintenance(request, pathname, token, role) {
   try {
     const res = await fetch(`${API}/api/v1/wallet/summary`, {
       method: "GET",
-      cache: "no-store",
+      revalidate: 10,
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,

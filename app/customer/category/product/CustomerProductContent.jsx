@@ -1,709 +1,770 @@
-"use client";
+"use client"
 
-import Image from "next/image";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import Cookies from "js-cookie";
-import { cn } from "../../../lib/utils";
-import { motion } from "framer-motion";
-import { useAuth } from "../../../../app/hooks/useAuth";
-import { authFetch } from "../../../lib/authFetch";
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
+import { motion } from "framer-motion"
 import {
-  getMaintenanceMessage,
-  isFeatureMaintenanceError,
-  isMaintenanceError,
-} from "../../../lib/maintenanceHandler";
-import useCatalogAccess from "../../../hooks/useCatalogAccess";
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  ShoppingCart,
+  Star,
+} from "lucide-react"
+import { cn } from "../../../lib/utils"
+import { publicFetch } from "../../../lib/publicFetch"
+import { authFetch } from "../../../lib/authFetch"
+import { notifyCustomerCartChanged } from "../../../lib/customerCartEvents"
+import { useAuth } from "../../../hooks/useAuth"
+import useCatalogAccess from "../../../hooks/useCatalogAccess"
 
-export const dynamic = "force-dynamic";
+const ITEMS_PER_PAGE = 6
+const FAVORITE_IDS_TTL = 2 * 60 * 1000
 
-const API = process.env.NEXT_PUBLIC_API_URL;
-const ITEMS_PER_PAGE = 6;
+const favoriteMemoryCache = new Map()
 
-function normalizeId(value) {
-  if (value === null || value === undefined || value === "") return null;
+function canUseSessionStorage() {
+  return typeof window !== "undefined" && typeof window.sessionStorage !== "undefined"
+}
 
-  const num = Number(value);
-  return Number.isNaN(num) ? value : num;
+function favoriteStorageKey(userId) {
+  return `favorite-product-ids-v1:${userId}`
+}
+
+function getDefaultPagination() {
+  return {
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+    perPage: ITEMS_PER_PAGE,
+  }
+}
+
+function getCachedFavoriteIds(userId) {
+  if (!userId) return null
+
+  const memoryEntry = favoriteMemoryCache.get(userId)
+  if (memoryEntry && memoryEntry.expiresAt > Date.now()) {
+    return new Set(memoryEntry.ids)
+  }
+
+  if (!canUseSessionStorage()) {
+    return null
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(favoriteStorageKey(userId))
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw)
+    if (!parsed?.expiresAt || parsed.expiresAt <= Date.now()) {
+      window.sessionStorage.removeItem(favoriteStorageKey(userId))
+      return null
+    }
+
+    const ids = Array.isArray(parsed.ids)
+      ? parsed.ids.map((id) => Number(id)).filter(Boolean)
+      : []
+
+    favoriteMemoryCache.set(userId, {
+      ids,
+      expiresAt: parsed.expiresAt,
+    })
+
+    return new Set(ids)
+  } catch {
+    return null
+  }
+}
+
+function persistFavoriteIds(userId, ids) {
+  if (!userId) return
+
+  const safeIds = Array.from(
+    new Set(Array.from(ids || []).map((id) => Number(id)).filter(Boolean))
+  )
+
+  const entry = {
+    ids: safeIds,
+    expiresAt: Date.now() + FAVORITE_IDS_TTL,
+  }
+
+  favoriteMemoryCache.set(userId, entry)
+
+  if (!canUseSessionStorage()) {
+    return
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      favoriteStorageKey(userId),
+      JSON.stringify(entry)
+    )
+  } catch {}
 }
 
 function normalizeProductsResponse(json) {
-  const paginator = json?.data ?? {};
+  const paginator = json?.data ?? {}
   return {
     items: Array.isArray(paginator?.data) ? paginator.data : [],
     currentPage: Number(paginator?.current_page || 1),
     lastPage: Number(paginator?.last_page || 1),
     total: Number(paginator?.total || 0),
     perPage: Number(paginator?.per_page || ITEMS_PER_PAGE),
-  };
+  }
 }
 
-function normalizeSubcategoriesResponse(json) {
-  if (Array.isArray(json?.data)) return json.data;
-  if (Array.isArray(json?.data?.subcategories)) return json.data.subcategories;
-  if (Array.isArray(json?.data?.data)) return json.data.data;
-  return [];
+function formatPrice(value) {
+  return `Rp ${Number(value || 0).toLocaleString("id-ID")}`
 }
 
-export default function CustomerProductContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+function getProductImage(product, fallback) {
+  return (
+    product?.image_url ||
+    product?.image ||
+    product?.thumbnail_url ||
+    product?.thumbnail ||
+    product?.subcategory?.image_url ||
+    product?.subcategory?.image ||
+    fallback ||
+    "/placeholder.png"
+  )
+}
 
-  const subcategoryId =
-    searchParams.get("subcategory_id") || searchParams.get("subcategory");
+function getBadgeLabel(product) {
+  if (product?.delivery_type) return product.delivery_type
+  if (product?.delivery_mode) return product.delivery_mode
+  if (product?.type === "ACCOUNT_CREDENTIAL") return "Otomatis"
+  return "Otomatis"
+}
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function CustomerProductContent({
+  initialSubcategoryId = null,
+  initialProducts = null,
+  initialPagination = null,
+  initialSubcategory = null,
+  initialMaintenanceMessage = "",
+}) {
+  const router = useRouter()
+  const subcategoryId = initialSubcategoryId
 
-  const [subcategoryInfo, setSubcategoryInfo] = useState(null);
-  const [subcategoryLoading, setSubcategoryLoading] = useState(true);
+  const [products, setProducts] = useState(
+    Array.isArray(initialProducts) ? initialProducts : []
+  )
+  const [loading, setLoading] = useState(!Array.isArray(initialProducts))
 
-  const [addingId, setAddingId] = useState(null);
-  const [checkoutLoadingId, setCheckoutLoadingId] = useState(null);
-  const [sort, setSort] = useState("latest");
+  const [subcategoryInfo, setSubcategoryInfo] = useState(initialSubcategory || null)
+  const [subcategoryLoading, setSubcategoryLoading] = useState(false)
 
-  const [favoriteIds, setFavoriteIds] = useState(new Set());
-  const [favoriteLoadingId, setFavoriteLoadingId] = useState(null);
+  const [addingId, setAddingId] = useState(null)
+  const [checkoutLoadingId, setCheckoutLoadingId] = useState(null)
+  const [sort, setSort] = useState("latest")
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    lastPage: 1,
-    total: 0,
-    perPage: ITEMS_PER_PAGE,
-  });
+  const [favoriteIds, setFavoriteIds] = useState(new Set())
+  const [favoriteLoadingId, setFavoriteLoadingId] = useState(null)
 
-  const [catalogMaintenance, setCatalogMaintenance] = useState("");
-  const { catalogDisabled, catalogMessage } = useCatalogAccess();
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pagination, setPagination] = useState(
+    initialPagination || getDefaultPagination()
+  )
 
-  const { user } = useAuth();
-  const userTier = user?.tier?.toLowerCase() || "guest";
+  const [catalogMaintenance, setCatalogMaintenance] = useState(
+    initialMaintenanceMessage || ""
+  )
 
-  const resolvedSubcategory = subcategoryInfo || products?.[0]?.subcategory || null;
-  const resolvedCategory = resolvedSubcategory?.category || products?.[0]?.category || null;
+  const { catalogDisabled, catalogMessage } = useCatalogAccess()
+  const { user } = useAuth()
+
+  const userId = user?.id || null
+  const userTier = user?.tier?.toLowerCase() || "guest"
+
+  const visibleProducts = useMemo(() => {
+    const source = Array.isArray(products) ? products : []
+
+    if (!subcategoryId) {
+      return source
+    }
+
+    return source.filter((product) => {
+      const productSubcategoryId =
+        product?.subcategory_id ?? product?.subcategory?.id ?? null
+
+      if (productSubcategoryId === null || productSubcategoryId === undefined) {
+        return false
+      }
+
+      return String(productSubcategoryId) === String(subcategoryId)
+    })
+  }, [products, subcategoryId])
+
+  const resolvedSubcategory =
+    subcategoryInfo || visibleProducts?.[0]?.subcategory || null
+
+  const resolvedCategory =
+    resolvedSubcategory?.category || visibleProducts?.[0]?.category || null
 
   const headerImage =
     resolvedSubcategory?.image_url ||
     resolvedSubcategory?.image ||
-    products?.[0]?.subcategory?.image_url ||
-    "/placeholder.png";
+    visibleProducts?.[0]?.subcategory?.image_url ||
+    visibleProducts?.[0]?.subcategory?.image ||
+    "/placeholder.png"
 
-  const headerCategoryName = resolvedCategory?.name || "Kategori";
-  const headerSubcategoryName = resolvedSubcategory?.name || "Produk";
+  const headerCategoryName = resolvedCategory?.name || "Kategori"
+  const headerSubcategoryName = resolvedSubcategory?.name || "Produk"
   const headerDescription =
-    resolvedSubcategory?.description || "Deskripsi subkategori akan tampil di sini";
+    resolvedSubcategory?.description || "Deskripsi subkategori akan tampil di sini"
 
-  const totalPages = Math.max(1, Number(pagination?.lastPage || 1));
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [subcategoryId, sort]);
+  const totalPages = Math.max(1, Number(pagination?.lastPage || 1))
 
   useEffect(() => {
-    fetchProducts();
-    fetchFavorites();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subcategoryId, sort, currentPage]);
+    setProducts(Array.isArray(initialProducts) ? initialProducts : [])
+    setPagination(initialPagination || getDefaultPagination())
+    setSubcategoryInfo(initialSubcategory || null)
+    setCatalogMaintenance(initialMaintenanceMessage || "")
+    setLoading(false)
+  }, [
+    initialSubcategoryId,
+    initialProducts,
+    initialPagination,
+    initialSubcategory,
+    initialMaintenanceMessage,
+  ])
 
   useEffect(() => {
-    fetchSubcategoryInfo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subcategoryId]);
+    setSort("latest")
+  }, [subcategoryId])
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      setCatalogMaintenance("");
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [subcategoryId, sort])
 
-      const params = new URLSearchParams();
-      params.set("sort", sort);
-      params.set("per_page", String(ITEMS_PER_PAGE));
-      params.set("page", String(currentPage));
+  useEffect(() => {
+    let active = true
 
-      if (subcategoryId) {
-        params.set("subcategory_id", String(subcategoryId));
-      }
+    const fetchProducts = async () => {
+      const shouldSoftRefresh =
+        Array.isArray(initialProducts) && currentPage === 1 && sort === "latest"
 
-      const json = await authFetch(`/api/v1/products?${params.toString()}`);
+      try {
+        if (!shouldSoftRefresh) {
+          setLoading(true)
+        }
 
-      if (json?.success) {
-        const parsed = normalizeProductsResponse(json);
-        setProducts(parsed.items);
+        setCatalogMaintenance("")
+
+        const params = new URLSearchParams()
+        params.set("sort", sort)
+        params.set("per_page", String(ITEMS_PER_PAGE))
+        params.set("page", String(currentPage))
+
+        if (subcategoryId) {
+          params.set("subcategory_id", String(subcategoryId))
+        }
+
+        const json = await publicFetch(`/api/v1/products?${params.toString()}`, {
+          revalidate: 10,
+        })
+
+        if (!active) return
+
+        const parsed = normalizeProductsResponse(json)
+        setProducts(parsed.items)
         setPagination({
           currentPage: parsed.currentPage,
           lastPage: parsed.lastPage,
           total: parsed.total,
           perPage: parsed.perPage,
-        });
-      } else {
-        setProducts([]);
-        setPagination({
-          currentPage: 1,
-          lastPage: 1,
-          total: 0,
-          perPage: ITEMS_PER_PAGE,
-        });
+        })
+      } catch (err) {
+        if (!active) return
+        console.error("Failed fetch products:", err)
+        setProducts([])
+        setPagination(getDefaultPagination())
+      } finally {
+        if (active) setLoading(false)
       }
-    } catch (err) {
-      if (isFeatureMaintenanceError(err, "catalog_access")) {
-        setCatalogMaintenance(
-          getMaintenanceMessage(err, "Katalog sedang maintenance.")
-        );
-        setProducts([]);
-        return;
-      }
-
-      if (!isMaintenanceError(err)) {
-        console.error("Failed fetch products:", err);
-      }
-
-      setProducts([]);
-      setPagination({
-        currentPage: 1,
-        lastPage: 1,
-        total: 0,
-        perPage: ITEMS_PER_PAGE,
-      });
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const fetchSubcategoryInfo = async () => {
-    try {
-      if (!subcategoryId) {
-        setSubcategoryInfo(null);
-        setSubcategoryLoading(false);
-        return;
-      }
+    fetchProducts()
 
-      setSubcategoryLoading(true);
-
-      const json = await authFetch("/api/v1/subcategories");
-
-      if (!json?.success) {
-        setSubcategoryInfo(null);
-        return;
-      }
-
-      const list = normalizeSubcategoriesResponse(json);
-      const found = list.find(
-        (item) => String(normalizeId(item?.id)) === String(normalizeId(subcategoryId))
-      );
-
-      setSubcategoryInfo(found || null);
-    } catch (err) {
-      if (!isMaintenanceError(err)) {
-        console.error("Failed fetch subcategory info:", err);
-      }
-      setSubcategoryInfo(null);
-    } finally {
-      setSubcategoryLoading(false);
+    return () => {
+      active = false
     }
-  };
+  }, [subcategoryId, sort, currentPage, initialProducts])
 
-  const fetchFavorites = async () => {
-    try {
-      const token = Cookies.get("token");
-      if (!token) {
-        setFavoriteIds(new Set());
-        return;
-      }
-
-      const res = await fetch(`${API}/api/v1/favorites`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-
-      if (!res.ok) return;
-
-      const json = await res.json();
-      if (json?.success) {
-        const favoritesArray = Array.isArray(json?.data?.data)
-          ? json.data.data
-          : [];
-
-        const ids = new Set(favoritesArray.map((f) => f.product_id));
-        setFavoriteIds(ids);
-      }
-    } catch (e) {
-      console.error("fetchFavorites error:", e);
+  useEffect(() => {
+    if (!subcategoryId) {
+      setSubcategoryInfo(null)
+      return
     }
-  };
+
+    const initialMatchesCurrent =
+      initialSubcategory &&
+      String(initialSubcategory?.id ?? "") === String(subcategoryId)
+
+    if (initialMatchesCurrent) {
+      setSubcategoryInfo(initialSubcategory || null)
+      return
+    }
+
+    let active = true
+
+    const fetchSubcategoryInfo = async () => {
+      try {
+        setSubcategoryLoading(true)
+
+        const json = await publicFetch(`/api/v1/subcategories/${subcategoryId}`, {
+          revalidate: 10,
+        })
+
+        if (!active) return
+        setSubcategoryInfo(json?.data || null)
+      } catch (err) {
+        if (!active) return
+        console.error("Failed fetch subcategory info:", err)
+        setSubcategoryInfo(null)
+      } finally {
+        if (active) setSubcategoryLoading(false)
+      }
+    }
+
+    fetchSubcategoryInfo()
+
+    return () => {
+      active = false
+    }
+  }, [subcategoryId, initialSubcategory])
+
+  useEffect(() => {
+    if (!userId) {
+      setFavoriteIds(new Set())
+      return
+    }
+
+    const cached = getCachedFavoriteIds(userId)
+    if (cached) {
+      setFavoriteIds(cached)
+      return
+    }
+
+    let active = true
+    let timeoutId = null
+    let idleId = null
+
+    const loadFavorites = async () => {
+      try {
+        const json = await authFetch("/api/v1/favorites?per_page=200", {
+          revalidate: 10,
+        })
+
+        if (!active) return
+
+        const favoritesArray = Array.isArray(json?.data?.data) ? json.data.data : []
+        const ids = new Set(
+          favoritesArray.map((fav) => Number(fav.product_id)).filter(Boolean)
+        )
+
+        setFavoriteIds(ids)
+        persistFavoriteIds(userId, ids)
+      } catch (err) {
+        if (!active) return
+        console.error("fetchFavorites error:", err)
+      }
+    }
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(loadFavorites, { timeout: 1000 })
+    } else {
+      timeoutId = window.setTimeout(loadFavorites, 150)
+    }
+
+    return () => {
+      active = false
+      if (timeoutId) window.clearTimeout(timeoutId)
+      if (idleId && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId)
+      }
+    }
+  }, [userId])
+
+  const showMaintenance =
+    catalogDisabled || Boolean(catalogMaintenance || catalogMessage)
+
+  const tieredPriceLabel = useMemo(() => {
+    switch (userTier) {
+      case "vip":
+        return "Harga VIP"
+      case "reseller":
+        return "Harga Reseller"
+      case "member":
+        return "Harga Member"
+      default:
+        return "Harga"
+    }
+  }, [userTier])
+
+  const updateFavoriteState = (updater) => {
+    setFavoriteIds((prev) => {
+      const next = updater(new Set(prev))
+      if (userId) {
+        persistFavoriteIds(userId, next)
+      }
+      return next
+    })
+  }
 
   const toggleFavorite = async (productId) => {
+    if (!user) {
+      router.push("/login")
+      return
+    }
+
     try {
-      const token = Cookies.get("token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
+      setFavoriteLoadingId(productId)
 
-      setFavoriteLoadingId(productId);
-
-      const isFav = favoriteIds.has(productId);
-
-      if (!isFav) {
-        const res = await fetch(`${API}/api/v1/favorites`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-          body: JSON.stringify({ product_id: productId }),
-        });
-
-        const json = await res.json().catch(() => null);
-        if (!res.ok || !json?.success) {
-          alert(json?.error?.message || "Gagal menambahkan favorite");
-          return;
-        }
-
-        setFavoriteIds((prev) => {
-          const next = new Set(prev);
-          next.add(productId);
-          return next;
-        });
-      } else {
-        const res = await fetch(`${API}/api/v1/favorites/${productId}`, {
+      if (favoriteIds.has(productId)) {
+        await authFetch(`/api/v1/favorites/${productId}`, {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        });
+          revalidate: 10,
+        })
 
-        const json = await res.json().catch(() => null);
-        if (!res.ok || !json?.success) {
-          alert(json?.error?.message || "Gagal menghapus favorite");
-          return;
-        }
+        updateFavoriteState((next) => {
+          next.delete(productId)
+          return next
+        })
+      } else {
+        await authFetch("/api/v1/favorites", {
+          method: "POST",
+          body: JSON.stringify({ product_id: productId }),
+          revalidate: 10,
+        })
 
-        setFavoriteIds((prev) => {
-          const next = new Set(prev);
-          next.delete(productId);
-          return next;
-        });
+        updateFavoriteState((next) => {
+          next.add(productId)
+          return next
+        })
       }
-    } catch (e) {
-      console.error("toggleFavorite error:", e);
-      alert("Terjadi kesalahan");
-    } finally {
-      setFavoriteLoadingId(null);
-    }
-  };
-
-  const handleBuyNow = async (productId) => {
-    try {
-      const token = Cookies.get("token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
-      setCheckoutLoadingId(productId);
-
-      const addRes = await fetch(`${API}/api/v1/cart/items`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          product_id: productId,
-          qty: 1,
-        }),
-      });
-
-      if (!addRes.ok) {
-        const text = await addRes.text();
-        console.error("Add to cart failed:", addRes.status, text);
-        alert("Gagal menambahkan produk");
-        return;
-      }
-
-      const checkoutRes = await fetch(`${API}/api/v1/cart/checkout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          voucher_code: null,
-        }),
-      });
-
-      if (!checkoutRes.ok) {
-        const text = await checkoutRes.text();
-        console.error("Checkout failed:", checkoutRes.status, text);
-        alert("Checkout gagal");
-        return;
-      }
-
-      router.push("/customer/category/product/detail/lengkapipembelian");
-      window.dispatchEvent(new Event("cart-updated"));
     } catch (err) {
-      console.error("Buy now error:", err);
-      alert("Terjadi kesalahan");
+      console.error("toggleFavorite error:", err)
+      alert(err.message || "Gagal memperbarui favorite")
     } finally {
-      setCheckoutLoadingId(null);
+      setFavoriteLoadingId(null)
     }
-  };
+  }
+
+  const buyNow = async (productId) => {
+    try {
+      if (!user) {
+        router.push("/login")
+        return
+      }
+
+      setCheckoutLoadingId(productId)
+
+      await authFetch("/api/v1/cart/items", {
+        method: "POST",
+        body: JSON.stringify({ product_id: productId, qty: 1 }),
+        revalidate: 10,
+      })
+
+      await authFetch("/api/v1/cart/checkout", {
+        method: "POST",
+        body: JSON.stringify({ voucher_code: null }),
+        revalidate: 10,
+      })
+
+      notifyCustomerCartChanged()
+      router.push("/customer/category/product/detail/lengkapipembelian")
+    } catch (err) {
+      console.error("Buy now error:", err)
+      alert(err.message || "Terjadi kesalahan")
+    } finally {
+      setCheckoutLoadingId(null)
+    }
+  }
 
   const addToCart = async (productId) => {
     try {
-      const token = Cookies.get("token");
-      if (!token) {
-        router.push("/login");
-        return;
+      if (!user) {
+        router.push("/login")
+        return
       }
 
-      setAddingId(productId);
+      setAddingId(productId)
 
-      const res = await fetch(`${API}/api/v1/cart/items`, {
+      await authFetch("/api/v1/cart/items", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          product_id: productId,
-          qty: 1,
-        }),
-      });
+        body: JSON.stringify({ product_id: productId, qty: 1 }),
+        revalidate: 10,
+      })
 
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("Add to cart error:", res.status, text);
-        alert("Gagal menambahkan ke keranjang");
-        return;
-      }
-
-      const json = await res.json();
-      if (json.success) {
-        window.dispatchEvent(new Event("cart-updated"));
-      }
+      notifyCustomerCartChanged()
     } catch (err) {
-      console.error("Add to cart failed:", err);
-      alert("Terjadi kesalahan");
+      console.error("Add to cart failed:", err)
+      alert(err.message || "Gagal menambahkan ke keranjang")
     } finally {
-      setAddingId(null);
+      setAddingId(null)
     }
-  };
-
-  const getTierBadgeClass = (tier) => {
-    switch (tier) {
-      case "member":
-        return "bg-green-600 text-white";
-      case "reseller":
-        return "bg-blue-600 text-white";
-      case "vip":
-        return "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black";
-      default:
-        return "bg-purple-700 text-white";
-    }
-  };
-
-  const showMaintenance = catalogDisabled || Boolean(catalogMaintenance || catalogMessage);
+  }
 
   return (
-    <section className="mx-auto max-w-6xl px-8 py-10 text-white">
-      <div className="mb-10 grid grid-cols-1 items-start gap-6 md:grid-cols-2">
-        <div className="overflow-hidden rounded-xl border border-purple-700">
-          <Image
-            src={headerImage}
-            width={600}
-            height={360}
-            alt={headerSubcategoryName}
-            className="h-[260px] w-full object-cover"
-            priority
-          />
-        </div>
+    <section className="mx-auto w-full max-w-7xl px-4 pb-12 pt-6 text-white sm:px-6 lg:px-8">
+      <div className="mb-8 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-[22px] border border-fuchsia-600/60 bg-[#111827]"
+        >
+          <div className="relative aspect-[16/8.2] w-full">
+            <Image
+              src={headerImage}
+              alt={headerSubcategoryName}
+              fill
+              priority
+              className="object-cover"
+            />
+          </div>
+        </motion.div>
 
-        <div>
-          <span className="mb-2 inline-block text-xs font-medium uppercase tracking-wide text-purple-400">
-            {headerCategoryName}
-          </span>
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex min-h-full flex-col justify-center"
+        >
+          <div className="mb-3">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-fuchsia-400">
+              {headerCategoryName}
+            </p>
+          </div>
 
-          <h1 className="mb-3 text-2xl font-bold text-purple-300">
-            {subcategoryId ? headerSubcategoryName : "Semua Produk"}
+          <h1 className="mb-4 text-3xl font-bold leading-tight text-fuchsia-200 sm:text-4xl">
+            {headerSubcategoryName}
           </h1>
 
-          <p className="text-sm leading-relaxed text-gray-300">
-            {subcategoryId
-              ? headerDescription
-              : "Menampilkan semua produk yang aktif dan telah dipublikasikan."}
+          <p className="max-w-2xl text-sm leading-8 text-white/85 sm:text-base">
+            {headerDescription}
           </p>
 
-          {!loading && !subcategoryLoading && (
-            <p className="mt-3 text-xs text-gray-400">
-              Total produk: {pagination.total || 0}
-            </p>
-          )}
-        </div>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <span className="rounded-full border border-fuchsia-500/30 bg-fuchsia-500/10 px-4 py-1.5 text-xs font-semibold text-fuchsia-200">
+              {tieredPriceLabel}
+            </span>
+            {subcategoryLoading ? (
+              <span className="text-xs text-white/60">Memuat informasi...</span>
+            ) : (
+              <span className="text-xs text-white/60">
+                {pagination?.total || visibleProducts.length} produk tersedia
+              </span>
+            )}
+          </div>
+        </motion.div>
       </div>
 
-      <div className="mb-6 flex justify-end">
-        <select
-          disabled={showMaintenance}
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="rounded-lg border border-purple-700 bg-black px-3 py-2 text-white"
-        >
-          <option value="latest">Terbaru</option>
-          <option value="bestseller">Terlaris</option>
-          <option value="favorite">Favorit</option>
-          <option value="popular">Popular</option>
-          <option value="rating">Top Rated</option>
-        </select>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm text-white/70">
+          Menampilkan{" "}
+          <span className="font-semibold text-white">{visibleProducts.length}</span>{" "}
+          produk
+        </div>
+
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-white/70">Urutkan</label>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="min-w-[180px] rounded-xl border border-fuchsia-700/50 bg-[#12031f] px-4 py-2.5 text-sm text-white outline-none transition focus:border-fuchsia-500"
+          >
+            <option value="latest">Terbaru</option>
+            <option value="bestseller">Terlaris</option>
+            <option value="popular">Popular</option>
+            <option value="rating">Rating</option>
+            <option value="favorite">Favorit</option>
+          </select>
+        </div>
       </div>
 
       {showMaintenance ? (
-        <FeatureMaintenanceCard
-          title="Katalog sedang maintenance"
-          message={catalogMessage || catalogMaintenance}
-        />
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 text-center text-amber-100">
+          {catalogMaintenance || catalogMessage || "Katalog sedang maintenance."}
+        </div>
+      ) : loading ? (
+        <div className="rounded-2xl border border-fuchsia-700/20 bg-[#090909] p-8 text-center text-white/70">
+          Memuat produk...
+        </div>
+      ) : visibleProducts.length === 0 ? (
+        <div className="rounded-2xl border border-fuchsia-700/20 bg-[#090909] p-8 text-center text-white/70">
+          Belum ada produk pada subkategori ini.
+        </div>
       ) : (
-        <motion.div
-          key={`${subcategoryId || "all"}-${sort}-${currentPage}`}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="grid grid-cols-1 gap-6 md:grid-cols-3"
-        >
-          {loading ? (
-            <>
-              <SkeletonVariant />
-              <SkeletonVariant />
-              <SkeletonVariant />
-            </>
-          ) : products.length === 0 ? (
-            <EmptyState />
-          ) : (
-            products.map((product) => {
-              const pricing = Array.isArray(product.tier_pricing)
-                ? product.tier_pricing[0]
-                : product.tier_pricing;
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {visibleProducts.map((product, index) => {
+            const tierPrice =
+              product?.tier_pricing?.[userTier] ||
+              product?.tier_pricing?.member ||
+              product?.price ||
+              0
 
-              const originalPrice =
-                pricing?.[userTier] ?? pricing?.member ?? pricing?.guest ?? 0;
+            const imageSrc = getProductImage(product, headerImage)
+            const isFavorite = favoriteIds.has(product.id)
+            const isFavoriteLoading = favoriteLoadingId === product.id
+            const isAdding = addingId === product.id
+            const isBuying = checkoutLoadingId === product.id
+            const ratingValue = Number(product?.rating ?? 0)
+            const ratingCount = Number(product?.rating_count ?? 0)
+            const stockValue = Number(product?.available_stock ?? 0)
+            const badgeLabel = getBadgeLabel(product)
 
-              const isAdding = addingId === product.id;
-              const isOutOfStock = (product.available_stock ?? 0) <= 0;
-
-              const isFav = favoriteIds.has(product.id);
-              const favLoading = favoriteLoadingId === product.id;
-
-              const discountPrice = product.discount_price;
-              const discountPercent = product.discount_percent;
-
-              const calculatedDiscountPrice = discountPercent
-                ? originalPrice - (originalPrice * discountPercent) / 100
-                : null;
-
-              const finalPrice =
-                discountPrice ?? calculatedDiscountPrice ?? originalPrice;
-
-              const isDiscounted = finalPrice < originalPrice;
-
-              return (
-                <div
-                  key={product.id}
-                  className="overflow-hidden rounded-2xl border border-purple-700 bg-black"
-                >
-                  <div className="relative h-[160px] bg-white">
+            return (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, delay: index * 0.03 }}
+                className="group overflow-hidden rounded-[22px] border border-fuchsia-700/70 bg-black shadow-[0_0_0_1px_rgba(168,85,247,0.06)] transition hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(168,85,247,0.18)]"
+              >
+                <div className="relative">
+                  <div className="relative aspect-[16/7.5] w-full overflow-hidden">
                     <Image
-                      src={product?.subcategory?.image_url || "/placeholder.png"}
-                      width={300}
-                      height={200}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
+                      src={imageSrc}
+                      alt={product?.name || "Product"}
+                      fill
+                      className="object-cover transition duration-300 group-hover:scale-[1.03]"
                     />
+                  </div>
+
+                  <button
+                    onClick={() => toggleFavorite(product.id)}
+                    disabled={isFavoriteLoading}
+                    aria-label={isFavorite ? "Hapus dari favorit" : "Tambah ke favorit"}
+                    className={cn(
+                      "absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-sm transition",
+                      isFavorite
+                        ? "border-pink-500/70 bg-pink-500/20 text-pink-300"
+                        : "border-white/15 bg-black/45 text-white hover:border-fuchsia-500/70 hover:text-fuchsia-300"
+                    )}
+                  >
+                    <Heart
+                      className={cn(
+                        "h-4.5 w-4.5",
+                        isFavorite ? "fill-current" : ""
+                      )}
+                    />
+                  </button>
+                </div>
+
+                <div className="bg-black p-4 sm:p-5">
+                  <h3 className="line-clamp-2 text-xl font-bold leading-snug text-white">
+                    {product?.name || "Tanpa nama produk"}
+                  </h3>
+
+                  <p className="mt-1 text-sm text-white/75">
+                    Stok Tersedia {stockValue}
+                  </p>
+
+                  <div className="mt-1 flex items-center gap-1.5 text-sm text-yellow-400">
+                    <div className="flex items-center gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={cn(
+                            "h-4 w-4",
+                            i < Math.round(ratingValue)
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-white/30"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <span className="font-semibold">
+                      ({Number.isFinite(ratingCount) && ratingCount > 0 ? ratingCount : 0})
+                    </span>
+                    <span className="sr-only">Rating {ratingValue.toFixed(1)}</span>
+                  </div>
+
+                  <div className="mt-3">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">
+                      {tieredPriceLabel}
+                    </p>
+                    <p className="mt-1 text-3xl font-extrabold text-white">
+                      {formatPrice(tierPrice)}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-end">
+                    <span className="rounded-md bg-gradient-to-r from-violet-700 to-fuchsia-600 px-3 py-1 text-xs font-medium text-white shadow-lg shadow-fuchsia-900/30">
+                      {badgeLabel}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex items-center gap-3">
+                    <button
+                      onClick={() => buyNow(product.id)}
+                      disabled={isBuying || isAdding}
+                      className="flex-1 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 py-3 text-sm font-bold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isBuying ? "Memproses..." : "Beli Sekarang"}
+                    </button>
 
                     <button
-                      onClick={() => toggleFavorite(product.id)}
-                      disabled={favLoading}
-                      className={cn(
-                        "absolute right-3 top-3 flex h-10 w-10 select-none items-center justify-center rounded-full border transition",
-                        isFav
-                          ? "border-pink-400 bg-pink-500/20 text-pink-400"
-                          : "border-white/20 bg-black/40 text-white",
-                        "disabled:opacity-60"
-                      )}
-                      title={isFav ? "Hapus dari Favorite" : "Tambah ke Favorite"}
+                      onClick={() => addToCart(product.id)}
+                      disabled={isAdding || isBuying}
+                      aria-label="Tambah ke keranjang"
+                      className="inline-flex h-[50px] w-[50px] items-center justify-center rounded-xl border border-fuchsia-600/70 bg-transparent text-white transition hover:bg-fuchsia-600/10 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {favLoading ? "⏳" : isFav ? "♥" : "♡"}
+                      {isAdding ? (
+                        <span className="text-xs">...</span>
+                      ) : (
+                        <ShoppingCart className="h-5 w-5" />
+                      )}
                     </button>
                   </div>
-
-                  <div className="p-4">
-                    <h3 className="mb-1 font-semibold">{product.name}</h3>
-
-                    <p className="mb-1 text-xs text-gray-400">
-                      Stok Tersedia {product.available_stock ?? 0}
-                    </p>
-
-                    {product.track_stock &&
-                      product.available_stock <= product.stock_min_alert && (
-                        <p className="text-xs text-red-400">⚠ Stok hampir habis</p>
-                      )}
-
-                    <div className="mb-2 flex items-center text-sm text-yellow-400">
-                      <span className="mr-1">
-                        {"★".repeat(Math.round(product.rating || 0))}
-                        {"☆".repeat(5 - Math.round(product.rating || 0))}
-                      </span>
-
-                      <span className="text-xs text-gray-400">
-                        {product.rating?.toFixed(1) || "0.0"} (
-                        {product.rating_count || 0})
-                      </span>
-                    </div>
-
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="flex flex-col gap-1">
-                        {isDiscounted && (
-                          <span className="text-xs text-gray-400 line-through">
-                            Rp {Number(originalPrice).toLocaleString("id-ID")}
-                          </span>
-                        )}
-
-                        <span
-                          className={`font-bold ${
-                            isDiscounted ? "text-green-400" : "text-white"
-                          }`}
-                        >
-                          Rp {Number(finalPrice).toLocaleString("id-ID")}
-                        </span>
-
-                        {userTier !== "guest" && (
-                          <span
-                            className={`w-fit rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${getTierBadgeClass(
-                              userTier
-                            )}`}
-                          >
-                            {userTier}
-                          </span>
-                        )}
-                      </div>
-
-                      <span className="rounded bg-purple-800 px-2 py-1 text-xs text-purple-200">
-                        {product.type || "Otomatis"}
-                      </span>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleBuyNow(product.id)}
-                        disabled={checkoutLoadingId === product.id || isOutOfStock}
-                        className={cn(
-                          "relative flex-1 rounded-lg py-2 text-sm font-semibold transition",
-                          isOutOfStock
-                            ? "cursor-not-allowed bg-zinc-800 text-zinc-500"
-                            : "bg-purple-600 text-white hover:bg-purple-700",
-                          "disabled:opacity-70"
-                        )}
-                      >
-                        {checkoutLoadingId === product.id
-                          ? "Memproses..."
-                          : isOutOfStock
-                          ? "🔒 Stok Habis"
-                          : "Beli Sekarang"}
-                      </button>
-
-                      <button
-                        onClick={() => addToCart(product.id)}
-                        disabled={isAdding || isOutOfStock}
-                        className={cn(
-                          "flex h-10 w-10 items-center justify-center rounded-lg border border-purple-600 transition hover:bg-purple-600/20 disabled:opacity-50",
-                          isOutOfStock && "cursor-not-allowed opacity-50"
-                        )}
-                        title={isOutOfStock ? "Stok habis" : "Tambah ke keranjang"}
-                      >
-                        {isAdding ? "⏳" : "🛒"}
-                      </button>
-                    </div>
-                  </div>
                 </div>
-              );
-            })
-          )}
-        </motion.div>
+              </motion.div>
+            )
+          })}
+        </div>
       )}
 
-      {totalPages > 1 && !showMaintenance && !loading && (
-        <div className="mt-10 flex justify-center gap-2">
+      {totalPages > 1 && !showMaintenance && (
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
           <button
             onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
             disabled={currentPage === 1}
-            className="rounded-lg border border-purple-700 px-4 py-2 text-purple-300 transition hover:bg-purple-700/30 disabled:opacity-40"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-fuchsia-700/60 bg-[#0c0314] text-fuchsia-200 transition hover:bg-fuchsia-700/20 disabled:opacity-40"
           >
-            ←
+            <ChevronLeft className="h-5 w-5" />
           </button>
 
           {Array.from({ length: totalPages }).map((_, i) => {
-            const page = i + 1;
-            const isActive = page === currentPage;
+            const page = i + 1
+            const isActive = page === currentPage
 
             return (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
                 className={cn(
-                  "rounded-lg px-4 py-2 text-sm font-semibold transition",
+                  "min-w-[44px] rounded-xl px-4 py-2.5 text-sm font-semibold transition",
                   isActive
-                    ? "bg-purple-600 text-white shadow-lg shadow-purple-700/40"
-                    : "border border-purple-700 bg-black text-purple-300 hover:bg-purple-700/30"
+                    ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-lg shadow-fuchsia-900/30"
+                    : "border border-fuchsia-700/60 bg-[#0c0314] text-fuchsia-200 hover:bg-fuchsia-700/20"
                 )}
               >
                 {page}
               </button>
-            );
+            )
           })}
 
           <button
             onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="rounded-lg border border-purple-700 px-4 py-2 text-purple-300 transition hover:bg-purple-700/30 disabled:opacity-40"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-fuchsia-700/60 bg-[#0c0314] text-fuchsia-200 transition hover:bg-fuchsia-700/20 disabled:opacity-40"
           >
-            →
+            <ChevronRight className="h-5 w-5" />
           </button>
         </div>
       )}
     </section>
-  );
-}
-
-function FeatureMaintenanceCard({ title, message }) {
-  return (
-    <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 text-center">
-      <h3 className="mb-2 text-xl font-semibold text-amber-300">{title}</h3>
-      <p className="text-amber-100/90">{message}</p>
-    </div>
-  );
-}
-
-function SkeletonVariant() {
-  return (
-    <div className="animate-pulse overflow-hidden rounded-2xl border border-purple-700 bg-black">
-      <div className="h-[160px] bg-zinc-800" />
-      <div className="space-y-3 p-4">
-        <div className="h-4 w-3/4 rounded bg-zinc-800" />
-        <div className="h-3 w-1/2 rounded bg-zinc-800" />
-        <div className="h-3 w-1/3 rounded bg-zinc-800" />
-        <div className="h-10 rounded bg-zinc-800" />
-      </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="col-span-full py-20 text-center text-zinc-500">
-      Tidak ada produk
-    </div>
-  );
+  )
 }

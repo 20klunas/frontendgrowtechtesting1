@@ -19,7 +19,7 @@ export default function ProdukPage() {
   const [processingId, setProcessingId] = useState(null);
 
   const [toast, setToast] = useState(null);
-  const [licenseSummary, setLicenseSummary] = useState({});
+  // const [licenseSummary, setLicenseSummary] = useState({});
 
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -65,7 +65,7 @@ export default function ProdukPage() {
       setProducts(res.data || []);
       setMeta(res.meta || null);
 
-      loadLicenseSummary(res.data || []);
+      // loadLicenseSummary(res.data || []);
 
 
     } catch (err) {
@@ -161,41 +161,48 @@ export default function ProdukPage() {
     </tr>
   );
 
-  const loadLicenseSummary = async (products) => {
-    try {
-      const summaries = {};
+  // const loadLicenseSummary = async (products) => {
+  //   try {
+  //     const summaries = {};
 
-      await Promise.all(
-        products.map(async (p) => {
-          const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/products/${p.id}/licenses/summary`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`
-              }
-            }
-          );
+  //     await Promise.all(
+  //       products.map(async (p) => {
+  //         const res = await fetch(
+  //           `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/products/${p.id}/licenses/summary`,
+  //           {
+  //             headers: {
+  //               Authorization: `Bearer ${localStorage.getItem("token")}`
+  //             }
+  //           }
+  //         );
 
-          const text = await res.text();
+  //         const text = await res.text();
 
-          console.log("SUMMARY RAW:", p.id, text);
+  //         console.log("SUMMARY RAW:", p.id, text);
 
-          try {
-            const json = JSON.parse(text);
-            summaries[p.id] = json.data?.counts ?? null;
-          } catch (err) {
-            console.error("JSON PARSE ERROR:", p.id);
-            summaries[p.id] = null;
-          }
-        })
-      );
+  //         try {
+  //           const contentType = res.headers.get("content-type")
 
-      setLicenseSummary(summaries);
+  //           if (!res.ok || !contentType?.includes("application/json")) {
+  //             console.error("Bukan JSON:", text)
+  //             summaries[p.id] = null
+  //             return
+  //           }
+  //           const json = JSON.parse(text);
+  //           summaries[p.id] = json.data?.counts ?? null;
+  //         } catch (err) {
+  //           console.error("JSON PARSE ERROR:", p.id);
+  //           summaries[p.id] = null;
+  //         }
+  //       })
+  //     );
 
-    } catch (err) {
-      console.error("Summary error", err);
-    }
-  };
+  //     setLicenseSummary(summaries);
+
+  //   } catch (err) {
+  //     console.error("Summary error", err);
+  //   }
+  // };
 
   const openDeleteModal = (product) => {
     setSelectedProduct(product);

@@ -64,11 +64,7 @@ async function getServerToken() {
 }
 
 async function fetchJson(path, options = {}) {
-  const {
-    revalidate = 60,
-    cacheMode,
-    extraHeaders = {},
-  } = options;
+  const { revalidate = 60, cacheMode, extraHeaders = {} } = options;
 
   const headers = {
     Accept: "application/json",
@@ -100,6 +96,42 @@ async function fetchJson(path, options = {}) {
   return payload;
 }
 
+async function fetchCustomerHomeBootstrap() {
+  const token = await getServerToken();
+
+  if (!API || !token) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(buildApiUrl("/api/v1/bootstrap/customer-home"), {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      revalidate: 10,
+    });
+
+    const payload = await parseJsonSafe(response);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return {
+      popup: payload?.data?.popup || null,
+      banners: payload?.data?.banners || [],
+      products: payload?.data?.products || [],
+      catalogMaintenance: payload?.data?.catalog_maintenance || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * fallback legacy
+ */
 async function getPopularProductsServerSafe() {
   const result = {
     products: [],
@@ -149,7 +181,7 @@ async function getPopularProductsServerSafe() {
   }
 }
 
-export async function getCustomerHomeServerData() {
+async function getCustomerHomeLegacyData() {
   const result = {
     popup: null,
     banners: [],
@@ -190,4 +222,14 @@ export async function getCustomerHomeServerData() {
   }
 
   return result;
+}
+
+export async function getCustomerHomeServerData() {
+  const bootstrapData = await fetchCustomerHomeBootstrap();
+
+  if (bootstrapData) {
+    return bootstrapData;
+  }
+
+  return getCustomerHomeLegacyData();
 }

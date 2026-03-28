@@ -1,35 +1,56 @@
-// lib/getFaqs.js
+const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "")
 
-export async function getFaqs() {
-  const API = process.env.NEXT_PUBLIC_API_URL
+function buildApiUrl(path) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`
 
   if (!API) {
-    console.error('API URL tidak ditemukan')
+    return normalizedPath
+  }
+
+  if (API.endsWith("/api/v1") && normalizedPath.startsWith("/api/v1")) {
+    return `${API}${normalizedPath.replace(/^\/api\/v1/, "")}`
+  }
+
+  return `${API}${normalizedPath}`
+}
+
+async function parseJsonSafe(response) {
+  try {
+    return await response.json()
+  } catch {
+    return null
+  }
+}
+
+export async function getFaqs() {
+  if (!API) {
+    console.error("API URL tidak ditemukan")
     return []
   }
 
   try {
-    const res = await fetch(`${API}/api/v1/content/faqs`, {
-      // pilih salah satu:
-    //   next: { revalidate: 30 }, // cache 1 jam
-      // cache: 'force-cache', // cache tanpa kadaluarsa (manual purge)
-      cache: 'no-store', // tidak menggunakan cache
-      // next: { revalidate: 60 }, // kalau mau cache 1 menit
+    const res = await fetch(buildApiUrl("/api/v1/content/faqs"), {
+      headers: {
+        Accept: "application/json",
+      },
+      next: { revalidate: 300 },
     })
 
     if (!res.ok) {
-      throw new Error('Gagal fetch FAQ')
+      throw new Error("Gagal fetch FAQ")
     }
 
-    const data = await res.json()
-
-    let list = data?.data || data || []
+    const json = await parseJsonSafe(res)
+    const list = Array.isArray(json?.data) ? json.data : []
 
     return list
-      .filter((f) => f.is_active)
-      .sort((a, b) => a.sort_order - b.sort_order)
+      .filter((faq) => faq?.is_active)
+      .sort(
+        (a, b) =>
+          Number(a?.sort_order || 0) - Number(b?.sort_order || 0)
+      )
   } catch (err) {
-    console.error('Error getFaqs:', err)
+    console.error("Error getFaqs:", err)
     return []
   }
 }

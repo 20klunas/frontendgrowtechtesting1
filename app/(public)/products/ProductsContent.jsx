@@ -32,7 +32,12 @@ export default function ProductsContent() {
         ? `${API}/api/v1/products?subcategory_id=${subcategoryId}`
         : `${API}/api/v1/products`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        revalidate: 10,
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
 
       const contentType = res.headers.get("content-type");
 
@@ -45,7 +50,9 @@ export default function ProductsContent() {
       const json = await res.json();
 
       if (json.success) {
-        setProducts(json?.data?.data || []);
+        setProducts(
+          json?.data?.data || json?.data || []
+        );
       }
 
     } catch (err) {
@@ -144,8 +151,8 @@ export default function ProductsContent() {
             w-full md:w-40
           "
         >
-          <option value="latest">Terbaru</option>
-          <option value="bestseller">Terlaris</option>
+          <option value="terbaru">Terbaru</option>
+          <option value="terlaris">Terlaris</option>
           <option value="favorite">Favorit</option>
           <option value="popular">Popular</option>
           <option value="rating">Top Rated</option>

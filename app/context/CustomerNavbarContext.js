@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import {
   createContext,
@@ -6,130 +6,194 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
-} from 'react'
+} from "react";
 
-import { authFetch } from '../lib/authFetch'
-import { useAuth } from '../hooks/useAuth'
-import { CUSTOMER_CART_REFRESH_EVENT } from '../lib/customerCartEvents'
+import { authFetch } from "../lib/authFetch";
+import { useAuth } from "../hooks/useAuth";
+import { CUSTOMER_CART_REFRESH_EVENT } from "../lib/customerCartEvents";
 
-const CustomerNavbarContext = createContext(null)
+const CustomerNavbarContext = createContext(null);
 
-export function CustomerNavbarProvider({ children }) {
-  const { user, loading: authLoading } = useAuth()
+const CART_TTL = 15 * 1000;
+const LEGACY_CART_REFRESH_EVENT = "cart-updated";
 
-  const [cartLoading, setCartLoading] = useState(false)
-  const [cartLoaded, setCartLoaded] = useState(false)
-  const [cartCount, setCartCount] = useState(0)
-  const [cartItems, setCartItems] = useState([])
+export function CustomerNavbarProvider({
+  children,
+  initialShellData = null,
+}) {
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
+
+  const initialCartCount = Number(initialShellData?.nav?.cart_count || 0);
+
+  const [cartLoading, setCartLoading] = useState(false);
+  const [cartLoaded, setCartLoaded] = useState(false);
+  const [cartCount, setCartCount] = useState(initialCartCount);
+  const [cartItems, setCartItems] = useState([]);
+
+  const lastFetchedAtRef = useRef(0);
+  const inflightRef = useRef(null);
+  const cartLoadedRef = useRef(false);
+  const cartItemsRef = useRef([]);
 
   const resetCart = useCallback(() => {
-    setCartLoading(false)
-    setCartLoaded(false)
-    setCartCount(0)
-    setCartItems([])
-  }, [])
+    lastFetchedAtRef.current = 0;
+    inflightRef.current = null;
+    cartLoadedRef.current = false;
+    cartItemsRef.current = [];
+
+    setCartLoading(false);
+    setCartLoaded(false);
+    setCartCount(0);
+    setCartItems([]);
+  }, []);
 
   const applyCartData = useCallback((items = []) => {
-    const safeItems = Array.isArray(items) ? items : []
+    const safeItems = Array.isArray(items) ? items : [];
     const total = safeItems.reduce(
       (sum, item) => sum + (Number(item?.qty) || 1),
       0
-    )
+    );
 
-    setCartItems(safeItems)
-    setCartCount(total)
-    setCartLoaded(true)
-  }, [])
+    cartItemsRef.current = safeItems;
+    cartLoadedRef.current = true;
+    lastFetchedAtRef.current = Date.now();
+
+    setCartItems(safeItems);
+    setCartCount(total);
+    setCartLoaded(true);
+
+    return safeItems;
+  }, []);
 
   const fetchCart = useCallback(
     async ({ force = false, silent = false } = {}) => {
-      if (authLoading) return
+      if (authLoading) return null;
 
-      if (!user) {
-        resetCart()
-        return
+      if (!userId) {
+        resetCart();
+        return [];
       }
 
-      if (cartLoading && !force) return
-      if (cartLoaded && !force) return
+      const isFresh =
+        cartLoadedRef.current &&
+        Date.now() - lastFetchedAtRef.current < CART_TTL;
 
-      try {
-        if (!silent) setCartLoading(true)
+      if (!force && isFresh) {
+        return cartItemsRef.current;
+      }
 
-        const json = await authFetch('/api/v1/cart')
+      if (inflightRef.current) {
+        return inflightRef.current;
+      }
 
-        if (json?.success) {
-          applyCartData(json?.data?.items || [])
-        } else {
-          applyCartData([])
+      const request = (async () => {
+        try {
+          if (!silent) {
+            setCartLoading(true);
+          }
+
+          const json = await authFetch("/api/v1/cart", {
+            revalidate: 10,
+          });
+
+          if (json?.success) {
+            return applyCartData(json?.data?.items || []);
+          }
+
+          return applyCartData([]);
+        } catch (error) {
+          console.error("Failed fetch cart:", error);
+          return applyCartData([]);
+        } finally {
+          setCartLoading(false);
         }
-      } catch (error) {
-        console.error('Failed fetch cart:', error)
-        applyCartData([])
-      } finally {
-        setCartLoading(false)
-      }
+      })();
+
+      inflightRef.current = request.finally(() => {
+        if (inflightRef.current === request) {
+          inflightRef.current = null;
+        }
+      });
+
+      return inflightRef.current;
     },
-    [authLoading, user, cartLoading, cartLoaded, resetCart, applyCartData]
-  )
+    [authLoading, userId, resetCart, applyCartData]
+  );
 
   const ensureCartLoaded = useCallback(() => {
-    return fetchCart({ force: false, silent: false })
-  }, [fetchCart])
+    return fetchCart({ force: false, silent: false });
+  }, [fetchCart]);
 
   const refreshCart = useCallback(() => {
-    return fetchCart({ force: true, silent: true })
-  }, [fetchCart])
+    return fetchCart({ force: true, silent: true });
+  }, [fetchCart]);
 
   useEffect(() => {
-    if (authLoading) return
+    if (authLoading) return;
 
-    if (!user) {
-      resetCart()
-      return
+    if (!userId) {
+      resetCart();
+      return;
     }
 
-    let timeoutId = null
-    let idleId = null
+    let timeoutId = null;
+    let idleId = null;
 
     const lazyLoadCart = () => {
-      fetchCart({ force: false, silent: true })
-    }
+      fetchCart({ force: false, silent: true });
+    };
 
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      idleId = window.requestIdleCallback(lazyLoadCart, { timeout: 1200 })
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(lazyLoadCart, { timeout: 1200 });
     } else {
-      timeoutId = window.setTimeout(lazyLoadCart, 300)
+      timeoutId = window.setTimeout(lazyLoadCart, 300);
     }
 
     return () => {
-      if (timeoutId) window.clearTimeout(timeoutId)
-      if (idleId && 'cancelIdleCallback' in window) {
-        window.cancelIdleCallback(idleId)
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
       }
-    }
-  }, [authLoading, user, fetchCart, resetCart])
+
+      if (idleId && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, [authLoading, userId, fetchCart, resetCart]);
+
+  useEffect(() => {
+    if (!userId) return;
+    if (initialCartCount <= 0) return;
+
+    setCartCount((prev) => (prev > 0 ? prev : initialCartCount));
+  }, [initialCartCount, userId]);
 
   useEffect(() => {
     const handleCartRefresh = () => {
-      refreshCart()
-    }
+      refreshCart();
+    };
 
     const handleVisible = () => {
-      if (document.visibilityState === 'visible') {
-        refreshCart()
-      }
-    }
+      if (document.visibilityState !== "visible") return;
 
-    window.addEventListener(CUSTOMER_CART_REFRESH_EVENT, handleCartRefresh)
-    document.addEventListener('visibilitychange', handleVisible)
+      const isStale = Date.now() - lastFetchedAtRef.current >= CART_TTL;
+      if (isStale) {
+        fetchCart({ force: false, silent: true });
+      }
+    };
+
+    window.addEventListener(CUSTOMER_CART_REFRESH_EVENT, handleCartRefresh);
+    window.addEventListener(LEGACY_CART_REFRESH_EVENT, handleCartRefresh);
+    document.addEventListener("visibilitychange", handleVisible);
 
     return () => {
-      window.removeEventListener(CUSTOMER_CART_REFRESH_EVENT, handleCartRefresh)
-      document.removeEventListener('visibilitychange', handleVisible)
-    }
-  }, [refreshCart])
+      window.removeEventListener(CUSTOMER_CART_REFRESH_EVENT, handleCartRefresh);
+      window.removeEventListener(LEGACY_CART_REFRESH_EVENT, handleCartRefresh);
+      document.removeEventListener("visibilitychange", handleVisible);
+    };
+  }, [fetchCart, refreshCart]);
 
   const value = useMemo(
     () => ({
@@ -140,22 +204,29 @@ export function CustomerNavbarProvider({ children }) {
       ensureCartLoaded,
       refreshCart,
     }),
-    [cartLoading, cartLoaded, cartCount, cartItems, ensureCartLoaded, refreshCart]
-  )
+    [
+      cartLoading,
+      cartLoaded,
+      cartCount,
+      cartItems,
+      ensureCartLoaded,
+      refreshCart,
+    ]
+  );
 
   return (
     <CustomerNavbarContext.Provider value={value}>
       {children}
     </CustomerNavbarContext.Provider>
-  )
+  );
 }
 
 export function useCustomerNavbar() {
-  const context = useContext(CustomerNavbarContext)
+  const context = useContext(CustomerNavbarContext);
 
   if (!context) {
-    throw new Error('useCustomerNavbar must be used inside CustomerNavbarProvider')
+    throw new Error("useCustomerNavbar must be used inside CustomerNavbarProvider");
   }
 
-  return context
+  return context;
 }

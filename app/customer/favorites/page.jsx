@@ -1,197 +1,95 @@
-"use client";
+import { cookies } from "next/headers"
+import FavoritesClient from "./FavoritesClient"
 
-import { useEffect, useState } from "react";
-import Cookies from "js-cookie";
-import Image from "next/image";
-import Link from "next/link";
-import { cn } from "../../lib/utils";
-import useCatalogAccess from "../../hooks/useCatalogAccess";
-import { useRouter } from "next/navigation";
+export const dynamic = "force-dynamic"
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+// FIX: tambahkan fallback string kosong + regex benar
+const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "")
 
-export default function CustomerFavoritesPage() {
+function buildApiUrl(path) {
+  // FIX: template string yang benar
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`
 
-  // const { hasAccess, loading: accessLoading } = useCatalogAccess();
-  const {
-    catalogDisabled,
-    loading: accessLoading,
-  } = useCatalogAccess();
-
-  const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!accessLoading && !catalogDisabled) {
-      fetchFavorites();
-    }
-  }, [accessLoading, catalogDisabled]);
-
-  const fetchFavorites = async () => {
-    try {
-      const token = Cookies.get("token");
-      if (!token) return;
-
-      const res = await fetch(`${API}/api/v1/favorites`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-
-      const json = await res.json();
-
-      if (json.success) {
-        setFavorites(json?.data?.data || []);
-      }
-    } catch (err) {
-      console.error("Failed fetch favorites:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBuyNow = async (productId) => {
-    try {
-      const token = Cookies.get("token");
-
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
-      // 1️⃣ add ke cart
-      const addRes = await fetch(`${API}/api/v1/cart/items`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          product_id: productId,
-          qty: 1,
-        }),
-      });
-
-      if (!addRes.ok) {
-        const text = await addRes.text();
-        console.error("Add to cart failed:", text);
-        alert("Gagal menambahkan produk");
-        return;
-      }
-
-      // 2️⃣ checkout
-      const checkoutRes = await fetch(`${API}/api/v1/cart/checkout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          voucher_code: null,
-        }),
-      });
-
-      if (!checkoutRes.ok) {
-        const text = await checkoutRes.text();
-        console.error("Checkout failed:", text);
-        alert("Checkout gagal");
-        return;
-      }
-
-      // 3️⃣ redirect
-      router.push("/customer/category/product/detail/lengkapipembelian");
-
-      window.dispatchEvent(new Event("cart-updated"));
-
-    } catch (err) {
-      console.error("Buy now error:", err);
-      alert("Terjadi kesalahan");
-    }
-  };
-
-  // loading dari access
-  if (accessLoading) {
-    return (
-      <section className="max-w-6xl mx-auto px-8 py-10 text-white">
-        <p className="text-white/60">Cek Ketersediaan...</p>
-      </section>
-    );
+  if (!API) {
+    return normalizedPath
   }
 
-  // jika tidak punya akses
-  if (catalogDisabled) {
-    return (
-      <section className="max-w-6xl mx-auto px-8 py-10 text-white">
-        <p className="text-red-400">
-          Katalog sedang maintenance atau Anda tidak memiliki akses untuk melihat katalog. Silakan coba lagi nanti.
-        </p>
-      </section>
-    );
+  // FIX: regex & template string
+  if (API.endsWith("/api/v1") && normalizedPath.startsWith("/api/v1")) {
+    return `${API}${normalizedPath.replace(/^\/api\/v1/, "")}`
   }
+
+  return `${API}${normalizedPath}`
+}
+
+async function parseJsonSafe(response) {
+  try {
+    return await response.json()
+  } catch {
+    return null
+  }
+}
+
+async function getFavoritesServerData() {
+  try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get("token")?.value || ""
+
+    if (!token) {
+      return {
+        favorites: [],
+        unauthorized: true,
+      }
+    }
+
+    const response = await fetch(buildApiUrl("/api/v1/favorites?per_page=24"), {
+      headers: {
+        Accept: "application/json",
+        // FIX: template string
+        Authorization: `Bearer ${token}`,
+      },
+      revalidate: 10,
+    })
+
+    const payload = await parseJsonSafe(response)
+
+    if (response.status === 401 || response.status === 403) {
+      return {
+        favorites: [],
+        unauthorized: true,
+      }
+    }
+
+    if (!response.ok) {
+      console.error("Failed fetch favorites on server:", payload)
+      return {
+        favorites: [],
+        unauthorized: false,
+      }
+    }
+
+    return {
+      favorites: Array.isArray(payload?.data?.data)
+        ? payload.data.data
+        : [],
+      unauthorized: false,
+    }
+  } catch (error) {
+    console.error("Failed prepare favorites server data:", error)
+    return {
+      favorites: [],
+      unauthorized: false,
+    }
+  }
+}
+
+export default async function Page() {
+  const { favorites, unauthorized } = await getFavoritesServerData()
 
   return (
-    <section className="max-w-6xl mx-auto px-8 py-10 text-white">
-      <h1 className="text-2xl font-bold mb-8">❤️ Produk Favorit Saya</h1>
-
-      {loading ? (
-        <p className="text-white/60">Loading...</p>
-      ) : favorites.length === 0 ? (
-        <p className="text-white/60">Belum ada produk favorit.</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {favorites.map((fav) => {
-            const product = fav.product;
-
-            return (
-              <div
-                key={fav.id}
-                className="rounded-2xl border border-purple-700 bg-black overflow-hidden"
-              >
-                <div className="relative h-[160px] bg-white">
-                  <Image
-                    src={
-                      product?.subcategory?.image_url ||
-                      "/placeholder.png"
-                    }
-                    fill
-                    alt={product?.name}
-                    className="object-cover"
-                  />
-                </div>
-
-                <div className="p-4">
-                  <h3 className="font-semibold mb-2">
-                    {product?.name}
-                  </h3>
-
-                  <div className="flex items-center text-yellow-400 text-sm mb-2">
-                    <span className="mr-1">
-                      {"★".repeat(Math.round(product?.rating || 0))}
-                      {"☆".repeat(
-                        5 - Math.round(product?.rating || 0)
-                      )}
-                    </span>
-
-                    <span className="text-xs text-gray-400">
-                      {product?.rating?.toFixed(1) || "0.0"} (
-                      {product?.rating_count || 0})
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => handleBuyNow(product?.id)}
-                    className="block w-full mt-3 text-sm bg-purple-600 hover:bg-purple-700 py-2 rounded-lg text-center transition"
-                  >
-                    Beli
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
+    <FavoritesClient
+      initialFavorites={favorites}
+      initialUnauthorized={unauthorized}
+    />
+  )
 }

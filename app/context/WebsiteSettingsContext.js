@@ -12,6 +12,9 @@ import { publicFetch } from '../lib/publicFetch'
 
 const WebsiteSettingsContext = createContext(null)
 
+let websiteSettingsCache = null
+let websiteSettingsPromise = null
+
 function parseSettingValue(value) {
   if (typeof value !== 'string') return value
 
@@ -39,54 +42,94 @@ function normalizeSettings(rows = []) {
   }, {})
 }
 
+async function fetchWebsiteSettingsShared(force = false) {
+  if (!force && websiteSettingsCache) {
+    return websiteSettingsCache
+  }
+
+  if (!force && websiteSettingsPromise) {
+    return websiteSettingsPromise
+  }
+
+  websiteSettingsPromise = (async () => {
+    const res = await publicFetch('/api/v1/content/settings?group=website')
+    const normalized = normalizeSettings(res?.data || [])
+    websiteSettingsCache = normalized
+    return normalized
+  })()
+
+  try {
+    return await websiteSettingsPromise
+  } finally {
+    websiteSettingsPromise = null
+  }
+}
+
 export function WebsiteSettingsProvider({
   children,
   initialBrand = {},
   initialSettings = null,
 }) {
-  const initialResolvedSettings = useMemo(() => {
-    return (
-      initialSettings || {
-        brand: initialBrand || {},
-      }
-    )
+  const resolvedInitialSettings = useMemo(() => {
+    if (initialSettings && Object.keys(initialSettings).length) {
+      return initialSettings
+    }
+
+    if (websiteSettingsCache && Object.keys(websiteSettingsCache).length) {
+      return websiteSettingsCache
+    }
+
+    return {
+      brand: initialBrand || {},
+    }
   }, [initialSettings, initialBrand])
-  const [settings, setSettings] = useState(initialResolvedSettings)
-  const [brand, setBrand] = useState(initialResolvedSettings?.brand || {})
-  const [footer, setFooter] = useState(initialResolvedSettings?.footer || {})
+
+  const [settings, setSettings] = useState(resolvedInitialSettings)
+  const [brand, setBrand] = useState(resolvedInitialSettings?.brand || {})
+  const [footer, setFooter] = useState(resolvedInitialSettings?.footer || {})
   const [loading, setLoading] = useState(
-    !initialSettings && !Object.keys(initialBrand || {}).length
+    !initialSettings && !websiteSettingsCache && !Object.keys(initialBrand || {}).length
   )
 
-  const refreshWebsiteSettings = useCallback(async () => {
+  const applySettings = useCallback((nextSettings) => {
+    const normalized = nextSettings || {}
+    setSettings(normalized)
+    setBrand(normalized?.brand || {})
+    setFooter(normalized?.footer || {})
+  }, [])
+
+  const refreshWebsiteSettings = useCallback(async ({ force = false } = {}) => {
     try {
       setLoading(true)
-
-      const res = await publicFetch('/api/v1/content/settings?group=website')
-      const normalized = normalizeSettings(res?.data || [])
-
-      setSettings(normalized)
-      setBrand(normalized?.brand || {})
-      setFooter(normalized?.footer || {})
+      const normalized = await fetchWebsiteSettingsShared(force)
+      applySettings(normalized)
+      return normalized
     } catch (err) {
       if (err?.message !== 'System Maintenance') {
         console.error('Failed fetch website settings:', err)
       }
+      return null
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [applySettings])
 
   useEffect(() => {
-    if (initialSettings) {
-      setSettings(initialSettings)
-      setBrand(initialSettings?.brand || {})
+    if (initialSettings && Object.keys(initialSettings).length) {
+      websiteSettingsCache = initialSettings
+      applySettings(initialSettings)
+      setLoading(false)
+      return
+    }
+
+    if (websiteSettingsCache && Object.keys(websiteSettingsCache).length) {
+      applySettings(websiteSettingsCache)
       setLoading(false)
       return
     }
 
     refreshWebsiteSettings()
-  }, [initialSettings, refreshWebsiteSettings])
+  }, [initialSettings, applySettings, refreshWebsiteSettings])
 
   const value = useMemo(
     () => ({
@@ -110,9 +153,7 @@ export function useWebsiteSettings() {
   const context = useContext(WebsiteSettingsContext)
 
   if (!context) {
-    throw new Error(
-      'useWebsiteSettings must be used inside WebsiteSettingsProvider'
-    )
+    throw new Error('useWebsiteSettings must be used inside WebsiteSettingsProvider')
   }
 
   return context

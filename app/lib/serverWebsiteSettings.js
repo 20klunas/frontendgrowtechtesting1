@@ -1,4 +1,5 @@
 import { cache } from 'react'
+
 const API = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')
 
 function parseSettingValue(value) {
@@ -34,8 +35,7 @@ export const getWebsiteSettingsServer = cache(async () => {
   try {
     const res = await fetch(`${API}/api/v1/content/settings?group=website`, {
       headers: { Accept: 'application/json' },
-      // next: { revalidate: 30 },
-      cache: 'no-store',
+      next: { revalidate: 300 },
     })
 
     if (!res.ok) return {}

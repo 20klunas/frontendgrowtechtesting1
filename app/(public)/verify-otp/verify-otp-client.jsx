@@ -2,71 +2,24 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Cookies from "js-cookie";
-import { useAuth } from "../../hooks/useAuth";
 import Image from "next/image";
+import { useAuth } from "../../hooks/useAuth";
+import { useAppTransition } from "../../hooks/useAppTransition";
 import { publicFetch } from "../../lib/publicFetch";
+import {
+  persistAuthSession,
+  resolvePostLoginPath,
+} from "../../lib/authSession";
 
 export default function VerifyOtpClient() {
   const router = useRouter();
   const params = useSearchParams();
   const challengeId = params.get("challenge_id");
   const { setUser } = useAuth();
-  const API = process.env.NEXT_PUBLIC_API_URL;
+  const { beginTransition, finishTransition } = useAppTransition();
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const saveSession = (token, user) => {
-    Cookies.set("token", token, {
-      path: "/",
-      sameSite: "lax",
-    });
-
-    Cookies.set("role", user.role || "user", {
-      path: "/",
-      sameSite: "lax",
-    });
-
-    Cookies.set("user_name", user.name || user.full_name || "", {
-      path: "/",
-      sameSite: "lax",
-    });
-
-    Cookies.set("user_email", user.email || "", {
-      path: "/",
-      sameSite: "lax",
-    });
-  };
-
-  const fetchProfile = async (token) => {
-    const profileRes = await fetch(`${API}/api/v1/auth/me/profile`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
-
-    const profileJson = await profileRes.json();
-
-    if (!profileJson.success) {
-      throw new Error(
-        profileJson?.error?.message ||
-          profileJson?.message ||
-          "Gagal mengambil profile user"
-      );
-    }
-
-    const user = profileJson?.data;
-
-    if (!user) {
-      throw new Error("Data user tidak ditemukan");
-    }
-
-    return user;
-  };
 
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -75,10 +28,6 @@ export default function VerifyOtpClient() {
     try {
       if (!challengeId) {
         throw new Error("Challenge ID tidak ditemukan");
-      }
-
-      if (!API) {
-        throw new Error("NEXT_PUBLIC_API_URL belum diset");
       }
 
       const json = await publicFetch("/api/v1/auth/2fa/verify", {
@@ -90,26 +39,30 @@ export default function VerifyOtpClient() {
       });
 
       const token = json?.data?.token;
+      const authUser = json?.data?.user;
 
       if (!token) {
         throw new Error("Token tidak ditemukan setelah verifikasi OTP");
       }
 
-      const user = await fetchProfile(token);
-
-      saveSession(token, user);
-      setUser(user);
-
-      // await new Promise((r) => setTimeout(r, 100));
-
-      if (user.role === "admin") {
-        router.replace("/admin/dashboard");
-      } else {
-        router.replace("/customer");
-        router.refresh();
+      if (!authUser) {
+        throw new Error("Data user tidak ditemukan setelah verifikasi OTP");
       }
 
+      const targetPath = resolvePostLoginPath(authUser);
+
+      persistAuthSession(token, authUser);
+      beginTransition(
+        targetPath,
+        targetPath === "/admin/dashboard"
+          ? "Menyiapkan dashboard admin..."
+          : "Menyiapkan dashboard Anda..."
+      );
+      setUser(authUser, { display: false });
+      router.replace(targetPath);
     } catch (err) {
+      finishTransition();
+
       if (!err?.isMaintenance) {
         alert(err?.message || "Verifikasi OTP gagal");
       }

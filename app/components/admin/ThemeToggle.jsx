@@ -2,9 +2,18 @@
 
 import { Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // ⛔ penting: jangan render sebelum mounted
+  if (!mounted) return null
 
   const isDark = theme === "dark"
 

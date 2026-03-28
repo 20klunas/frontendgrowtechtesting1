@@ -1,115 +1,53 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Cookies from "js-cookie";
-import { useAuth } from "../../hooks/useAuth";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
+import { useAppTransition } from "../../hooks/useAppTransition";
 import { publicFetch } from "../../lib/publicFetch";
+import {
+  persistAuthSession,
+  resolvePostLoginPath,
+} from "../../lib/authSession";
 
 export default function LoginPage() {
   const router = useRouter();
   const API = process.env.NEXT_PUBLIC_API_URL;
+  const { user, setUser, loading: authLoading } = useAuth();
+  const { beginTransition, finishTransition } = useAppTransition();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [authDisabled,setAuthDisabled] = useState(false)
-  const [authMessage,setAuthMessage] = useState("")
-
   const [popup, setPopup] = useState({
     open: false,
     type: "info",
-    message: ""
+    message: "",
   });
 
-  const saveSession = (token, user) => {
-    Cookies.set("token", token, {
-      path: "/",
-      sameSite: "lax",
-    });
-
-    Cookies.set("role", user.role || "user", {
-      path: "/",
-      sameSite: "lax",
-    });
-
-    Cookies.set("user_name", user.name || user.full_name || "", {
-      path: "/",
-      sameSite: "lax",
-    });
-
-    Cookies.set("user_email", user.email || "", {
-      path: "/",
-      sameSite: "lax",
-    });
-  };
-
-  const fetchProfile = async (token) => {
-    const profileRes = await fetch(`${API}/api/v1/auth/me/profile`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      next: { revalidate: 30 }, // cache 5 menit
-    });
-
-    const profileJson = await profileRes.json();
-
-    if (!profileJson.success) {
-      throw new Error(
-        profileJson?.error?.message ||
-          profileJson?.message ||
-          "Gagal mengambil profile user"
-      );
-    }
-
-    const user = profileJson?.data;
-
-    if (!user) {
-      throw new Error("Data user tidak ditemukan");
-    }
-
-    return user;
-  };
-
-  const saveSessionAndRedirect = async (token) => {
-    const user = await fetchProfile(token);
-
-    saveSession(token, user);
-    setUser(user);
-
-    if (user.role === "admin") {
-      router.replace("/admin/dashboard");
-    } else {
-      await new Promise((r) => setTimeout(r, 100))
-      router.replace("/customer")
-    }
-  };
-
-  const { user, loading: authLoading } = useAuth()
-
   useEffect(() => {
-    const token = Cookies.get("token")
+    if (authLoading) return;
 
-    if (token) {
-      router.replace("/customer")
-    }
-  }, [user, loading])
+    const token = Cookies.get("token");
+    const role = user?.role || Cookies.get("role") || "user";
 
-  useEffect(() => {
+    if (!token) return;
 
-    if (authLoading) return
+    const targetPath = role === "admin" ? "/admin/dashboard" : "/customer";
 
-    if (user) {
-      router.replace("/customer")
-    }
+    beginTransition(
+      targetPath,
+      role === "admin"
+        ? "Menyiapkan dashboard admin..."
+        : "Menyiapkan dashboard Anda..."
+    );
 
-  }, [user, authLoading, router])
+    router.replace(targetPath);
+  }, [authLoading, beginTransition, router, user]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -131,18 +69,36 @@ export default function LoginPage() {
       }
 
       const token = json?.data?.token;
+      const authUser = json?.data?.user;
 
       if (!token) {
         throw new Error("Token login tidak ditemukan");
       }
 
-      await saveSessionAndRedirect(token);
+      if (!authUser) {
+        throw new Error("Data user login tidak ditemukan");
+      }
+
+      const targetPath = resolvePostLoginPath(authUser);
+
+      persistAuthSession(token, authUser);
+      beginTransition(
+        targetPath,
+        targetPath === "/admin/dashboard"
+          ? "Menyiapkan dashboard admin..."
+          : "Menyiapkan dashboard Anda..."
+      );
+      setUser(authUser, { display: false });
+      router.replace(targetPath);
     } catch (err) {
+      finishTransition();
+
       if (!err?.isMaintenance) {
         setPopup({
           open: true,
           type: "error",
-          message: err?.message || "Sedang Maintenance, coba beberapa saat lagi."
+          message:
+            err?.message || "Sedang Maintenance, coba beberapa saat lagi.",
         });
       }
     } finally {
@@ -151,27 +107,23 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-
     try {
-
       if (!API) {
         setPopup({
           open: true,
           type: "error",
-          message: "API belum dikonfigurasi"
+          message: "API belum dikonfigurasi",
         });
         return;
       }
 
       window.location.href = `${API}/api/v1/auth/google/redirect`;
-
     } catch (err) {
-
       if (err?.isMaintenance) {
         setPopup({
           open: true,
           type: "error",
-          message: err.message || "Login sedang maintenance"
+          message: err.message || "Login sedang maintenance",
         });
         return;
       }
@@ -179,11 +131,9 @@ export default function LoginPage() {
       setPopup({
         open: true,
         type: "error",
-        message: "Gagal memulai login Google"
+        message: "Gagal memulai login Google",
       });
-
     }
-
   };
 
   const handleDiscordLogin = () => {
@@ -201,14 +151,11 @@ export default function LoginPage() {
         {popup.open && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
             <div className="w-[380px] rounded-2xl border border-purple-500 bg-black p-6 shadow-xl">
-
               <h2 className="text-lg font-semibold text-purple-300 mb-3">
                 Pemberitahuan !
               </h2>
 
-              <p className="text-sm text-gray-300 mb-6">
-                {popup.message}
-              </p>
+              <p className="text-sm text-gray-300 mb-6">{popup.message}</p>
 
               <button
                 onClick={() => setPopup({ ...popup, open: false })}
@@ -216,10 +163,10 @@ export default function LoginPage() {
               >
                 Tutup
               </button>
-
             </div>
           </div>
         )}
+
         <h1 className="text-center text-2xl font-semibold text-purple-300 mb-6">
           Login
         </h1>
@@ -294,7 +241,12 @@ export default function LoginPage() {
               onClick={handleGoogleLogin}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/50 py-2 text-sm hover:bg-purple-400/10"
             >
-              <Image src="/icons/google-icon.svg" alt="Google" width={18} height={18} />
+              <Image
+                src="/icons/google-icon.svg"
+                alt="Google"
+                width={18}
+                height={18}
+              />
               Google
             </button>
 
@@ -303,7 +255,12 @@ export default function LoginPage() {
               onClick={handleDiscordLogin}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/50 py-2 text-sm hover:bg-purple-400/10"
             >
-              <Image src="/icons/discord-icon.svg" alt="Discord" width={18} height={18} />
+              <Image
+                src="/icons/discord-icon.svg"
+                alt="Discord"
+                width={18}
+                height={18}
+              />
               Discord
             </button>
           </div>

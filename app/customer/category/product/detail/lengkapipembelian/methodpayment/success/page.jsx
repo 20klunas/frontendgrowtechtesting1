@@ -10,8 +10,22 @@ import confetti from "canvas-confetti";
 const VIEW_DURATION = 10; // detik one-time view
 
 function SuccessContent() {
-  const params = useSearchParams();
-  const orderId = params.get("order");
+  // const params = useSearchParams();
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get("order");
+
+  const hasFetched = useRef(false);
+
+  useEffect(() => {
+    if (!orderId) return;
+
+    if (hasFetched.current) return;
+
+    hasFetched.current = true;
+
+    fetchAll();
+    triggerConfetti();
+  }, []); // ❗ kosongin dependency
   const timerRef = useRef(null);
 
   const [delivery, setDelivery] = useState(null);
@@ -39,17 +53,32 @@ function SuccessContent() {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
+  // const rawParams = useSearchParams();
+
+
+
   /* ================= CONFETTI ================= */
   const triggerConfetti = () => {
     confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
   };
 
-  useEffect(() => {
-    if (!orderId) return;
-    fetchAll();
-    triggerConfetti();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId]);
+  // useEffect(() => {
+  //   if (!orderId) return;
+  //   fetchAll();
+  //   triggerConfetti();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [orderId]);
+
+  // const hasFetched = useRef(false);
+
+  // useEffect(() => {
+  //   if (!orderId || hasFetched.current) return;
+
+  //   hasFetched.current = true;
+
+  //   fetchAll();
+  //   triggerConfetti();
+  // }, [orderId]);
 
   /* ================= FETCH ================= */
   const fetchAll = async () => {
@@ -377,13 +406,13 @@ function SuccessContent() {
               }
             />
 
-            <button
+            {/* <button
               onClick={downloadInvoice}
               className="mt-4 w-full rounded-xl bg-purple-700 py-2 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-purple-600"
             >
               <Download size={16} />
               Download Invoice PDF
-            </button>
+            </button> */}
           </div>
 
           {/* DIGITAL ACCESS */}

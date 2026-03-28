@@ -46,7 +46,6 @@ export default function SubKategoriPage() {
       .replace(/-+/g, '-')
   }
 
-  // ✅ FIX: jangan pakai "new Image()" karena Image sudah dipakai NextImage
   const compressImage = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -354,7 +353,7 @@ export default function SubKategoriPage() {
             <table className="w-full text-sm text-gray-300">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th>ID</th>
+                  {/* <th>ID</th> */}
                   <th>Logo</th>
                   <th>Nama</th>
                   <th>Kategori</th>
@@ -367,7 +366,7 @@ export default function SubKategoriPage() {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id} className="border-b border-white/5 text-center">
-                    <td>{item.id}</td>
+                    {/* <td>{item.id}</td> */}
                     <td className="items-center justify-center flex">
                       {item.image_url ? (
                         <NextImage src={item.image_url} width={40} height={40} alt="" />
@@ -451,10 +450,10 @@ export default function SubKategoriPage() {
               {/* HEADER */}
               <div className="px-6 py-4 border-b border-purple-900/40">
                 <h3 className="text-lg font-semibold text-white">
-                  Tambah Produk
+                  Tambah Subkategori
                 </h3>
                 <p className="modal-text text-sm text-gray-400 mt-1">
-                  Tambahkan produk baru ke dalam katalog
+                  Tambahkan subkategori baru ke dalam katalog
                 </p>
               </div>
 
@@ -487,12 +486,12 @@ export default function SubKategoriPage() {
                 {/* NAME */}
                 <div>
                   <label className="modal-text text-sm block mb-1">
-                    Nama Produk
+                    Nama Subkategori
                   </label>
 
                   <input
                     className="modal-text input-primary"
-                    placeholder="Nama produk"
+                    placeholder="Nama Subkategori"
                     value={form.name}
                     onChange={(e) => {
                       const name = e.target.value
@@ -544,7 +543,7 @@ export default function SubKategoriPage() {
 
                   <input
                     className="modal-text input-primary"
-                    placeholder="Deskripsi produk"
+                    placeholder="Deskripsi subkategori"
                     value={form.description}
                     onChange={(e) =>
                       setForm({ ...form, description: e.target.value })
@@ -555,7 +554,7 @@ export default function SubKategoriPage() {
                 {/* IMAGE UPLOAD */}
                 <div>
                   <label className="modal-text text-sm block mb-2">
-                    Gambar Produk
+                    Gambar Subkategori
                   </label>
 
                   <input
@@ -596,7 +595,7 @@ export default function SubKategoriPage() {
                     />
 
                     <div className="modal-text text-sm text-gray-400">
-                      Preview gambar produk
+                      Preview gambar subkategori
                     </div>
                   </div>
                 )}
@@ -611,7 +610,7 @@ export default function SubKategoriPage() {
                       ? "Menyimpan..."
                       : uploading
                       ? "Uploading..."
-                      : "Simpan Produk"}
+                      : "Simpan Subkategori"}
                   </button>
                 </div>
 

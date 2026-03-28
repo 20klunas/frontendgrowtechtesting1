@@ -1,24 +1,24 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useCustomerNavbar } from '../../../context/CustomerNavbarContext'
+import { useState } from "react";
+import Image from "next/image";
+import { useCustomerNavbar } from "../../../context/CustomerNavbarContext";
+import AppTransitionLink from "../../AppTransitionLink";
 
 export default function NavbarCartClient() {
-  const [cartOpen, setCartOpen] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false);
 
   const {
     cartCount,
     cartItems,
     cartLoading,
     ensureCartLoaded,
-  } = useCustomerNavbar()
+  } = useCustomerNavbar();
 
   const handleCartOpen = () => {
-    setCartOpen(true)
-    ensureCartLoaded()
-  }
+    setCartOpen(true);
+    ensureCartLoaded();
+  };
 
   return (
     <div
@@ -26,8 +26,9 @@ export default function NavbarCartClient() {
       onMouseEnter={handleCartOpen}
       onMouseLeave={() => setCartOpen(false)}
     >
-      <Link
+      <AppTransitionLink
         href="/customer/category/product/detail/cart"
+        transitionMessage="Menyiapkan keranjang Anda..."
         className="relative text-white transition"
       >
         🛒
@@ -36,7 +37,7 @@ export default function NavbarCartClient() {
             {cartCount}
           </span>
         )}
-      </Link>
+      </AppTransitionLink>
 
       {cartOpen && (
         <div
@@ -57,15 +58,15 @@ export default function NavbarCartClient() {
             <div className="max-h-60 space-y-3 overflow-y-auto">
               {cartItems.map((item) => (
                 <div key={item.id} className="flex items-center gap-3">
-                  <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-purple-900/30">
+                  {/* <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-purple-900/30">
                     <Image
-                      src={item.product?.thumbnail || '/no-image.png'}
-                      alt={item.product?.name || 'Product'}
+                      src={item.product?.image || "/no-image.png"}
+                      alt={item.product?.name || "Product"}
                       fill
                       sizes="48px"
                       className="object-cover"
                     />
-                  </div>
+                  </div> */}
 
                   <div className="flex-1">
                     <p className="line-clamp-1 text-sm text-white">
@@ -80,17 +81,18 @@ export default function NavbarCartClient() {
             </div>
           )}
 
-          <Link
+          <AppTransitionLink
             href="/customer/category/product/detail/cart"
+            transitionMessage="Menyiapkan keranjang Anda..."
             className="
               mt-4 block rounded-lg bg-purple-600 py-2 text-center
               text-sm font-medium text-white transition hover:bg-purple-500
             "
           >
             Lihat Keranjang
-          </Link>
+          </AppTransitionLink>
         </div>
       )}
     </div>
-  )
+  );
 }

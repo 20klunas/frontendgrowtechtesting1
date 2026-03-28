@@ -117,6 +117,11 @@ export default function LicensesPage() {
 
       setBulkResult(res.data)
 
+      showToast("success", "Bulk upload berhasil 🚀")
+
+      setShowBulkModal(false)   // ⬅️ tutup modal
+      setBulkText("")           // ⬅️ reset input
+
       loadData()
 
     } catch (err) {

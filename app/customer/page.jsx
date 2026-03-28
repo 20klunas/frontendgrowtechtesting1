@@ -30,9 +30,11 @@ export default async function CustomerHomePage() {
         </div>
       </section>
 
-      <section className="py-24">
-        <BannerCarousel banners={banners || []} autoplay loop />
-      </section>
+      {Array.isArray(banners) && banners.length > 0 && (
+        <section className="py-24">
+          <BannerCarousel banners={banners} autoplay loop />
+        </section>
+      )}
 
       <PopularProductsSectionClient
         initialProducts={products}
