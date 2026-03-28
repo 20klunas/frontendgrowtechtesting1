@@ -6,7 +6,7 @@ import {
   fetchWalletSummary,
 } from "./topupApi"
 
-export const dynamic = "force-dynamic"
+export const dynamic = "auto"
 
 export default async function TopUpPage() {
   const cookieStore = await cookies()

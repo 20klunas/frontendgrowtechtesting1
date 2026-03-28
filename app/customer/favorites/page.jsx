@@ -1,7 +1,7 @@
 import { cookies } from "next/headers"
 import FavoritesClient from "./FavoritesClient"
 
-export const dynamic = "force-dynamic"
+export const dynamic = "auto"
 
 // FIX: tambahkan fallback string kosong + regex benar
 const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "")

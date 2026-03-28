@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import CartClient from "./CartClient";
 import { fetchCartPageData } from "./cartApi";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "auto";
 
 export default async function CartPage() {
   const cookieStore = await cookies();

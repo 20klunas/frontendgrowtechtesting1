@@ -240,7 +240,6 @@ export default function CustomerProductContent({
   }, [subcategoryId, sort])
 
   const hasBootstrappedInitialFetch = useRef(false)
-  const isFetchingRef = useRef(false)
 
   useEffect(() => {
     const canReuseInitialPayload =

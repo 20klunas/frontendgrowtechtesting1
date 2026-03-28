@@ -101,7 +101,7 @@ export async function authFetch(url, options = {}) {
 
   const fetchPromise = (async () => {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 20000) // 20s max
+    const timeout = setTimeout(() => controller.abort(), 50000) // 20s max
 
     try {
       const res = await fetch(fullUrl, {
@@ -153,7 +153,7 @@ export async function authFetch(url, options = {}) {
       return data
     } catch (err) {
       if (err.name === "AbortError") {
-        throw new Error("Request timeout (lebih dari 20 detik)")
+        throw new Error("Request timeout (lebih dari 50 detik)")
       }
       throw err
     } finally {
