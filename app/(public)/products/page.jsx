@@ -1,12 +1,22 @@
-"use client";
+import ProductsContent from "./ProductsContent"
+import { getPublicProductsServerData } from "../../lib/serverCatalog"
 
-import { Suspense } from "react";
-import ProductsContent from "./ProductsContent";
+export default async function Page({ searchParams }) {
+  const params = searchParams || {}
+  const rawSubcategoryId = params?.subcategory ?? null
+  const subcategoryId =
+    rawSubcategoryId !== null &&
+    rawSubcategoryId !== undefined &&
+    String(rawSubcategoryId).trim() !== ""
+      ? String(rawSubcategoryId).trim()
+      : null
 
-export default function Page() {
+  const initialProducts = await getPublicProductsServerData({ subcategoryId })
+
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ProductsContent />
-    </Suspense>
-  );
+    <ProductsContent
+      initialProducts={initialProducts}
+      initialSubcategoryId={subcategoryId}
+    />
+  )
 }

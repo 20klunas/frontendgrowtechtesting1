@@ -82,7 +82,7 @@ async function loadAdminMe(force = false) {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
     },
-    revalidate: 10,
+    cache: "no-store",
   })
     .then(async (res) => {
       const json = await res.json().catch(() => ({}));

@@ -1,6 +1,5 @@
 import { handleMaintenance } from "./maintenanceHandler"
-
-const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "")
+import { buildApiUrl } from "./apiUrl"
 
 function resolveCacheMode(url, explicitCache) {
   if (explicitCache) return explicitCache
@@ -17,15 +16,15 @@ function resolveCacheMode(url, explicitCache) {
     /\/api\/v1\/auth\/me\b/,
     /\/api\/v1\/profile\b/,
     /\/api\/v1\/admin\//,
+  ]
 
+  const cacheablePatterns = [
     /\/api\/v1\/products\b/,
     /\/api\/v1\/categories\b/,
     /\/api\/v1\/subcategories\b/,
     /\/api\/v1\/catalog\//,
-  ]
-
-  const cacheablePatterns = [
     /\/api\/v1\/content\/settings\b/,
+    /\/api\/v1\/content\/feature-access\b/,
     /\/api\/v1\/content\/banners?\b/,
     /\/api\/v1\/content\/popups?\b/,
     /\/api\/v1\/content\/faqs?\b/,
@@ -63,7 +62,7 @@ function buildHeaders(options = {}) {
 export async function publicFetch(url, options = {}) {
   const cacheMode = resolveCacheMode(url, options.cache)
 
-  const res = await fetch(`${API}${url}`, {
+  const res = await fetch(buildApiUrl(url), {
     ...options,
     headers: buildHeaders(options),
     cache: cacheMode,
@@ -83,11 +82,7 @@ export async function publicFetch(url, options = {}) {
   handleMaintenance(res, data)
 
   if (!res.ok) {
-    throw new Error(
-      data?.error?.message ||
-        data?.message ||
-        `HTTP ${res.status}`
-    )
+    throw new Error(data?.error?.message || data?.message || `HTTP ${res.status}`)
   }
 
   return data

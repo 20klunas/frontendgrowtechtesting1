@@ -138,7 +138,7 @@ async function fetchMeProfile(token, { force = false } = {}) {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
     },
-    revalidate: 10,
+    cache: "no-store",
   })
     .then(async (res) => {
       const json = await res.json().catch(() => null);
@@ -255,8 +255,13 @@ export function AuthProvider({ children, initialUser = null }) {
       return;
     }
 
+    if (actualUser) {
+      setLoading(false);
+      return;
+    }
+
     syncProfile().catch(() => {});
-  }, [initialUser, applyUser, syncProfile]);
+  }, [initialUser, actualUser, applyUser, syncProfile]);
 
   useEffect(() => {
     if (!isTransitioning) {
@@ -304,7 +309,7 @@ export function AuthProvider({ children, initialUser = null }) {
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
-          revalidate: 10,
+          cache: "no-store",
         });
       }
     } catch (err) {

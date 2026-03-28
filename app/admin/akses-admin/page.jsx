@@ -38,7 +38,7 @@ async function fetchJson(path, options = {}) {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
-     revalidate: 10,
+    cache: "no-store",
   });
 
   const json = await res.json().catch(() => ({}));

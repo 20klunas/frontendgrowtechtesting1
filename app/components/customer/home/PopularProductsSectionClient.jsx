@@ -102,7 +102,7 @@ export default function PopularProductsSectionClient({
           {
             method: "GET",
             headers,
-            revalidate: 10,
+            cache: "no-store",
           }
         );
 

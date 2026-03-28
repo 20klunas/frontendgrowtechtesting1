@@ -44,7 +44,7 @@ export default function FavoritesClient({
           product_id: productId,
           qty: 1,
         }),
-        revalidate: 10,
+        cache: "no-store",
       })
 
       await authFetch("/api/v1/cart/checkout", {
@@ -52,7 +52,7 @@ export default function FavoritesClient({
         body: JSON.stringify({
           voucher_code: null,
         }),
-        revalidate: 10,
+        cache: "no-store",
       })
 
       notifyCustomerCartChanged()

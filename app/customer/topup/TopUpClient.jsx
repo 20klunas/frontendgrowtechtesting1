@@ -87,7 +87,7 @@ export default function TopUpClient({
     let active = true;
 
     (async () => {
-      const nextGateways = await fetchAvailableGateways({ next: { revalidate: 30 } }); // cache 5 menit
+      const nextGateways = await fetchAvailableGateways();
 
       if (!active) return;
 
@@ -130,8 +130,8 @@ export default function TopUpClient({
     if (!initialToken) return;
 
     const [walletResult, historyResult] = await Promise.allSettled([
-      fetchWalletSummary(initialToken, { next: { revalidate: 30 } }), // cache 5 menit
-      fetchWalletLedger(initialToken, { next: { revalidate: 30 } }), // cache 5 menit
+      fetchWalletSummary(initialToken),
+      fetchWalletLedger(initialToken),
     ]);
 
     if (walletResult.status === "fulfilled" && walletResult.value) {

@@ -1,57 +1,9 @@
-const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "")
+import { serverFetchJson } from "./serverApi"
 
-function buildApiUrl(path) {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`
-
-  if (!API) {
-    return normalizedPath
-  }
-
-  if (API.endsWith("/api/v1") && normalizedPath.startsWith("/api/v1")) {
-    return `${API}${normalizedPath.replace(/^\/api\/v1/, "")}`
-  }
-
-  return `${API}${normalizedPath}`
-}
-
-async function parseJsonSafe(response) {
-  try {
-    return await response.json()
-  } catch {
-    return null
-  }
-}
-
-async function fetchJson(path, options = {}) {
-  const { cache = "force-cache", revalidate = 10 } = options
-
-  const requestOptions = {
-    headers: {
-      Accept: "application/json",
-    },
-    cache,
-  }
-
-  if (typeof revalidate === "number") {
-    requestOptions.next = { revalidate }
-  }
-
-  const response = await fetch(buildApiUrl(path), requestOptions)
-  const payload = await parseJsonSafe(response)
-
-  if (!response.ok) {
-    const error = new Error(
-      payload?.error?.message ||
-        payload?.message ||
-        `Request failed with status ${response.status}`
-    )
-    error.status = response.status
-    error.payload = payload
-    throw error
-  }
-
-  return payload
-}
+const CATEGORY_REVALIDATE = 300
+const PRODUCT_REVALIDATE = 60
+const FEATURE_ACCESS_REVALIDATE = 30
+const PUBLIC_CATALOG_REVALIDATE = 300
 
 function normalizeCollection(json) {
   if (Array.isArray(json?.data)) return json.data
@@ -61,7 +13,7 @@ function normalizeCollection(json) {
   return null
 }
 
-function normalizePaginator(json) {
+function normalizePaginator(json, fallbackPerPage = 6) {
   const paginator = json?.data ?? {}
 
   return {
@@ -70,8 +22,19 @@ function normalizePaginator(json) {
       currentPage: Number(paginator?.current_page || 1),
       lastPage: Number(paginator?.last_page || 1),
       total: Number(paginator?.total || 0),
-      perPage: Number(paginator?.per_page || 6),
+      perPage: Number(paginator?.per_page || fallbackPerPage),
     },
+  }
+}
+
+async function fetchFeatureAccessSnapshot() {
+  try {
+    return await serverFetchJson("/api/v1/content/feature-access", {
+      cache: "force-cache",
+      revalidate: FEATURE_ACCESS_REVALIDATE,
+    })
+  } catch {
+    return null
   }
 }
 
@@ -84,9 +47,15 @@ export async function getCategoryPageServerData() {
 
   const [accessResult, categoriesResult, subcategoriesResult] =
     await Promise.allSettled([
-      fetchJson("/api/v1/content/feature-access", { revalidate: 10 }),
-      fetchJson("/api/v1/catalog/categories", { revalidate: 10 }),
-      fetchJson("/api/v1/catalog/subcategories", { revalidate: 10 }),
+      fetchFeatureAccessSnapshot(),
+      serverFetchJson("/api/v1/catalog/categories", {
+        cache: "force-cache",
+        revalidate: CATEGORY_REVALIDATE,
+      }),
+      serverFetchJson("/api/v1/catalog/subcategories", {
+        cache: "force-cache",
+        revalidate: CATEGORY_REVALIDATE,
+      }),
     ])
 
   if (accessResult.status === "fulfilled") {
@@ -141,11 +110,15 @@ export async function getProductPageServerData({
 
   const [accessResult, productsResult, subcategoryResult] =
     await Promise.allSettled([
-      fetchJson("/api/v1/content/feature-access", { revalidate: 10 }),
-      fetchJson(`/api/v1/products?${params.toString()}`, { revalidate: 10 }),
+      fetchFeatureAccessSnapshot(),
+      serverFetchJson(`/api/v1/products?${params.toString()}`, {
+        cache: "force-cache",
+        revalidate: PRODUCT_REVALIDATE,
+      }),
       subcategoryId
-        ? fetchJson(`/api/v1/subcategories/${subcategoryId}`, {
-            revalidate: 10,
+        ? serverFetchJson(`/api/v1/subcategories/${subcategoryId}`, {
+            cache: "force-cache",
+            revalidate: CATEGORY_REVALIDATE,
           })
         : Promise.resolve({ data: null }),
     ])
@@ -161,7 +134,7 @@ export async function getProductPageServerData({
   }
 
   if (productsResult.status === "fulfilled") {
-    const parsed = normalizePaginator(productsResult.value)
+    const parsed = normalizePaginator(productsResult.value, perPage)
     result.products = parsed.items
     result.pagination = parsed.pagination
   }
@@ -171,4 +144,55 @@ export async function getProductPageServerData({
   }
 
   return result
+}
+
+export async function getPublicCategoryBrowserServerData() {
+  const result = {
+    categories: [],
+    subcategories: [],
+  }
+
+  const [categoriesResult, subcategoriesResult] = await Promise.allSettled([
+    serverFetchJson("/api/v1/categories", {
+      cache: "force-cache",
+      revalidate: PUBLIC_CATALOG_REVALIDATE,
+    }),
+    serverFetchJson("/api/v1/subcategories", {
+      cache: "force-cache",
+      revalidate: PUBLIC_CATALOG_REVALIDATE,
+    }),
+  ])
+
+  if (categoriesResult.status === "fulfilled") {
+    result.categories = normalizeCollection(categoriesResult.value) || []
+  }
+
+  if (subcategoriesResult.status === "fulfilled") {
+    result.subcategories = normalizeCollection(subcategoriesResult.value) || []
+  }
+
+  return result
+}
+
+export async function getPublicProductsServerData({
+  subcategoryId = null,
+  perPage = 100,
+} = {}) {
+  const params = new URLSearchParams()
+  params.set("per_page", String(perPage))
+
+  if (subcategoryId) {
+    params.set("subcategory_id", String(subcategoryId))
+  }
+
+  try {
+    const payload = await serverFetchJson(`/api/v1/products?${params.toString()}`, {
+      cache: "force-cache",
+      revalidate: PRODUCT_REVALIDATE,
+    })
+
+    return normalizePaginator(payload, perPage).items
+  } catch {
+    return []
+  }
 }

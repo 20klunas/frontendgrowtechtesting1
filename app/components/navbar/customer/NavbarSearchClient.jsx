@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { authFetch } from "../../../lib/authFetch";
+import { publicFetch } from "../../../lib/publicFetch";
 import {
   getMaintenanceMessage,
   isFeatureMaintenanceError,
@@ -80,7 +80,7 @@ async function loadSubcategories() {
     return subcategoryPromise;
   }
 
-  subcategoryPromise = authFetch("/api/v1/catalog/subcategories", {
+  subcategoryPromise = publicFetch("/api/v1/catalog/subcategories", {
     cache: "force-cache",
   })
     .then((json) => {

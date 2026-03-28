@@ -96,7 +96,7 @@ export function CustomerNavbarProvider({
           }
 
           const json = await authFetch("/api/v1/cart", {
-            revalidate: 10,
+            cache: "no-store",
           });
 
           if (json?.success) {

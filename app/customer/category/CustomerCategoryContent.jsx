@@ -4,7 +4,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Search } from "lucide-react"
 import ProductCard from "../../components/customer/SubCategoryCard"
-import { authFetch } from "../../lib/authFetch"
+import { publicFetch } from "../../lib/publicFetch"
 import useCatalogAccess from "../../hooks/useCatalogAccess"
 
 function normalizeId(value) {
@@ -80,8 +80,8 @@ export default function CustomerCategoryContent({
       try {
         setLoadingCategories(true)
 
-        const json = await authFetch("/api/v1/catalog/categories", {
-          revalidate: 10,
+        const json = await publicFetch("/api/v1/catalog/categories", {
+          cache: "force-cache",
         })
 
         if (!active) return
@@ -118,8 +118,8 @@ export default function CustomerCategoryContent({
             ? `/api/v1/catalog/categories/${categoryId}/subcategories`
             : "/api/v1/catalog/subcategories"
 
-        const json = await authFetch(url, {
-          revalidate: 10,
+        const json = await publicFetch(url, {
+          cache: "force-cache",
         })
 
         if (!active) return
@@ -157,7 +157,6 @@ export default function CustomerCategoryContent({
     const source = Array.isArray(subcategories) ? subcategories : []
 
     return source.filter((sub) => {
-      // 🔥 FILTER CATEGORY DI SINI
       if (selectedCategory !== null) {
         if (normalizeId(sub?.category?.id) !== normalizeId(selectedCategory)) {
           return false
@@ -295,86 +294,63 @@ export default function CustomerCategoryContent({
           </div>
 
           {isCatalogUnavailable ? (
-            <FeatureMaintenanceCard
-              title="Katalog sedang maintenance"
-              message={effectiveMaintenanceMessage}
-            />
+            <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 text-sm text-amber-100">
+              {effectiveMaintenanceMessage}
+            </div>
           ) : isLoading ? (
-            <div className="rounded-2xl border border-purple-800/30 bg-[#0a0120] p-6 text-center text-white/70">
-              Memuat data katalog...
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: itemsPerPage }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-[220px] animate-pulse rounded-2xl border border-purple-900/30 bg-[#090114]"
+                />
+              ))}
+            </div>
+          ) : paginatedSubs.length === 0 ? (
+            <div className="rounded-2xl border border-purple-900/30 bg-[#090114] px-5 py-8 text-center text-sm text-white/60">
+              Produk tidak ditemukan.
             </div>
           ) : (
-            <motion.div
-              key={`${selectedCategory ?? "all"}-${currentPage}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
-              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {paginatedSubs.map((sub) => (
-                <ProductCard key={sub.id} subcategory={sub} />
-              ))}
-
-              {filteredSubcategories.length === 0 && (
-                <p className="text-white/60">Produk tidak ditemukan</p>
-              )}
-            </motion.div>
-          )}
-
-          {totalPages > 1 && !isCatalogUnavailable && !isLoading && (
-            <div className="mt-8 flex flex-wrap justify-center gap-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                disabled={currentPage === 1}
-                className="rounded-lg border border-purple-700 px-4 py-2 text-purple-300 transition hover:bg-purple-700/30 disabled:opacity-40"
-              >
-                ←
-              </button>
-
-              {Array.from({ length: totalPages }).map((_, i) => {
-                const page = i + 1
-                const isActive = page === currentPage
-
-                return (
-                  <motion.button
-                    key={page}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => setCurrentPage(page)}
-                    className={`
-                      rounded-lg px-4 py-2 text-sm font-semibold transition
-                      ${
-                        isActive
-                          ? "bg-purple-600 text-white shadow-lg shadow-purple-700/40"
-                          : "border border-purple-700 bg-black text-purple-300 hover:bg-purple-700/30"
-                      }
-                    `}
+            <>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {paginatedSubs.map((sub, index) => (
+                  <motion.div
+                    key={sub.id}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: index * 0.03 }}
                   >
-                    {page}
-                  </motion.button>
-                )
-              })}
+                    <ProductCard subcategory={sub} />
+                  </motion.div>
+                ))}
+              </div>
 
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="rounded-lg border border-purple-700 px-4 py-2 text-purple-300 transition hover:bg-purple-700/30 disabled:opacity-40"
-              >
-                →
-              </button>
-            </div>
+              {totalPages > 1 && (
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                  {Array.from({ length: totalPages }).map((_, index) => {
+                    const pageNumber = index + 1
+                    const isActive = pageNumber === currentPage
+
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => setCurrentPage(pageNumber)}
+                        className={`rounded-lg border px-3 py-2 text-sm transition ${
+                          isActive
+                            ? "border-purple-500 bg-purple-600 text-white"
+                            : "border-purple-800 text-purple-300 hover:bg-purple-700/20"
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>
     </main>
-  )
-}
-
-function FeatureMaintenanceCard({ title, message }) {
-  return (
-    <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 text-center">
-      <h3 className="mb-2 text-xl font-semibold text-amber-300">{title}</h3>
-      <p className="text-amber-100/90">{message}</p>
-    </div>
   )
 }

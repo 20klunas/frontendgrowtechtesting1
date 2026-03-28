@@ -1,140 +1,96 @@
-"use client";
+"use client"
 
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+function resolveMemberPrice(product) {
+  const pricing = product?.tier_pricing
 
-export default function ProductsContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  if (pricing && typeof pricing === "object" && !Array.isArray(pricing)) {
+    return Number(pricing.member || pricing.reseller || pricing.vip || product?.price || 0)
+  }
 
-  const subcategoryId = searchParams.get("subcategory");
+  if (Array.isArray(pricing) && pricing.length > 0) {
+    const first = pricing[0] || {}
+    return Number(first.member || first.reseller || first.vip || product?.price || 0)
+  }
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  return Number(product?.price || 0)
+}
 
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("terbaru");
-
-  /* ================= FETCH PRODUCTS ================= */
-
-  useEffect(() => {
-    fetchProducts();
-  }, [subcategoryId]);
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-
-      const url = subcategoryId
-        ? `${API}/api/v1/products?subcategory_id=${subcategoryId}`
-        : `${API}/api/v1/products`;
-
-      const res = await fetch(url, {
-        revalidate: 10,
-        headers: {
-          "Cache-Control": "no-cache",
-        },
-      });
-
-      const contentType = res.headers.get("content-type");
-
-      if (!contentType?.includes("application/json")) {
-        const text = await res.text();
-        console.error("Non JSON response:", text);
-        throw new Error("Invalid API response");
-      }
-
-      const json = await res.json();
-
-      if (json.success) {
-        setProducts(
-          json?.data?.data || json?.data || []
-        );
-      }
-
-    } catch (err) {
-      console.error("Fetch products error:", err);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ================= FILTER + SORT ================= */
+export default function ProductsContent({
+  initialProducts = [],
+  initialSubcategoryId = null,
+}) {
+  const router = useRouter()
+  const [search, setSearch] = useState("")
+  const [sort, setSort] = useState("terbaru")
 
   const filteredProducts = useMemo(() => {
+    let data = Array.isArray(initialProducts) ? [...initialProducts] : []
 
-    let data = products.filter((p) =>
-      p.name.toLowerCase().includes(search.toLowerCase())
-    );
+    const keyword = search.trim().toLowerCase()
+    if (keyword) {
+      data = data.filter((product) =>
+        String(product?.name || "").toLowerCase().includes(keyword)
+      )
+    }
 
     if (sort === "termurah") {
-      data = [...data].sort(
-        (a, b) => a.tier_pricing?.member - b.tier_pricing?.member
-      );
+      data.sort((a, b) => resolveMemberPrice(a) - resolveMemberPrice(b))
     }
 
     if (sort === "terbaru") {
-      data = [...data].sort((a, b) => b.id - a.id);
+      data.sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0))
     }
 
     if (sort === "terlaris") {
-      data = [...data].sort((a, b) => (b.sold || 0) - (a.sold || 0));
+      data.sort((a, b) => Number(b?.sold || 0) - Number(a?.sold || 0))
     }
 
-    return data;
+    if (sort === "favorite") {
+      data.sort((a, b) => Number(b?.favorites_count || 0) - Number(a?.favorites_count || 0))
+    }
 
-  }, [products, search, sort]);
+    if (sort === "popular") {
+      data.sort((a, b) => Number(b?.popularity_score || 0) - Number(a?.popularity_score || 0))
+    }
 
-  /* ================= BUY ================= */
+    if (sort === "rating") {
+      data.sort((a, b) => Number(b?.rating || 0) - Number(a?.rating || 0))
+    }
+
+    return data
+  }, [initialProducts, search, sort])
 
   const handleBuy = () => {
-    router.push("/login");
-  };
+    router.push("/login")
+  }
 
   return (
-    <main className="min-h-screen px-4 sm:px-8 lg:px-12 py-8 text-white">
-
-      {/* ================= TITLE ================= */}
-
+    <main className="min-h-screen px-4 py-8 text-white sm:px-8 lg:px-12">
       <motion.h1
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-3xl font-bold mb-8"
+        className="mb-8 text-3xl font-bold"
       >
-        {subcategoryId ? "Produk" : "Semua Produk"}
+        {initialSubcategoryId ? "Produk" : "Semua Produk"}
       </motion.h1>
 
-      {/* ================= TOOLBAR ================= */}
-
-      <div className="
-        flex flex-col md:flex-row
-        gap-3
-        justify-between
-        mb-6
-        backdrop-blur-xl
-        bg-white/5
-        border border-white/10
-        rounded-xl
-        p-4
-      ">
-
+      <div
+        className="
+          mb-6 flex flex-col justify-between gap-3 rounded-xl border border-white/10
+          bg-white/5 p-4 backdrop-blur-xl md:flex-row
+        "
+      >
         <input
           placeholder="Cari produk..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="
-            bg-black/30
-            border border-white/10
-            rounded-lg
-            px-3 py-2
-            text-sm
-            outline-none
-            w-full md:w-64
-            focus:border-purple-500
+            w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2
+            text-sm outline-none focus:border-purple-500 md:w-64
           "
         />
 
@@ -142,46 +98,30 @@ export default function ProductsContent() {
           value={sort}
           onChange={(e) => setSort(e.target.value)}
           className="
-            bg-black/30
-            border border-white/10
-            rounded-lg
-            px-3 py-2
-            text-sm
-            outline-none
-            w-full md:w-40
+            w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2
+            text-sm outline-none md:w-40
           "
         >
           <option value="terbaru">Terbaru</option>
+          <option value="termurah">Termurah</option>
           <option value="terlaris">Terlaris</option>
           <option value="favorite">Favorit</option>
           <option value="popular">Popular</option>
           <option value="rating">Top Rated</option>
         </select>
-
       </div>
 
-      {/* ================= GRID ================= */}
-
-      <div className="
-        grid
-        grid-cols-2
-        sm:grid-cols-3
-        lg:grid-cols-4
-        xl:grid-cols-5
-        gap-5
-      ">
-
-        {loading ? (
-          [...Array(8)].map((_, i) => <SkeletonCard key={i} />)
-        ) : filteredProducts.length === 0 ? (
+      <div
+        className="
+          grid grid-cols-2 gap-5
+          sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5
+        "
+      >
+        {filteredProducts.length === 0 ? (
           <EmptyState />
         ) : (
           filteredProducts.map((product, i) => {
-
-            const pricing =
-              Array.isArray(product.tier_pricing)
-                ? product.tier_pricing[0]
-                : product.tier_pricing;
+            const memberPrice = resolveMemberPrice(product)
 
             return (
               <motion.div
@@ -192,164 +132,77 @@ export default function ProductsContent() {
                 whileHover={{
                   scale: 1.05,
                   rotateX: 4,
-                  rotateY: -4
+                  rotateY: -4,
                 }}
                 className="
-                  group
-                  relative
-                  rounded-2xl
-                  p-5
-                  bg-gradient-to-b
-                  from-zinc-900
-                  to-black
-                  border border-zinc-800
-                  shadow-lg
+                  group relative rounded-2xl border border-zinc-800 bg-gradient-to-b
+                  from-zinc-900 to-black p-5 shadow-lg transition duration-300
                   hover:shadow-purple-500/30
-                  transition
-                  duration-300
                 "
               >
+                <div
+                  className="
+                    absolute inset-0 opacity-0 blur-2xl transition group-hover:opacity-100
+                    bg-purple-500/10
+                  "
+                />
 
-                {/* Glow effect */}
+                <div className="relative flex h-full flex-col">
+                  <h3 className="mb-1 text-lg font-semibold">{product.name}</h3>
 
-                <div className="
-                  absolute inset-0
-                  opacity-0
-                  group-hover:opacity-100
-                  transition
-                  bg-purple-500/10
-                  blur-2xl
-                " />
-
-                <div className="relative flex flex-col h-full">
-
-                  {/* PRODUCT TITLE */}
-
-                  <h3 className="text-lg font-semibold mb-1">
-                    {product.name}
-                  </h3>
-
-                  {/* DESC */}
-
-                  <p className="text-sm text-zinc-400 line-clamp-2">
+                  <p className="line-clamp-2 text-sm text-zinc-400">
                     {product.description}
                   </p>
 
-                  {/* DURASI */}
-
                   {product.duration_days && (
-                    <p className="text-xs text-zinc-500 mt-1">
+                    <p className="mt-1 text-xs text-zinc-500">
                       Durasi: {product.duration_days} hari
                     </p>
                   )}
 
-                  {/* PRICE */}
-
-                  {pricing?.member && (
-                    <div className="mt-4">
-                      <p className="text-xs text-zinc-400">
-                        Harga mulai
-                      </p>
-
-                      <p className="text-xl font-bold text-purple-400">
-                        Rp {pricing.member.toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* BUTTON */}
+                  <div className="mt-4">
+                    <p className="text-xs text-zinc-400">Harga mulai</p>
+                    <p className="text-xl font-bold text-purple-400">
+                      Rp {memberPrice.toLocaleString("id-ID")}
+                    </p>
+                  </div>
 
                   <button
                     onClick={() => handleBuy(product)}
                     className="
-                      mt-auto
-                      w-full
-                      rounded-lg
-                      bg-gradient-to-r
-                      from-purple-600
-                      to-purple-500
-                      hover:from-purple-500
-                      hover:to-purple-400
-                      transition
-                      py-2.5
-                      text-sm
-                      font-semibold
-                      text-white
-                      shadow-md
-                      hover:shadow-purple-500/40
+                      mt-auto w-full rounded-lg bg-gradient-to-r from-purple-600 to-purple-500
+                      py-2.5 text-sm font-semibold text-white shadow-md transition
+                      hover:from-purple-500 hover:to-purple-400 hover:shadow-purple-500/40
                     "
                   >
                     Beli Sekarang
                   </button>
-
                 </div>
-
               </motion.div>
-            );
+            )
           })
         )}
       </div>
-
     </main>
-  );
+  )
 }
-
-/* ================= SKELETON ================= */
-
-function SkeletonCard() {
-  return (
-    <div className="
-      rounded-2xl
-      p-5
-      bg-gradient-to-b
-      from-zinc-900
-      to-black
-      border border-zinc-800
-      animate-pulse
-    ">
-
-      <div className="h-5 w-3/4 bg-zinc-800 rounded mb-3" />
-
-      <div className="h-4 w-full bg-zinc-800 rounded mb-2" />
-
-      <div className="h-4 w-5/6 bg-zinc-800 rounded mb-3" />
-
-      <div className="h-6 w-1/2 bg-zinc-800 rounded mb-5" />
-
-      <div className="h-10 w-full bg-zinc-800 rounded-lg" />
-
-    </div>
-  );
-}
-
-/* ================= EMPTY STATE ================= */
 
 function EmptyState() {
   return (
-    <div className="col-span-full text-center py-20">
-
-      <div className="
-        mx-auto
-        w-24
-        h-24
-        rounded-full
-        bg-white/5
-        flex
-        items-center
-        justify-center
-        mb-4
-      ">
+    <div className="col-span-full py-20 text-center">
+      <div
+        className="
+          mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-white/5
+        "
+      >
         📦
       </div>
 
-      <p className="text-lg text-zinc-400">
-        Tidak ada produk ditemukan
-      </p>
+      <p className="text-lg text-zinc-400">Tidak ada produk ditemukan</p>
 
       <p className="text-sm text-zinc-500">
         Coba ubah filter atau kata kunci pencarian
       </p>
-
     </div>
-  );
+  )
 }

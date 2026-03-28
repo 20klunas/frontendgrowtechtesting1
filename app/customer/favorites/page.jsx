@@ -48,7 +48,7 @@ async function getFavoritesServerData() {
         // FIX: template string
         Authorization: `Bearer ${token}`,
       },
-      revalidate: 10,
+      cache: "no-store",
     })
 
     const payload = await parseJsonSafe(response)

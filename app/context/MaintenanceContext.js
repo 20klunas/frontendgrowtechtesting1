@@ -9,19 +9,10 @@ import {
   useState,
 } from "react"
 import { publicFetch } from "../lib/publicFetch"
-
-const DEFAULT_STATE = {
-  publicMaintenance: false,
-  publicMaintenanceMessage: "",
-  catalogDisabled: false,
-  catalogMessage: "",
-  checkoutDisabled: false,
-  checkoutMessage: "",
-  topupDisabled: false,
-  topupMessage: "",
-  userAuthDisabled: false,
-  userAuthMessage: "",
-}
+import {
+  DEFAULT_MAINTENANCE_STATE,
+  normalizeFeatureAccess,
+} from "../lib/featureAccess"
 
 const MaintenanceContext = createContext(null)
 MaintenanceContext.displayName = "MaintenanceContext"
@@ -29,49 +20,10 @@ MaintenanceContext.displayName = "MaintenanceContext"
 let accessCache = null
 let accessPromise = null
 
-function normalizeFeatureNode(node, fallbackMessage) {
-  const enabled = typeof node?.enabled === "boolean" ? node.enabled : true
-  const message = typeof node?.message === "string" ? node.message : fallbackMessage
-
+function mergeState(nextState) {
   return {
-    disabled: !enabled,
-    message: !enabled ? message : "",
-  }
-}
-
-function normalizeFeatureAccess(payload = {}) {
-  const publicAccess = normalizeFeatureNode(
-    payload?.public_access,
-    "Halaman publik sedang maintenance."
-  )
-  const catalog = normalizeFeatureNode(
-    payload?.catalog_access,
-    "Katalog sedang maintenance."
-  )
-  const checkout = normalizeFeatureNode(
-    payload?.checkout_access,
-    "Checkout sedang maintenance."
-  )
-  const topup = normalizeFeatureNode(
-    payload?.topup_access,
-    "Top up sedang maintenance."
-  )
-  const userAuth = normalizeFeatureNode(
-    payload?.user_auth_access,
-    "Login dan registrasi sedang maintenance."
-  )
-
-  return {
-    publicMaintenance: publicAccess.disabled,
-    publicMaintenanceMessage: publicAccess.message,
-    catalogDisabled: catalog.disabled,
-    catalogMessage: catalog.message,
-    checkoutDisabled: checkout.disabled,
-    checkoutMessage: checkout.message,
-    topupDisabled: topup.disabled,
-    topupMessage: topup.message,
-    userAuthDisabled: userAuth.disabled,
-    userAuthMessage: userAuth.message,
+    ...DEFAULT_MAINTENANCE_STATE,
+    ...(nextState || {}),
   }
 }
 
@@ -85,8 +37,10 @@ async function fetchFeatureAccess(force = false) {
   }
 
   accessPromise = (async () => {
-    const res = await publicFetch("/api/v1/content/feature-access")
-    const normalized = normalizeFeatureAccess(res?.data || {})
+    const res = await publicFetch("/api/v1/content/feature-access", {
+      cache: "no-store",
+    })
+    const normalized = mergeState(normalizeFeatureAccess(res?.data || {}))
     accessCache = normalized
     return normalized
   })()
@@ -98,35 +52,51 @@ async function fetchFeatureAccess(force = false) {
   }
 }
 
-export function MaintenanceProvider({ children }) {
-  const [state, setState] = useState(accessCache || DEFAULT_STATE)
-  const [loading, setLoading] = useState(!accessCache)
+export function MaintenanceProvider({ children, initialState = null }) {
+  const mergedInitialState = mergeState(initialState || accessCache)
+
+  const [state, setState] = useState(mergedInitialState)
+  const [loading, setLoading] = useState(() => !initialState && !accessCache)
 
   const applyState = useCallback((nextState) => {
-    setState({
-      ...DEFAULT_STATE,
-      ...(nextState || {}),
-    })
+    const merged = mergeState(nextState)
+    accessCache = merged
+    setState(merged)
   }, [])
 
-  const hydrate = useCallback(async ({ force = false } = {}) => {
-    try {
-      setLoading(true)
-      const snapshot = await fetchFeatureAccess(force)
-      applyState(snapshot)
-      return snapshot
-    } catch (err) {
-      console.error("Feature access fetch failed:", err)
-      applyState(DEFAULT_STATE)
-      return DEFAULT_STATE
-    } finally {
-      setLoading(false)
-    }
-  }, [applyState])
+  const hydrate = useCallback(
+    async ({ force = false } = {}) => {
+      try {
+        setLoading(true)
+        const snapshot = await fetchFeatureAccess(force)
+        applyState(snapshot)
+        return snapshot
+      } catch (err) {
+        console.error("Feature access fetch failed:", err)
+        applyState(DEFAULT_MAINTENANCE_STATE)
+        return DEFAULT_MAINTENANCE_STATE
+      } finally {
+        setLoading(false)
+      }
+    },
+    [applyState]
+  )
 
   useEffect(() => {
+    if (initialState) {
+      applyState(initialState)
+      setLoading(false)
+      return
+    }
+
+    if (accessCache) {
+      applyState(accessCache)
+      setLoading(false)
+      return
+    }
+
     hydrate()
-  }, [hydrate])
+  }, [initialState, applyState, hydrate])
 
   const refreshMaintenance = useCallback(async () => {
     return hydrate({ force: true })

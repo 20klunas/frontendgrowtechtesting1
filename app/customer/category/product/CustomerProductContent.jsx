@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import {
   ChevronLeft,
@@ -239,18 +239,30 @@ export default function CustomerProductContent({
     setCurrentPage(1)
   }, [subcategoryId, sort])
 
+  const hasBootstrappedInitialFetch = useRef(false)
+  const isFetchingRef = useRef(false)
+
   useEffect(() => {
+    const canReuseInitialPayload =
+      Array.isArray(initialProducts) && currentPage === 1 && sort === "latest"
+
+    if (!hasBootstrappedInitialFetch.current && canReuseInitialPayload) {
+      hasBootstrappedInitialFetch.current = true
+      setLoading(false)
+      return
+    }
+
+    hasBootstrappedInitialFetch.current = true
+
     let active = true
 
     const fetchProducts = async () => {
-      const shouldSoftRefresh =
-        Array.isArray(initialProducts) && currentPage === 1 && sort === "latest"
+
+      if (isFetchingRef.current) return
+      isFetchingRef.current = true
 
       try {
-        if (!shouldSoftRefresh) {
-          setLoading(true)
-        }
-
+        setLoading(true)
         setCatalogMaintenance("")
 
         const params = new URLSearchParams()
@@ -263,7 +275,7 @@ export default function CustomerProductContent({
         }
 
         const json = await publicFetch(`/api/v1/products?${params.toString()}`, {
-          revalidate: 10,
+          cache: "force-cache",
         })
 
         if (!active) return
@@ -283,6 +295,7 @@ export default function CustomerProductContent({
         setPagination(getDefaultPagination())
       } finally {
         if (active) setLoading(false)
+        isFetchingRef.current = false
       }
     }
 
@@ -291,7 +304,7 @@ export default function CustomerProductContent({
     return () => {
       active = false
     }
-  }, [subcategoryId, sort, currentPage, initialProducts])
+  }, [subcategoryId, sort, currentPage])
 
   useEffect(() => {
     if (!subcategoryId) {
@@ -315,7 +328,7 @@ export default function CustomerProductContent({
         setSubcategoryLoading(true)
 
         const json = await publicFetch(`/api/v1/subcategories/${subcategoryId}`, {
-          revalidate: 10,
+          cache: "force-cache",
         })
 
         if (!active) return
@@ -354,8 +367,8 @@ export default function CustomerProductContent({
 
     const loadFavorites = async () => {
       try {
-        const json = await authFetch("/api/v1/favorites?per_page=200", {
-          revalidate: 10,
+        const json = await authFetch("/api/v1/favorites/ids", {
+          cache: "no-store",
         })
 
         if (!active) return
@@ -426,7 +439,7 @@ export default function CustomerProductContent({
       if (favoriteIds.has(productId)) {
         await authFetch(`/api/v1/favorites/${productId}`, {
           method: "DELETE",
-          revalidate: 10,
+          cache: "no-store",
         })
 
         updateFavoriteState((next) => {
@@ -437,7 +450,7 @@ export default function CustomerProductContent({
         await authFetch("/api/v1/favorites", {
           method: "POST",
           body: JSON.stringify({ product_id: productId }),
-          revalidate: 10,
+          cache: "no-store",
         })
 
         updateFavoriteState((next) => {
@@ -465,13 +478,13 @@ export default function CustomerProductContent({
       await authFetch("/api/v1/cart/items", {
         method: "POST",
         body: JSON.stringify({ product_id: productId, qty: 1 }),
-        revalidate: 10,
+        cache: "no-store",
       })
 
       await authFetch("/api/v1/cart/checkout", {
         method: "POST",
         body: JSON.stringify({ voucher_code: null }),
-        revalidate: 10,
+        cache: "no-store",
       })
 
       notifyCustomerCartChanged()
@@ -496,7 +509,7 @@ export default function CustomerProductContent({
       await authFetch("/api/v1/cart/items", {
         method: "POST",
         body: JSON.stringify({ product_id: productId, qty: 1 }),
-        revalidate: 10,
+        cache: "no-store",
       })
 
       notifyCustomerCartChanged()

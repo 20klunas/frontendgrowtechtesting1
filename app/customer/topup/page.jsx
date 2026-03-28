@@ -1,31 +1,31 @@
-import { cookies } from "next/headers";
-import TopUpClient from "./TopUpClient";
+import { cookies } from "next/headers"
+import TopUpClient from "./TopUpClient"
 import {
   fetchAvailableGateways,
   fetchWalletLedger,
   fetchWalletSummary,
-} from "./topupApi";
+} from "./topupApi"
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"
 
 export default async function TopUpPage() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value ?? null;
+  const cookieStore = await cookies()
+  const token = cookieStore.get("token")?.value ?? null
 
   const [gatewaysResult, walletResult, historyResult] = await Promise.allSettled([
-    fetchAvailableGateways({ next: { revalidate: 30 } }), // cache 5 menit
-    fetchWalletSummary(token, { next: { revalidate: 30 } }), // cache 5 menit
-    fetchWalletLedger(token, { next: { revalidate: 30 } }), // cache 5 menit
-  ]);
+    fetchAvailableGateways({ revalidate: 300 }),
+    fetchWalletSummary(token),
+    fetchWalletLedger(token),
+  ])
 
   const initialGateways =
-    gatewaysResult.status === "fulfilled" ? gatewaysResult.value : [];
+    gatewaysResult.status === "fulfilled" ? gatewaysResult.value : []
 
   const initialWallet =
-    walletResult.status === "fulfilled" ? walletResult.value : null;
+    walletResult.status === "fulfilled" ? walletResult.value : null
 
   const initialHistory =
-    historyResult.status === "fulfilled" ? historyResult.value : [];
+    historyResult.status === "fulfilled" ? historyResult.value : []
 
   return (
     <TopUpClient
@@ -34,5 +34,5 @@ export default async function TopUpPage() {
       initialHistory={initialHistory}
       initialGateways={initialGateways}
     />
-  );
+  )
 }

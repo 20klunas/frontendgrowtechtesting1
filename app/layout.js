@@ -1,24 +1,28 @@
-import './globals.css'
-import { AuthProvider } from '../app/provider/AuthProvider'
-import { AppTransitionProvider } from '../app/provider/AppTransitionProvider'
-import { MaintenanceProvider } from './context/MaintenanceContext'
-import { WebsiteSettingsProvider } from './context/WebsiteSettingsContext'
-import { getWebsiteSettingsServer } from './lib/serverWebsiteSettings'
+import "./globals.css"
+import { AuthProvider } from "./provider/AuthProvider"
+import { AppTransitionProvider } from "./provider/AppTransitionProvider"
+import { MaintenanceProvider } from "./context/MaintenanceContext"
+import { WebsiteSettingsProvider } from "./context/WebsiteSettingsContext"
+import { getWebsiteSettingsServer } from "./lib/serverWebsiteSettings"
+import { getServerFeatureAccess } from "./lib/serverFeatureAccess"
 
 export const metadata = {
-  title: 'Growtech Central',
-  description: 'Toko Digital Terpercaya',
+  title: "Growtech Central",
+  description: "Toko Digital Terpercaya",
 }
 
 export default async function RootLayout({ children }) {
-  const initialSettings = await getWebsiteSettingsServer()
+  const [initialSettings, initialMaintenanceState] = await Promise.all([
+    getWebsiteSettingsServer(),
+    getServerFeatureAccess(),
+  ])
 
   return (
     <html lang="id" className="dark" suppressHydrationWarning>
       <body>
         <AppTransitionProvider>
           <WebsiteSettingsProvider initialSettings={initialSettings}>
-            <MaintenanceProvider>
+            <MaintenanceProvider initialState={initialMaintenanceState}>
               <AuthProvider>{children}</AuthProvider>
             </MaintenanceProvider>
           </WebsiteSettingsProvider>

@@ -1,42 +1,29 @@
-"use client";
+"use client"
 
-import { useEffect, useRef } from "react";
-import { CustomerNavbarProvider } from "../context/CustomerNavbarContext";
-import { useAuth } from "../hooks/useAuth";
-import { AuthProvider } from "../provider/AuthProvider";
-// function CustomerAuthHydrator({ initialShellData }) {
-//   const { actualUser, setUser } = useAuth();
-//   const hasHydrated = useRef(false);
+import { useLayoutEffect, useRef } from "react"
+import { CustomerNavbarProvider } from "../context/CustomerNavbarContext"
+import { useAuth } from "../hooks/useAuth"
 
-//   useEffect(() => {
-//     if (hasHydrated.current) return;
+function CustomerAuthHydrator({ initialUser = null }) {
+  const { setUser } = useAuth()
+  const hasHydrated = useRef(false)
 
-//     const bootstrapUser = initialShellData?.auth?.user || null;
+  useLayoutEffect(() => {
+    if (hasHydrated.current) return
+    if (!initialUser) return
 
-//     if (!bootstrapUser) return;
+    setUser(initialUser, { display: true })
+    hasHydrated.current = true
+  }, [initialUser, setUser])
 
-//     setUser(bootstrapUser, { display: true });
-//     hasHydrated.current = true;
-//   }, [initialShellData, setUser]);
-
-//   return null;
-// }
-
-// export default function CustomerProviders({ children, initialShellData = null }) {
-//   return (
-//     <CustomerNavbarProvider initialShellData={initialShellData}>
-//       <CustomerAuthHydrator initialShellData={initialShellData} />
-//       {children}
-//     </CustomerNavbarProvider>
-//   );
-// }
+  return null
+}
 
 export default function CustomerProviders({ children, initialShellData = null }) {
   return (
-    <AuthProvider initialUser={initialShellData?.auth?.user}>
-      <CustomerNavbarProvider initialShellData={initialShellData}>
-        {children}
-      </CustomerNavbarProvider>
-    </AuthProvider>
-  );
+    <CustomerNavbarProvider initialShellData={initialShellData}>
+      <CustomerAuthHydrator initialUser={initialShellData?.auth?.user || null} />
+      {children}
+    </CustomerNavbarProvider>
+  )
 }

@@ -109,7 +109,7 @@ async function fetchCustomerHomeBootstrap() {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
-      revalidate: 10,
+      cache: "no-store",
     });
 
     const payload = await parseJsonSafe(response);
