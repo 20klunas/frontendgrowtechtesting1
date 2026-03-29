@@ -97,25 +97,31 @@ async function fetchJson(path, options = {}) {
 }
 
 async function fetchCustomerHomeBootstrap() {
-  const token = await getServerToken();
+  if (!API) return null
 
-  if (!API || !token) {
-    return null;
-  }
+  const token = await getServerToken()
 
   try {
-    const response = await fetch(buildApiUrl("/api/v1/bootstrap/customer-home"), {
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
+    const headers = {
+      Accept: "application/json",
+    }
 
-    const payload = await parseJsonSafe(response);
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+
+    const response = await fetch(
+      buildApiUrl("/api/v1/bootstrap/customer-home"),
+      {
+        headers,
+        next: { revalidate: 60 }, // 🔥 bukan no-store
+      }
+    )
+
+    const payload = await parseJsonSafe(response)
 
     if (!response.ok) {
-      return null;
+      return null
     }
 
     return {
@@ -123,9 +129,9 @@ async function fetchCustomerHomeBootstrap() {
       banners: payload?.data?.banners || [],
       products: payload?.data?.products || [],
       catalogMaintenance: payload?.data?.catalog_maintenance || "",
-    };
+    }
   } catch {
-    return null;
+    return null
   }
 }
 

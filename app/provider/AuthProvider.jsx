@@ -246,22 +246,30 @@ export function AuthProvider({ children, initialUser = null }) {
   const hasBootstrapped = useRef(false);
 
   useEffect(() => {
-    if (hasBootstrapped.current) return;
-    hasBootstrapped.current = true;
+    if (hasBootstrapped.current) return
+    hasBootstrapped.current = true
 
     if (initialUser) {
-      applyUser(initialUser, { display: true });
-      setLoading(false);
-      return;
+      applyUser(initialUser, { display: true })
+      setLoading(false)
+      return
+    }
+
+    const token = Cookies.get("token")
+
+    // 🔥 tambahkan ini
+    if (!token) {
+      setLoading(false)
+      return
     }
 
     if (actualUser) {
-      setLoading(false);
-      return;
+      setLoading(false)
+      return
     }
 
-    syncProfile().catch(() => {});
-  }, [initialUser, actualUser, applyUser, syncProfile]);
+    syncProfile().catch(() => {})
+  }, [initialUser, actualUser, applyUser, syncProfile])
 
   useEffect(() => {
     if (!isTransitioning) {

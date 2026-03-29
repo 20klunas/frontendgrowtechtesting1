@@ -15,10 +15,17 @@ export default function NavbarCartClient() {
     ensureCartLoaded,
   } = useCustomerNavbar();
 
+  const [loaded, setLoaded] = useState(false)
+
   const handleCartOpen = () => {
-    setCartOpen(true);
-    ensureCartLoaded();
-  };
+    setCartOpen(true)
+
+    if (!loaded) {
+      ensureCartLoaded()
+      setLoaded(true)
+    }
+  }
+  
 
   return (
     <div

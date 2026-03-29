@@ -1,9 +1,9 @@
 import { buildApiUrl } from "./apiUrl"
 import { cookies } from "next/headers"
 
-async function getServerToken() {
+export async function getServerToken() {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     return cookieStore.get("token")?.value || ""
   } catch {
     return ""

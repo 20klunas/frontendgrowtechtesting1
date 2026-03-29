@@ -76,11 +76,7 @@ export default function CustomerCategoryContent({
   }, [maintenanceMessage])
 
   useEffect(() => {
-    if (hasInitialCategories) {
-      setCategories(initialCategories)
-      setLoadingCategories(false)
-      return
-    }
+    if (hasInitialCategories) return
 
     let active = true
 
@@ -88,7 +84,7 @@ export default function CustomerCategoryContent({
       try {
         setLoadingCategories(true)
 
-        const json = await fetcher("/api/v1/catalog/categories", {}, { auth: true })
+        const json = await fetcher("/api/v1/catalog/categories", {}, { auth: false })
 
         if (!active) return
 
@@ -124,7 +120,7 @@ export default function CustomerCategoryContent({
             ? `/api/v1/catalog/categories/${categoryId}/subcategories`
             : "/api/v1/catalog/subcategories"
 
-        const json = await fetcher(url, {}, { auth: true })
+        const json = await fetcher(url, {}, { auth: false })
 
         if (!active) return
 

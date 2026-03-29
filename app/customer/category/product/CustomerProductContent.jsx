@@ -241,15 +241,18 @@ export default function CustomerProductContent({
   useEffect(() => {
     let active = true
 
+    const isFirstRenderWithSSR =
+      Array.isArray(initialProducts) &&
+      currentPage === 1 &&
+      sort === "latest"
+
+    if (isFirstRenderWithSSR) {
+      return
+    }
+
     const fetchProducts = async () => {
-      const shouldSoftRefresh =
-        Array.isArray(initialProducts) && currentPage === 1 && sort === "latest"
-
       try {
-        if (!shouldSoftRefresh) {
-          setLoading(true)
-        }
-
+        setLoading(true)
         setCatalogMaintenance("")
 
         const params = new URLSearchParams()
@@ -266,6 +269,7 @@ export default function CustomerProductContent({
         if (!active) return
 
         const parsed = normalizeProductsResponse(json)
+
         setProducts(parsed.items)
         setPagination({
           currentPage: parsed.currentPage,
@@ -288,7 +292,7 @@ export default function CustomerProductContent({
     return () => {
       active = false
     }
-  }, [subcategoryId, sort, currentPage, initialProducts])
+  }, [subcategoryId, sort, currentPage])
 
   useEffect(() => {
     if (!subcategoryId) {
