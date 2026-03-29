@@ -44,37 +44,61 @@ async function safeJson(res) {
     return null;
   }
 }
+let lastCheck = 0
+let lastResult = null
 
 async function checkUserAreaMaintenance(request, pathname, token, role) {
+  
   if (!API) return null;
   if (!pathname.startsWith("/customer")) return null;
+  if (pathname.startsWith("/customer/category")) return null
   if (!token) return null;
   if (role === "admin") return null;
   if (shouldSkipMaintenanceCheck(request, pathname)) return null;
 
+
+  if (Date.now() - lastCheck < 10000) {
+    return lastResult
+  }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 1500) // max 1.5s
+
   try {
     const res = await fetch(`${API}/api/v1/wallet/summary`, {
       method: "GET",
-      revalidate: 10,
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
-    });
+      signal: controller.signal,
+    })
 
-    if (res.status !== 503) return null;
+    // default result
+    let result = null
 
-    const data = await safeJson(res);
-    const key = data?.meta?.key || "user_area_access";
+    if (res.status === 503) {
+      const data = await safeJson(res)
+      const key = data?.meta?.key || "user_area_access"
 
-    if (key !== "user_area_access") return null;
+      if (key === "user_area_access") {
+        result = NextResponse.redirect(
+          new URL(buildMaintenanceRedirectPath(data), request.url)
+        )
+      }
+    }
 
-    return NextResponse.redirect(
-      new URL(buildMaintenanceRedirectPath(data), request.url)
-    );
+    // SIMPAN CACHE
+    lastCheck = Date.now()
+    lastResult = result
+
+    return result
   } catch (error) {
-    console.error("User area maintenance check failed:", error);
-    return null;
+    console.error("User area maintenance check failed:", error)
+
+    return null
+  } finally {
+    clearTimeout(timeout)
   }
 }
 

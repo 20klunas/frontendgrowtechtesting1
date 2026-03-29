@@ -219,6 +219,20 @@ export default function CustomerProductContent({
   ])
 
   useEffect(() => {
+    const handler = () => {
+      //  jangan panggil
+    }
+
+    window.addEventListener("favorite:changed", handler)
+    window.addEventListener("cart:changed", handler)
+
+    return () => {
+      window.removeEventListener("favorite:changed", handler)
+      window.removeEventListener("cart:changed", handler)
+    }
+  }, [])
+
+  useEffect(() => {
     setSort("latest")
   }, [subcategoryId])
 
@@ -483,6 +497,7 @@ export default function CustomerProductContent({
       }, { auth: true })
 
       notifyCustomerCartChanged()
+      window.dispatchEvent(new Event("stock:changed"))
       router.prefetch("/customer/category/product/detail/lengkapipembelian")
     } catch (err) {
       console.error("Buy now error:", err)
@@ -510,6 +525,7 @@ export default function CustomerProductContent({
       }, { auth: true })
 
       notifyCustomerCartChanged()
+      window.dispatchEvent(new Event("stock:changed"))
     } catch (err) {
       console.error("Add to cart failed:", err)
       alert(err.message || "Gagal menambahkan ke keranjang")

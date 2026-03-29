@@ -31,7 +31,6 @@ function getTTL(url) {
 
   if (path.includes("/content")) return TTL.LONG
   if (path.includes("/categories")) return TTL.MEDIUM
-  if (path.includes("/products")) return TTL.SHORT
 
   return TTL.SHORT
 }
@@ -39,8 +38,9 @@ function getTTL(url) {
 function shouldCache(url, method) {
   if (method !== "GET") return false
 
+  if (url.toLowerCase().includes("/products")) return false // WAJIB
+
   return [
-    "/products",
     "/categories",
     "/subcategories",
     "/catalog",
@@ -103,7 +103,7 @@ export async function fetcher(url, options = {}, config = {}) {
     throw new Error("Unauthorized")
   }
 
-  const requestKey = getRequestKey(fullUrl, method, options.body)
+  const requestKey = `${token || "guest"}:${getRequestKey(fullUrl, method, options.body)}`
   const canCache = shouldCache(url, method)
 
   if (canCache && responseCache.has(requestKey)) {

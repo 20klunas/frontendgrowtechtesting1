@@ -21,7 +21,7 @@ export default function FavoritesClient({
     loading: accessLoading,
   } = useCatalogAccess()
 
-  const [favorites] = useState(Array.isArray(initialFavorites) ? initialFavorites : [])
+  const [favorites, setFavorites] = useState(Array.isArray(initialFavorites) ? initialFavorites : [])
   const [buyingId, setBuyingId] = useState(null)
 
   useEffect(() => {
@@ -29,6 +29,31 @@ export default function FavoritesClient({
       router.replace("/login")
     }
   }, [initialUnauthorized, authLoading, router])
+
+  useEffect(() => {
+    const handler = async () => {
+      const json = await fetcher("/api/v1/favorites?per_page=50", {}, { auth: true })
+      setFavorites(json.data.data)
+    }
+
+    window.addEventListener("stock:changed", handler)
+
+    return () => {
+      window.removeEventListener("stock:changed", handler)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleFocus = () => {
+      handler()
+    }
+
+    window.addEventListener("focus", handleFocus)
+
+    return () => {
+      window.removeEventListener("focus", handleFocus)
+    }
+  }, [])
 
   const handleBuyNow = async (productId, stock) => {
     if (stock <= 0){
@@ -59,6 +84,7 @@ export default function FavoritesClient({
       }, { auth: true }),
 
       notifyCustomerCartChanged()
+      window.dispatchEvent(new Event("stock:changed"))
       router.push("/customer/category/product/detail/lengkapipembelian")
     } catch (err) {
       console.error("Buy now error:", err)

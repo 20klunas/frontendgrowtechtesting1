@@ -119,7 +119,7 @@ export async function getProductPageServerData({
   const [access, products, subcategory] = await Promise.allSettled([
     fetchFeatureAccessSnapshot(),
     serverFetch(`/api/v1/products?${params.toString()}`, {
-      next: { revalidate: PRODUCT_REVALIDATE },
+      next: { revalidate: 0 },
     }),
     subcategoryId
       ? serverFetch(`/api/v1/subcategories/${subcategoryId}`, {
@@ -195,7 +195,7 @@ export async function getPublicProductsServerData({
 
   try {
     const payload = await serverFetch(`/api/v1/products?${params.toString()}`, {
-      next: { revalidate: PRODUCT_REVALIDATE },
+      next: { revalidate: 0 },
     })
 
     return normalizePaginator(payload, perPage).items

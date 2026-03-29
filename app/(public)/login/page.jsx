@@ -117,7 +117,7 @@ export default function LoginPage() {
         return;
       }
 
-      window.location.href = `${API}/api/v1/auth/google/redirect`;
+      window.location.href = `${API}api/v1/auth/google/redirect`;
     } catch (err) {
       if (err?.isMaintenance) {
         setPopup({
@@ -142,7 +142,7 @@ export default function LoginPage() {
       return;
     }
 
-    window.location.href = `${API}/api/v1/auth/discord/redirect`;
+    window.location.href = `${API}api/v1/auth/discord/redirect`;
   };
 
   return (
