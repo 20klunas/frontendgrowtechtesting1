@@ -498,9 +498,6 @@ export default function CustomerProductContent({
       return
     }
 
-    // 🔥 langsung trigger UI
-    notifyCustomerCartChanged()
-
     try {
       setAddingId(productId)
 
@@ -512,6 +509,7 @@ export default function CustomerProductContent({
         }),
       }, { auth: true })
 
+      notifyCustomerCartChanged()
     } catch (err) {
       console.error("Add to cart failed:", err)
       alert(err.message || "Gagal menambahkan ke keranjang")

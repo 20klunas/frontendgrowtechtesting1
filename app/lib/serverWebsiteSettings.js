@@ -1,6 +1,5 @@
 import { cache } from 'react'
-
-const API = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')
+import { buildApiUrl, API_BASE_URL } from './apiUrl'
 
 function parseSettingValue(value) {
   if (typeof value !== 'string') return value
@@ -30,12 +29,16 @@ function normalizeSettings(rows = []) {
 }
 
 export const getWebsiteSettingsServer = cache(async () => {
-  if (!API) return {}
+  if (!API_BASE_URL) return {}
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 8000)
 
   try {
-    const res = await fetch(`${API}/api/v1/content/settings?group=website`, {
+    const res = await fetch(buildApiUrl('/api/v1/content/settings?group=website'), {
       headers: { Accept: 'application/json' },
       next: { revalidate: 300 },
+      signal: controller.signal,
     })
 
     if (!res.ok) return {}
@@ -47,6 +50,8 @@ export const getWebsiteSettingsServer = cache(async () => {
     return normalizeSettings(json?.data || [])
   } catch {
     return {}
+  } finally {
+    clearTimeout(timeoutId)
   }
 })
 

@@ -21,6 +21,8 @@ export default function ProductBrowserClient({
 
   const deferredSearch = useDeferredValue(search)
 
+  const filteredSubcategories = initialSubcategories
+
   // const filteredSubcategories = useMemo(() => {
   //   let data = Array.isArray(initialSubcategories) ? [...initialSubcategories] : []
 

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Heart } from "lucide-react";
-
+import { useState, useEffect } from "react";
 import NavbarShellClient from "./navbar/customer/NavbarShellClient";
 import NavbarLogo from "./navbar/customer/NavbarLogo";
 import NavbarMenu from "./navbar/customer/NavbarMenu";
@@ -11,46 +11,33 @@ import { useWebsiteSettings } from "../context/WebsiteSettingsContext";
 
 const NavbarSearchClient = dynamic(
   () => import("./navbar/customer/NavbarSearchClient"),
-  {
-    loading: () => (
-      <div className="ml-6 hidden w-[320px] lg:block">
-        <div className="h-[42px] w-full rounded-full border border-purple-300/40 bg-white/95" />
-      </div>
-    ),
-  }
+  { ssr: false }
 );
 
 const NavbarCartClient = dynamic(
   () => import("./navbar/customer/NavbarCartClient"),
-  {
-    loading: () => (
-      <div className="relative text-white">
-        🛒
-      </div>
-    ),
-  }
+  { ssr: false }
 );
 
 const NavbarUserMenuClient = dynamic(
   () => import("./navbar/customer/NavbarUserMenuClient"),
-  {
-    loading: () => (
-      <div className="flex items-center gap-2">
-        <div className="hidden text-right leading-tight md:block">
-          <div className="h-4 w-20 rounded bg-white/10" />
-          <div className="mt-1 h-3 w-12 rounded bg-white/10" />
-        </div>
-        <div className="h-8 w-8 rounded-full bg-purple-600" />
-      </div>
-    ),
-  }
+  { ssr: false }
 );
+
 
 export default function NavbarCustomerClient({ initialShellData = null }) {
   const { brand } = useWebsiteSettings();
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
   const initialUser = initialShellData?.auth?.user || null;
   const favoriteCount = Number(initialShellData?.nav?.favorite_count || 0);
+
 
   return (
     <NavbarShellClient>

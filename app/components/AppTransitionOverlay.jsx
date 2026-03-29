@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { AnimatePresence, motion } from 'framer-motion'
 
 export default function AppTransitionOverlay({ active, message }) {
@@ -9,55 +8,31 @@ export default function AppTransitionOverlay({ active, message }) {
       {active ? (
         <motion.div
           key="app-transition-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/88 backdrop-blur-md"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.16 }}
+          className="pointer-events-none fixed inset-x-0 top-0 z-[200]"
         >
-          <div className="mx-4 w-full max-w-md rounded-3xl border border-purple-500/40 bg-[#090011]/95 p-8 text-center shadow-[0_0_60px_rgba(168,85,247,0.18)]">
-            <motion.div
-              initial={{ scale: 0.94, opacity: 0.7 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{
-                repeat: Infinity,
-                repeatType: 'reverse',
-                duration: 0.9,
-              }}
-              className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-purple-500/30 bg-purple-500/10"
-            >
-              <Image
-                src="/logoherosection.png"
-                alt="Growtech Central"
-                width={64}
-                height={64}
-                priority
-              />
-            </motion.div>
-
-            <h2 className="text-2xl font-semibold text-white">
-              Growtech Central
-            </h2>
-            <p className="mt-2 text-sm text-purple-200/90">
-              {message || 'Menyiapkan halaman...'}
-            </p>
-
-            <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-purple-500 via-fuchsia-400 to-purple-300"
-                initial={{ x: '-100%' }}
-                animate={{ x: '100%' }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 1.1,
-                  ease: 'easeInOut',
-                }}
-              />
+          <div className="mx-auto w-full max-w-7xl px-4 pt-3">
+            <div className="overflow-hidden rounded-2xl border border-purple-500/30 bg-[#090011]/92 shadow-[0_0_30px_rgba(168,85,247,0.18)] backdrop-blur">
+              <div className="px-4 py-3">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-purple-300/80">
+                  Growtech Central
+                </p>
+                <p className="mt-1 text-sm text-white/90">
+                  {message || 'Menyiapkan halaman...'}
+                </p>
+              </div>
+              <div className="h-1 w-full bg-white/10">
+                <motion.div
+                  className="h-full w-1/3 rounded-full bg-gradient-to-r from-purple-500 via-fuchsia-400 to-purple-300"
+                  initial={{ x: '-110%' }}
+                  animate={{ x: '320%' }}
+                  transition={{ repeat: Infinity, duration: 0.9, ease: 'easeInOut' }}
+                />
+              </div>
             </div>
-
-            <p className="mt-4 text-xs tracking-[0.2em] text-white/50 uppercase">
-              Smoothing runtime handoff
-            </p>
           </div>
         </motion.div>
       ) : null}

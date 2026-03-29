@@ -14,8 +14,8 @@ import AppTransitionOverlay from '../components/AppTransitionOverlay'
 export const AppTransitionContext = createContext(null)
 
 const DEFAULT_MESSAGE = 'Menyiapkan halaman...'
-const PATH_SETTLE_DELAY = 450
-const FAILSAFE_TIMEOUT = 10000
+const PATH_SETTLE_DELAY = 120
+const FAILSAFE_TIMEOUT = 2500
 
 export function AppTransitionProvider({ children }) {
   const pathname = usePathname()
@@ -51,11 +51,14 @@ export function AppTransitionProvider({ children }) {
 
   const beginTransition = useCallback(
     (targetPath, message = DEFAULT_MESSAGE) => {
-      clearTimers()
+      if (!targetPath || targetPath === window.location.pathname) {
+        return
+      }
 
+      clearTimers()
       setTransition({
         active: true,
-        targetPath: targetPath || null,
+        targetPath,
         message: message || DEFAULT_MESSAGE,
       })
 
@@ -85,11 +88,7 @@ export function AppTransitionProvider({ children }) {
     }
 
     finishTimerRef.current = window.setTimeout(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          finishTransition()
-        })
-      })
+      finishTransition()
     }, PATH_SETTLE_DELAY)
 
     return () => {
@@ -99,17 +98,6 @@ export function AppTransitionProvider({ children }) {
       }
     }
   }, [pathname, transition.active, transition.targetPath, finishTransition])
-
-  useEffect(() => {
-    if (!transition.active) return
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
-  }, [transition.active])
 
   useEffect(() => {
     return () => {
@@ -139,10 +127,7 @@ export function AppTransitionProvider({ children }) {
   return (
     <AppTransitionContext.Provider value={value}>
       {children}
-      <AppTransitionOverlay
-        active={transition.active}
-        message={transition.message}
-      />
+      <AppTransitionOverlay active={transition.active} message={transition.message} />
     </AppTransitionContext.Provider>
   )
 }

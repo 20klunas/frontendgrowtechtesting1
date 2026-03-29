@@ -1,7 +1,7 @@
 import NavbarCustomerClient from "./NavbarCustomerClient";
 
-export default function NavbarCustomer({ initialShellData = null }) {
+export default function NavbarCustomer({ initialShellData }) {
   return (
-    <NavbarCustomerClient initialShellData={initialShellData} />
+    <NavbarCustomerClient initialShellData={initialShellData ?? {}} />
   );
 }
