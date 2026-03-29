@@ -10,7 +10,8 @@ import {
   useState,
 } from "react"
 
-import { authFetch } from "../lib/authFetch"
+// import { authFetch } from "../lib/authFetch"
+import { fetcher } from "../lib/fetcher"
 import { useAuth } from "../hooks/useAuth"
 import { CUSTOMER_CART_REFRESH_EVENT } from "../lib/customerCartEvents"
 
@@ -88,9 +89,7 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
             setCartLoading(true)
           }
 
-          const json = await authFetch("/api/v1/cart", {
-            cache: "no-store",
-          })
+          const json = await fetcher("/api/v1/cart", {}, { auth: true })
 
           if (json?.success) {
             return applyCartData(json?.data?.items || [])
@@ -98,10 +97,7 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
 
           return applyCartData([])
         } catch (error) {
-          console.error("Failed fetch cart:", {
-            message: error.message,
-            userId,
-          })
+          console.error("Failed fetch cart:", error)
           return applyCartData([])
         } finally {
           setCartLoading(false)

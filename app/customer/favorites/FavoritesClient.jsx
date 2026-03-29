@@ -7,6 +7,7 @@ import { authFetch } from "../../lib/authFetch"
 import { notifyCustomerCartChanged } from "../../lib/customerCartEvents"
 import { useAuth } from "../../hooks/useAuth"
 import useCatalogAccess from "../../hooks/useCatalogAccess"
+import { fetcher } from "../../lib/fetcher"
 
 export default function FavoritesClient({
   initialFavorites = [],
@@ -29,7 +30,11 @@ export default function FavoritesClient({
     }
   }, [initialUnauthorized, authLoading, router])
 
-  const handleBuyNow = async (productId) => {
+  const handleBuyNow = async (productId, stock) => {
+    if (stock <= 0){
+      alert("Stok habis")
+      return
+    }
     try {
       if (!user) {
         router.push("/login")
@@ -38,22 +43,20 @@ export default function FavoritesClient({
 
       setBuyingId(productId)
 
-      await authFetch("/api/v1/cart/items", {
+      await fetcher("/api/v1/cart/items", {
         method: "POST",
         body: JSON.stringify({
           product_id: productId,
           qty: 1,
         }),
-        cache: "no-store",
-      })
+      }, { auth: true })
 
-      await authFetch("/api/v1/cart/checkout", {
+      await fetcher("/api/v1/cart/checkout", {
         method: "POST",
         body: JSON.stringify({
           voucher_code: null,
         }),
-        cache: "no-store",
-      })
+      }, { auth: true }),
 
       notifyCustomerCartChanged()
       router.push("/customer/category/product/detail/lengkapipembelian")
@@ -95,6 +98,8 @@ export default function FavoritesClient({
           {favorites.map((fav) => {
             const product = fav.product
             const isBuying = buyingId === product?.id
+            const stockValue = Number(product?.available_stock ?? 0)
+            const isOutOfStock = stockValue <= 0
 
             return (
               <div
@@ -108,10 +113,20 @@ export default function FavoritesClient({
                     alt={product?.name || "Product"}
                     className="object-cover"
                   />
+                  {isOutOfStock && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70">
+                      <span className="rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white">
+                        STOK HABIS
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4">
                   <h3 className="mb-2 font-semibold">{product?.name}</h3>
+                  <p className="text-sm text-white/70">
+                    Stok: {stockValue}
+                  </p>
 
                   <div className="mb-2 flex items-center text-sm text-yellow-400">
                     <span className="mr-1">
@@ -125,11 +140,21 @@ export default function FavoritesClient({
                   </div>
 
                   <button
-                    onClick={() => handleBuyNow(product?.id)}
-                    disabled={isBuying}
-                    className="mt-3 block w-full rounded-lg bg-purple-600 py-2 text-center text-sm transition hover:bg-purple-700 disabled:opacity-60"
+                    onClick={() => !isOutOfStock && handleBuyNow(product?.id, stockValue)}
+                    disabled={isBuying || isOutOfStock}
+                    className={`
+                      mt-3 block w-full rounded-lg py-2 text-center text-sm transition
+                      ${isOutOfStock 
+                        ? "bg-gray-600 cursor-not-allowed" 
+                        : "bg-purple-600 hover:bg-purple-700"}
+                      disabled:opacity-60
+                    `}
                   >
-                    {isBuying ? "Memproses..." : "Beli"}
+                    {isOutOfStock
+                      ? "Stok Habis"
+                      : isBuying
+                      ? "Memproses..."
+                      : "Beli"}
                   </button>
                 </div>
               </div>

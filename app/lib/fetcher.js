@@ -81,6 +81,14 @@ function clearCache() {
   pendingRequests.clear()
 }
 
+function clearCartCache() {
+  for (const key of responseCache.keys()) {
+    if (key.includes("/cart")) {
+      responseCache.delete(key)
+    }
+  }
+}
+
 export async function fetcher(url, options = {}, config = {}) {
   const method = normalizeMethod(options.method)
   const fullUrl = buildApiUrl(url)
@@ -106,6 +114,10 @@ export async function fetcher(url, options = {}, config = {}) {
 
   if (method === "GET" && pendingRequests.has(requestKey)) {
     return pendingRequests.get(requestKey)
+  }
+
+  if (isMutation(method)) {
+    clearCartCache()
   }
 
   const promise = (async () => {

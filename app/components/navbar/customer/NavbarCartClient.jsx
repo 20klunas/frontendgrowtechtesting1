@@ -80,7 +80,7 @@ export default function NavbarCartClient() {
               ))}
             </div>
           )}
-
+{/* 
           <AppTransitionLink
             href="/customer/category/product/detail/cart"
             transitionMessage="Menyiapkan keranjang Anda..."
@@ -90,7 +90,7 @@ export default function NavbarCartClient() {
             "
           >
             Lihat Keranjang
-          </AppTransitionLink>
+          </AppTransitionLink> */}
         </div>
       )}
     </div>
