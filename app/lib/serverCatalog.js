@@ -1,9 +1,30 @@
 import { serverFetchJson } from "./serverApi"
-
+import { buildApiUrl } from "./apiUrl"
 const CATEGORY_REVALIDATE = 300
 const PRODUCT_REVALIDATE = 60
 const FEATURE_ACCESS_REVALIDATE = 30
 const PUBLIC_CATALOG_REVALIDATE = 300
+const globalCache = new Map()
+const pendingPromises = new Map()
+
+function getCache(key) {
+  const cached = globalCache.get(key)
+  if (!cached) return null
+
+  if (cached.expiry < Date.now()) {
+    globalCache.delete(key)
+    return null
+  }
+
+  return cached.data
+}
+
+function setCache(key, data, ttl = 300000) {
+  globalCache.set(key, {
+    data,
+    expiry: Date.now() + ttl,
+  })
+}
 
 function normalizeCollection(json) {
   if (Array.isArray(json?.data)) return json.data
@@ -46,7 +67,7 @@ export async function getCategoryPageServerData() {
   }
 
   const [accessResult, categoriesResult, subcategoriesResult] =
-    await Promise.allSettled([
+    await Promise.all([
       fetchFeatureAccessSnapshot(),
       serverFetchJson("/api/v1/catalog/categories", {
         cache: "force-cache",
@@ -109,7 +130,7 @@ export async function getProductPageServerData({
   }
 
   const [accessResult, productsResult, subcategoryResult] =
-    await Promise.allSettled([
+    await Promise.all([
       fetchFeatureAccessSnapshot(),
       serverFetchJson(`/api/v1/products?${params.toString()}`, {
         cache: "force-cache",
@@ -147,31 +168,43 @@ export async function getProductPageServerData({
 }
 
 export async function getPublicCategoryBrowserServerData() {
-  const result = {
-    categories: [],
-    subcategories: [],
+  const cacheKey = "public-catalog"
+
+  const cached = getCache(cacheKey)
+  if (cached) return cached
+
+  if (pendingPromises.has(cacheKey)) {
+    return pendingPromises.get(cacheKey)
   }
 
-  const [categoriesResult, subcategoriesResult] = await Promise.allSettled([
-    serverFetchJson("/api/v1/categories", {
-      cache: "force-cache",
-      revalidate: PUBLIC_CATALOG_REVALIDATE,
-    }),
-    serverFetchJson("/api/v1/subcategories", {
-      cache: "force-cache",
-      revalidate: PUBLIC_CATALOG_REVALIDATE,
-    }),
-  ])
+  const promise = (async () => {
+    try {
+      const [categories, subcategories] = await Promise.all([
+        serverFetchJson("/api/v1/categories", {
+          cache: "force-cache",
+          revalidate: PUBLIC_CATALOG_REVALIDATE,
+        }),
+        serverFetchJson("/api/v1/subcategories", {
+          cache: "force-cache",
+          revalidate: PUBLIC_CATALOG_REVALIDATE,
+        }),
+      ])
 
-  if (categoriesResult.status === "fulfilled") {
-    result.categories = normalizeCollection(categoriesResult.value) || []
-  }
+      const result = {
+        categories: normalizeCollection(categories) || [],
+        subcategories: normalizeCollection(subcategories) || [],
+      }
 
-  if (subcategoriesResult.status === "fulfilled") {
-    result.subcategories = normalizeCollection(subcategoriesResult.value) || []
-  }
+      setCache(cacheKey, result, 300000)
+      return result
+    } finally {
+      pendingPromises.delete(cacheKey)
+    }
+  })()
 
-  return result
+  pendingPromises.set(cacheKey, promise)
+
+  return promise
 }
 
 export async function getPublicProductsServerData({

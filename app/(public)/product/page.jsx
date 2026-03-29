@@ -1,6 +1,6 @@
 import ProductBrowserClient from "./ProductBrowserClient"
 import { getPublicCategoryBrowserServerData } from "../../lib/serverCatalog"
-
+export const revalidate = 300
 export default async function ProductPage() {
   const { categories, subcategories } =
     await getPublicCategoryBrowserServerData()
