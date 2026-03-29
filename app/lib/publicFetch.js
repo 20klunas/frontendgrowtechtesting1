@@ -110,7 +110,7 @@ export async function publicFetch(url, options = {}) {
 
   const fetchPromise = (async () => {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000)
+    const timeout = setTimeout(() => controller.abort(), 100000)
 
     try {
       const res = await fetch(fullUrl, {
@@ -148,7 +148,7 @@ export async function publicFetch(url, options = {}) {
       return data
     } catch (err) {
       if (err?.name === "AbortError") {
-        throw new Error("Request timeout (lebih dari 30 detik)")
+        throw new Error("Request timeout (lebih dari 100 detik)")
       }
       throw err
     } finally {

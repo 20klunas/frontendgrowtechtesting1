@@ -1,4 +1,14 @@
 import { buildApiUrl } from "./apiUrl"
+import { cookies } from "next/headers"
+
+async function getServerToken() {
+  try {
+    const cookieStore = cookies()
+    return cookieStore.get("token")?.value || ""
+  } catch {
+    return ""
+  }
+}
 
 export async function parseJsonSafe(response) {
   try {
@@ -27,10 +37,13 @@ export async function serverFetchJson(path, options = {}) {
     ...rest
   } = options
 
+  const token = await getServerToken()
+
   const fetchOptions = {
     method,
     headers: {
       Accept: "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
       ...headers,
     },
     ...rest,
@@ -47,7 +60,7 @@ export async function serverFetchJson(path, options = {}) {
   
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 8000)
+  const timeout = setTimeout(() => controller.abort(), 100000)
 
   const response = await fetch(buildApiUrl(path), {
     ...fetchOptions,

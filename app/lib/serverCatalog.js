@@ -67,7 +67,7 @@ export async function getCategoryPageServerData() {
   }
 
   const [accessResult, categoriesResult, subcategoriesResult] =
-    await Promise.all([
+    await Promise.allSettled([
       fetchFeatureAccessSnapshot(),
       serverFetchJson("/api/v1/catalog/categories", {
         cache: "force-cache",
@@ -130,7 +130,7 @@ export async function getProductPageServerData({
   }
 
   const [accessResult, productsResult, subcategoryResult] =
-    await Promise.all([
+    await Promise.allSettled([
       fetchFeatureAccessSnapshot(),
       serverFetchJson(`/api/v1/products?${params.toString()}`, {
         cache: "force-cache",
@@ -179,7 +179,7 @@ export async function getPublicCategoryBrowserServerData() {
 
   const promise = (async () => {
     try {
-      const [categories, subcategories] = await Promise.all([
+      const [categories, subcategories] = await Promise.allSettled([
         serverFetchJson("/api/v1/categories", {
           cache: "force-cache",
           revalidate: PUBLIC_CATALOG_REVALIDATE,

@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json", // 🔥 INI KUNCI
+          "Accept": "application/json",
         },
         body: JSON.stringify({ email }),
       })

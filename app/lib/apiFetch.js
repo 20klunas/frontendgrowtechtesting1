@@ -2,7 +2,7 @@ import Cookies from "js-cookie";
 import { handleMaintenance } from "./maintenanceHandler";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
-
+const pending = new Map()
 function resolveCacheMode(url, explicitCache) {
   if (explicitCache) return explicitCache;
 
