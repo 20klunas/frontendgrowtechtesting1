@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { motion } from "framer-motion"
 import {
   ChevronLeft,
@@ -18,6 +18,7 @@ import { fetcher } from "../../../lib/fetcher"
 import { notifyCustomerCartChanged } from "../../../lib/customerCartEvents"
 import { useAuth } from "../../../hooks/useAuth"
 import useCatalogAccess from "../../../hooks/useCatalogAccess"
+import { notifyFavoriteChanged } from "../../../lib/favoriteEvents"
 
 const ITEMS_PER_PAGE = 6
 const FAVORITE_IDS_TTL = 2 * 60 * 1000
@@ -145,9 +146,11 @@ export default function CustomerProductContent({
   initialPagination = null,
   initialSubcategory = null,
   initialMaintenanceMessage = "",
+  
 }) {
   const router = useRouter()
   const subcategoryId = initialSubcategoryId
+  const prefetchedRef = useRef(false)
 
   const [products, setProducts] = useState(
     Array.isArray(initialProducts) ? initialProducts : []
@@ -179,24 +182,7 @@ export default function CustomerProductContent({
   const userId = user?.id || null
   const userTier = user?.tier?.toLowerCase() || "guest"
 
-  const visibleProducts = useMemo(() => {
-    const source = Array.isArray(products) ? products : []
-
-    if (!subcategoryId) {
-      return source
-    }
-
-    return source.filter((product) => {
-      const productSubcategoryId =
-        product?.subcategory_id ?? product?.subcategory?.id ?? null
-
-      if (productSubcategoryId === null || productSubcategoryId === undefined) {
-        return false
-      }
-
-      return String(productSubcategoryId) === String(subcategoryId)
-    })
-  }, [products, subcategoryId])
+  const visibleProducts = products
 
   const resolvedSubcategory =
     subcategoryInfo || visibleProducts?.[0]?.subcategory || null
@@ -239,6 +225,18 @@ export default function CustomerProductContent({
   useEffect(() => {
     setCurrentPage(1)
   }, [subcategoryId, sort])
+
+  useEffect(() => {
+    const handler = () => {
+      if (!userId) return
+
+      const cached = getCachedFavoriteIds(userId)
+      if (cached) setFavoriteIds(cached)
+    }
+
+    window.addEventListener("favorite:changed", handler)
+    return () => window.removeEventListener("favorite:changed", handler)
+  }, [userId])
 
   useEffect(() => {
     let active = true
@@ -348,6 +346,7 @@ export default function CustomerProductContent({
     let active = true
     let timeoutId = null
     let idleId = null
+    
 
     const loadFavorites = async () => {
       try {
@@ -418,7 +417,7 @@ export default function CustomerProductContent({
 
     const isFav = favoriteIds.has(productId)
 
-    // 🔥 OPTIMISTIC UPDATE (BENAR)
+    // OPTIMISTIC UPDATE (BENAR)
     updateFavoriteState((next) => {
       if (isFav) next.delete(productId)
       else next.add(productId)
@@ -438,6 +437,7 @@ export default function CustomerProductContent({
           body: JSON.stringify({ product_id: productId }),
         }, { auth: true })
       }
+      notifyFavoriteChanged()
     } catch (err) {
       console.error("toggleFavorite error:", err)
 
@@ -494,6 +494,7 @@ export default function CustomerProductContent({
       return
     }
 
+    // 🔥 langsung trigger UI
     notifyCustomerCartChanged()
 
     try {
@@ -625,6 +626,12 @@ export default function CustomerProductContent({
             return (
               <motion.div
                 key={product.id}
+                onMouseEnter={() => {
+                  if (!prefetchedRef.current) {
+                    router.prefetch(`/customer/category/product/detail?id=${product.id}`)
+                    prefetchedRef.current = true
+                  }
+                }}
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.28, delay: index * 0.03 }}

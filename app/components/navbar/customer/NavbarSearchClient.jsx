@@ -2,14 +2,13 @@
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { publicFetch } from "../../../lib/publicFetch";
 import {
   getMaintenanceMessage,
   isFeatureMaintenanceError,
   isMaintenanceError,
 } from "../../../lib/maintenanceHandler";
 import { useAppTransition } from "../../../hooks/useAppTransition";
-import { authFetch } from "../../../lib/authFetch";
+import { fetcher } from "../../../lib/fetcher";
 
 const SUBCATEGORY_CACHE_TTL = 5 * 60 * 1000;
 const SUBCATEGORY_STORAGE_KEY = "navbar-search-subcategories-v1";
@@ -81,9 +80,7 @@ async function loadSubcategories() {
     return subcategoryPromise;
   }
 
-  subcategoryPromise = authFetch("/api/v1/catalog/subcategories", {
-    revalidate: 10,
-  })
+  subcategoryPromise = fetcher("/api/v1/catalog/subcategories")
     .then((json) => {
       const rows = Array.isArray(json?.data) ? json.data : [];
       writeSubcategoryCache(rows);
