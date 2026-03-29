@@ -3,9 +3,16 @@
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { getContacts } from '../lib/getContacts'
-
+export const revalidate = 60
 export default async function ContactPage() {
-  const contacts = await getContacts()
+  // const contacts = await getContacts()
+  let contacts = []
+
+  try {
+    contacts = await getContacts()
+  } catch (err) {
+    console.error("CONTACT FETCH ERROR:", err)
+}
 
   return (
     <>
