@@ -21,41 +21,41 @@ export default function ProductBrowserClient({
 
   const deferredSearch = useDeferredValue(search)
 
-  const filteredSubcategories = useMemo(() => {
-    let data = Array.isArray(initialSubcategories) ? [...initialSubcategories] : []
+  // const filteredSubcategories = useMemo(() => {
+  //   let data = Array.isArray(initialSubcategories) ? [...initialSubcategories] : []
 
-    if (selectedCategory !== null) {
-      data = data.filter(
-        (sub) => normalizeId(sub?.category?.id) === normalizeId(selectedCategory)
-      )
-    }
+  //   if (selectedCategory !== null) {
+  //     data = data.filter(
+  //       (sub) => normalizeId(sub?.category?.id) === normalizeId(selectedCategory)
+  //     )
+  //   }
 
-    const keyword = deferredSearch.trim().toLowerCase()
-    if (keyword) {
-      data = data.filter((sub) => {
-        const haystack = [sub?.name, sub?.provider, sub?.category?.name]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
+  //   const keyword = deferredSearch.trim().toLowerCase()
+  //   if (keyword) {
+  //     data = data.filter((sub) => {
+  //       const haystack = [sub?.name, sub?.provider, sub?.category?.name]
+  //         .filter(Boolean)
+  //         .join(" ")
+  //         .toLowerCase()
 
-        return haystack.includes(keyword)
-      })
-    }
+  //       return haystack.includes(keyword)
+  //     })
+  //   }
 
-    if (sort === "latest") {
-      data.sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0))
-    } else if (sort === "name_asc") {
-      data.sort((a, b) =>
-        String(a?.name || "").localeCompare(String(b?.name || ""))
-      )
-    } else if (sort === "name_desc") {
-      data.sort((a, b) =>
-        String(b?.name || "").localeCompare(String(a?.name || ""))
-      )
-    }
+  //   if (sort === "latest") {
+  //     data.sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0))
+  //   } else if (sort === "name_asc") {
+  //     data.sort((a, b) =>
+  //       String(a?.name || "").localeCompare(String(b?.name || ""))
+  //     )
+  //   } else if (sort === "name_desc") {
+  //     data.sort((a, b) =>
+  //       String(b?.name || "").localeCompare(String(a?.name || ""))
+  //     )
+  //   }
 
-    return data
-  }, [initialSubcategories, selectedCategory, deferredSearch, sort])
+  //   return data
+  // }, [initialSubcategories, selectedCategory, deferredSearch, sort])
 
   return (
     <main className="min-h-screen px-4 py-8 text-white sm:px-6 lg:px-10">
