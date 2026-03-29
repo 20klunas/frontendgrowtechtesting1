@@ -1,15 +1,16 @@
 import CustomerProductContent from "./CustomerProductContent"
 import { getProductPageServerData } from "../../../lib/serverCatalog"
 
-export default async function Page({ searchParams }) {
-  const params = searchParams || {}
+export const revalidate = 10 // cache 10 detik
 
-  const rawSubcategoryId = params?.subcategory_id ?? params?.subcategory ?? null
+export default async function Page(props) {
+  const searchParams = await props.searchParams
+
+  const rawSubcategoryId =
+    searchParams?.subcategory_id ?? searchParams?.subcategory ?? null
 
   const subcategoryId =
-    rawSubcategoryId !== null &&
-    rawSubcategoryId !== undefined &&
-    String(rawSubcategoryId).trim() !== ""
+    rawSubcategoryId && String(rawSubcategoryId).trim() !== ""
       ? String(rawSubcategoryId).trim()
       : null
 
@@ -23,7 +24,7 @@ export default async function Page({ searchParams }) {
 
   return (
     <CustomerProductContent
-      key={`subcategory-${subcategoryId ?? "all"}`}
+      key={`subcategory-${subcategoryId ?? "all"}`} // ✅ fix
       initialSubcategoryId={subcategoryId}
       initialProducts={products}
       initialPagination={pagination}

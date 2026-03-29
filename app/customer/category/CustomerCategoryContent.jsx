@@ -4,8 +4,16 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Search } from "lucide-react"
 import ProductCard from "../../components/customer/SubCategoryCard"
-import { publicFetch } from "../../lib/publicFetch"
+// import { publicFetch } from "../../lib/publicFetch"
 import useCatalogAccess from "../../hooks/useCatalogAccess"
+// import { authFetch } from "../../lib/authFetch"
+import { fetcher } from "../../lib/fetcher"
+
+export const publicFetch = (url, opt) =>
+  fetcher(url, opt, { auth: false })
+
+export const authFetch = (url, opt) =>
+  fetcher(url, opt, { auth: true })
 
 function normalizeId(value) {
   if (value === null || value === undefined || value === "") return null
@@ -80,9 +88,7 @@ export default function CustomerCategoryContent({
       try {
         setLoadingCategories(true)
 
-        const json = await publicFetch("/api/v1/catalog/categories", {
-          cache: "force-cache",
-        })
+        const json = await fetcher("/api/v1/catalog/categories", {}, { auth: true })
 
         if (!active) return
 
@@ -118,9 +124,7 @@ export default function CustomerCategoryContent({
             ? `/api/v1/catalog/categories/${categoryId}/subcategories`
             : "/api/v1/catalog/subcategories"
 
-        const json = await publicFetch(url, {
-          cache: "force-cache",
-        })
+        const json = await fetcher(url, {}, { auth: true })
 
         if (!active) return
 

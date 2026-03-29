@@ -9,6 +9,7 @@ import {
   isMaintenanceError,
 } from "../../../lib/maintenanceHandler";
 import { useAppTransition } from "../../../hooks/useAppTransition";
+import { authFetch } from "../../../lib/authFetch";
 
 const SUBCATEGORY_CACHE_TTL = 5 * 60 * 1000;
 const SUBCATEGORY_STORAGE_KEY = "navbar-search-subcategories-v1";
@@ -80,8 +81,8 @@ async function loadSubcategories() {
     return subcategoryPromise;
   }
 
-  subcategoryPromise = publicFetch("/api/v1/catalog/subcategories", {
-    cache: "force-cache",
+  subcategoryPromise = authFetch("/api/v1/catalog/subcategories", {
+    revalidate: 10,
   })
     .then((json) => {
       const rows = Array.isArray(json?.data) ? json.data : [];

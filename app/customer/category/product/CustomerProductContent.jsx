@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import {
   ChevronLeft,
@@ -12,8 +12,9 @@ import {
   Star,
 } from "lucide-react"
 import { cn } from "../../../lib/utils"
-import { publicFetch } from "../../../lib/publicFetch"
-import { authFetch } from "../../../lib/authFetch"
+// import { publicFetch } from "../../../lib/publicFetch"
+// import { authFetch } from "../../../lib/authFetch"
+import { fetcher } from "../../../lib/fetcher"
 import { notifyCustomerCartChanged } from "../../../lib/customerCartEvents"
 import { useAuth } from "../../../hooks/useAuth"
 import useCatalogAccess from "../../../hooks/useCatalogAccess"
@@ -239,29 +240,18 @@ export default function CustomerProductContent({
     setCurrentPage(1)
   }, [subcategoryId, sort])
 
-  const hasBootstrappedInitialFetch = useRef(false)
-
   useEffect(() => {
-    const canReuseInitialPayload =
-      Array.isArray(initialProducts) && currentPage === 1 && sort === "latest"
-
-    if (!hasBootstrappedInitialFetch.current && canReuseInitialPayload) {
-      hasBootstrappedInitialFetch.current = true
-      setLoading(false)
-      return
-    }
-
-    hasBootstrappedInitialFetch.current = true
-
     let active = true
 
     const fetchProducts = async () => {
-
-      if (isFetchingRef.current) return
-      isFetchingRef.current = true
+      const shouldSoftRefresh =
+        Array.isArray(initialProducts) && currentPage === 1 && sort === "latest"
 
       try {
-        setLoading(true)
+        if (!shouldSoftRefresh) {
+          setLoading(true)
+        }
+
         setCatalogMaintenance("")
 
         const params = new URLSearchParams()
@@ -273,9 +263,7 @@ export default function CustomerProductContent({
           params.set("subcategory_id", String(subcategoryId))
         }
 
-        const json = await publicFetch(`/api/v1/products?${params.toString()}`, {
-          cache: "force-cache",
-        })
+        const json = await fetcher(`/api/v1/products?${params.toString()}`)
 
         if (!active) return
 
@@ -294,7 +282,6 @@ export default function CustomerProductContent({
         setPagination(getDefaultPagination())
       } finally {
         if (active) setLoading(false)
-        isFetchingRef.current = false
       }
     }
 
@@ -303,7 +290,7 @@ export default function CustomerProductContent({
     return () => {
       active = false
     }
-  }, [subcategoryId, sort, currentPage])
+  }, [subcategoryId, sort, currentPage, initialProducts])
 
   useEffect(() => {
     if (!subcategoryId) {
@@ -326,9 +313,7 @@ export default function CustomerProductContent({
       try {
         setSubcategoryLoading(true)
 
-        const json = await publicFetch(`/api/v1/subcategories/${subcategoryId}`, {
-          cache: "force-cache",
-        })
+        const json = await fetcher(`/api/v1/subcategories/${subcategoryId}`)
 
         if (!active) return
         setSubcategoryInfo(json?.data || null)
@@ -366,9 +351,7 @@ export default function CustomerProductContent({
 
     const loadFavorites = async () => {
       try {
-        const json = await authFetch("/api/v1/favorites/ids", {
-          cache: "no-store",
-        })
+        const json = await fetcher("/api/v1/favorites?per_page=50", {}, { auth: true })
 
         if (!active) return
 
@@ -382,6 +365,7 @@ export default function CustomerProductContent({
       } catch (err) {
         if (!active) return
         console.error("fetchFavorites error:", err)
+        setFavoriteIds(new Set())
       }
     }
 
@@ -432,33 +416,38 @@ export default function CustomerProductContent({
       return
     }
 
+    const isFav = favoriteIds.has(productId)
+
+    // 🔥 OPTIMISTIC UPDATE (BENAR)
+    updateFavoriteState((next) => {
+      if (isFav) next.delete(productId)
+      else next.add(productId)
+      return next
+    })
+
     try {
       setFavoriteLoadingId(productId)
 
-      if (favoriteIds.has(productId)) {
-        await authFetch(`/api/v1/favorites/${productId}`, {
+      if (isFav) {
+        await fetcher(`/api/v1/favorites/${productId}`, {
           method: "DELETE",
-          cache: "no-store",
-        })
-
-        updateFavoriteState((next) => {
-          next.delete(productId)
-          return next
-        })
+        }, { auth: true })
       } else {
-        await authFetch("/api/v1/favorites", {
+        await fetcher("/api/v1/favorites", {
           method: "POST",
           body: JSON.stringify({ product_id: productId }),
-          cache: "no-store",
-        })
-
-        updateFavoriteState((next) => {
-          next.add(productId)
-          return next
-        })
+        }, { auth: true })
       }
     } catch (err) {
       console.error("toggleFavorite error:", err)
+
+      // 🔥 ROLLBACK (INI YANG BIKIN GOD TIER)
+      updateFavoriteState((next) => {
+        if (isFav) next.add(productId)
+        else next.delete(productId)
+        return next
+      })
+
       alert(err.message || "Gagal memperbarui favorite")
     } finally {
       setFavoriteLoadingId(null)
@@ -474,20 +463,23 @@ export default function CustomerProductContent({
 
       setCheckoutLoadingId(productId)
 
-      await authFetch("/api/v1/cart/items", {
+      await fetcher("/api/v1/cart/items", {
         method: "POST",
-        body: JSON.stringify({ product_id: productId, qty: 1 }),
-        cache: "no-store",
-      })
+        body: JSON.stringify({
+          product_id: productId,
+          qty: 1,
+        }),
+      }, { auth: true })
 
-      await authFetch("/api/v1/cart/checkout", {
+      await fetcher("/api/v1/cart/checkout", {
         method: "POST",
-        body: JSON.stringify({ voucher_code: null }),
-        cache: "no-store",
-      })
+        body: JSON.stringify({
+          voucher_code: null,
+        }),
+      }, { auth: true })
 
       notifyCustomerCartChanged()
-      router.push("/customer/category/product/detail/lengkapipembelian")
+      router.prefetch("/customer/category/product/detail/lengkapipembelian")
     } catch (err) {
       console.error("Buy now error:", err)
       alert(err.message || "Terjadi kesalahan")
@@ -497,21 +489,24 @@ export default function CustomerProductContent({
   }
 
   const addToCart = async (productId) => {
-    try {
-      if (!user) {
-        router.push("/login")
-        return
-      }
+    if (!user) {
+      router.push("/login")
+      return
+    }
 
+    notifyCustomerCartChanged()
+
+    try {
       setAddingId(productId)
 
-      await authFetch("/api/v1/cart/items", {
+      await fetcher("/api/v1/cart/items", {
         method: "POST",
-        body: JSON.stringify({ product_id: productId, qty: 1 }),
-        cache: "no-store",
-      })
+        body: JSON.stringify({
+          product_id: productId,
+          qty: 1,
+        }),
+      }, { auth: true })
 
-      notifyCustomerCartChanged()
     } catch (err) {
       console.error("Add to cart failed:", err)
       alert(err.message || "Gagal menambahkan ke keranjang")

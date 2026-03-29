@@ -2,16 +2,29 @@ import Cookies from "js-cookie"
 import { handleMaintenance } from "./maintenanceHandler"
 import { buildApiUrl } from "./apiUrl"
 
-// GLOBAL STATE (WAJIB DI LUAR)
 const pendingRequests = new Map()
 const responseCache = new Map()
-const CACHE_TTL = 5000 // 5 detik cache
+const DEFAULT_TTL = 15000
+const CATALOG_TTL = 60000
 let isRedirecting = false
 
-function resolveCacheMode(url, explicitCache) {
+function normalizeMethod(method) {
+  return String(method || "GET").toUpperCase()
+}
+
+function isMutationMethod(method) {
+  return ["POST", "PUT", "PATCH", "DELETE"].includes(normalizeMethod(method))
+}
+
+function resolveCacheMode(url, explicitCache, method = "GET") {
   if (explicitCache) return explicitCache
 
   const path = String(url || "").toLowerCase()
+  const safeMethod = normalizeMethod(method)
+
+  if (safeMethod !== "GET") {
+    return "no-store"
+  }
 
   const noStorePatterns = [
     /\/api\/v1\/cart\b/,
@@ -22,33 +35,50 @@ function resolveCacheMode(url, explicitCache) {
     /\/api\/v1\/withdraws?\b/,
     /\/api\/v1\/auth\/me\b/,
     /\/api\/v1\/profile\b/,
-    /\/api\/v1\/admin\/me\b/,
-    /\/api\/v1\/admin\/orders?\b/,
-    /\/api\/v1\/admin\/transactions?\b/,
-    /\/api\/v1\/admin\/wallet\b/,
-    /\/api\/v1\/admin\/withdraws?\b/,
-    /\/api\/v1\/admin\/audit-logs?\b/,
-    /\/api\/v1\/admin\/logs?\b/,
+    /\/api\/v1\/admin\//,
+    /\/api\/v1\/bootstrap\/checkout\b/,
+    /\/api\/v1\/bootstrap\/orders\//,
   ]
 
-  const cacheablePatterns = [
-    /\/api\/v1\/products\b/,
-    /\/api\/v1\/categories\b/,
-    /\/api\/v1\/subcategories\b/,
-    /\/api\/v1\/catalog\//,
-    /\/api\/v1\/content\/settings\b/,
-    /\/api\/v1\/content\/feature-access\b/,
-    /\/api\/v1\/content\/banners?\b/,
-    /\/api\/v1\/content\/popups?\b/,
-    /\/api\/v1\/content\/faqs?\b/,
-    /\/api\/v1\/content\/terms\b/,
-    /\/api\/v1\/content\/privacy\b/,
-  ]
-
-  if (noStorePatterns.some((p) => p.test(path))) return "no-store"
-  if (cacheablePatterns.some((p) => p.test(path))) return "force-cache"
+  if (noStorePatterns.some((pattern) => pattern.test(path))) {
+    return "no-store"
+  }
 
   return "default"
+}
+
+function shouldUseMemoryCache(url, method = "GET") {
+  const path = String(url || "").toLowerCase()
+  const safeMethod = normalizeMethod(method)
+
+  if (safeMethod !== "GET") return false
+
+  const cacheablePatterns = [
+    /\/api\/v1\/payment-gateways\/available\b/,
+    /\/api\/v1\/content\//,
+    /\/api\/v1\/catalog\//,
+    /\/api\/v1\/categories\b/,
+    /\/api\/v1\/subcategories\b/,
+    /\/api\/v1\/products\b/,
+    /\/api\/v1\/bootstrap\/shell\b/,
+  ]
+
+  return cacheablePatterns.some((pattern) => pattern.test(path))
+}
+
+function getCacheTTL(url) {
+  const path = String(url || "").toLowerCase()
+
+  if (
+    /\/api\/v1\/catalog\//.test(path) ||
+    /\/api\/v1\/products\b/.test(path) ||
+    /\/api\/v1\/subcategories\b/.test(path) ||
+    /\/api\/v1\/categories\b/.test(path)
+  ) {
+    return CATALOG_TTL
+  }
+
+  return DEFAULT_TTL
 }
 
 function buildHeaders(options = {}, token) {
@@ -63,6 +93,36 @@ function buildHeaders(options = {}, token) {
   }
 }
 
+function buildBodyKey(body) {
+  if (typeof body === "string") return body
+  if (body == null) return ""
+
+  try {
+    return JSON.stringify(body)
+  } catch {
+    return String(body)
+  }
+}
+
+function buildRequestKey(fullUrl, options = {}) {
+  const method = normalizeMethod(options.method)
+  const bodyKey = buildBodyKey(options.body)
+  return `${method}:${fullUrl}:${bodyKey}`
+}
+
+function clearVolatileCaches() {
+  for (const key of Array.from(responseCache.keys())) {
+    if (
+      key.includes("/api/v1/cart") ||
+      key.includes("/api/v1/wallet") ||
+      key.includes("/api/v1/orders") ||
+      key.includes("/api/v1/bootstrap/checkout")
+    ) {
+      responseCache.delete(key)
+    }
+  }
+}
+
 export async function authFetch(url, options = {}) {
   const token = Cookies.get("token")
 
@@ -73,47 +133,51 @@ export async function authFetch(url, options = {}) {
     throw new Error("Unauthorized")
   }
 
+  const method = normalizeMethod(options.method)
   const fullUrl = buildApiUrl(url)
-  const cacheMode = resolveCacheMode(url, options.cache)
+  const cacheMode = resolveCacheMode(url, options.cache, method)
+  const requestKey = buildRequestKey(fullUrl, { ...options, method })
+  const canUseMemoryCache = shouldUseMemoryCache(url, method)
 
-  // FIX BODY KEY (ANTI BUG)
-  const bodyKey =
-    typeof options.body === "string"
-      ? options.body
-      : JSON.stringify(options.body || "")
-
-  const requestKey = `${options.method || "GET"}:${fullUrl}:${bodyKey}`
-
-  // 1. CACHE HIT (SUPER CEPAT)
-  if (responseCache.has(requestKey)) {
+  if (canUseMemoryCache && responseCache.has(requestKey)) {
     const cached = responseCache.get(requestKey)
-    if (Date.now() < cached.expiry) {
+    if (cached.expiresAt > Date.now()) {
       return cached.data
-    } else {
-      responseCache.delete(requestKey)
     }
+    responseCache.delete(requestKey)
   }
 
-  // 2. DEDUPE (ANTI SPAM REQUEST)
-  if (pendingRequests.has(requestKey)) {
+  if (method === "GET" && pendingRequests.has(requestKey)) {
     return pendingRequests.get(requestKey)
   }
 
   const fetchPromise = (async () => {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 50000) // 20s max
+    const timeout = setTimeout(() => controller.abort(), 35000)
 
     try {
       const res = await fetch(fullUrl, {
         ...options,
+        method,
         headers: buildHeaders(options, token),
         cache: cacheMode,
         signal: controller.signal,
+        credentials: "include",
       })
 
-      clearTimeout(timeout)
+      const contentType = res.headers.get("content-type") || ""
+      let data = null
 
-      // HANDLE 401 (ANTI LOOP REDIRECT)
+      if (contentType.includes("application/json")) {
+        data = await res.json()
+      } else {
+        const text = await res.text()
+        console.error("Non-JSON response:", text)
+        throw new Error(`Invalid response (${res.status})`)
+      }
+
+      handleMaintenance(res, data)
+
       if (res.status === 401 && !isRedirecting) {
         isRedirecting = true
         Cookies.remove("token")
@@ -128,40 +192,36 @@ export async function authFetch(url, options = {}) {
         throw new Error("Session expired")
       }
 
-      const contentType = res.headers.get("content-type")
-      let data
-
-      if (contentType?.includes("application/json")) {
-        data = await res.json()
-      } else {
-        const text = await res.text()
-        console.error("Non-JSON response:", text)
-        throw new Error(`Invalid response (${res.status})`)
-      }
-
-      handleMaintenance(res, data)
-
       if (!res.ok) {
-        throw new Error(data?.message || `HTTP ${res.status}`)
+        throw new Error(data?.error?.message || data?.message || `HTTP ${res.status}`)
       }
 
-      responseCache.set(requestKey, {
-        data,
-        expiry: Date.now() + CACHE_TTL,
-      })
+      if (canUseMemoryCache) {
+        responseCache.set(requestKey, {
+          data,
+          expiresAt: Date.now() + getCacheTTL(url),
+        })
+      }
+
+      if (isMutationMethod(method)) {
+        clearVolatileCaches()
+      }
 
       return data
     } catch (err) {
-      if (err.name === "AbortError") {
-        throw new Error("Request timeout (lebih dari 50 detik)")
+      if (err?.name === "AbortError") {
+        throw new Error("Request timeout (lebih dari 35 detik)")
       }
       throw err
     } finally {
+      clearTimeout(timeout)
       pendingRequests.delete(requestKey)
     }
   })()
 
-  pendingRequests.set(requestKey, fetchPromise)
+  if (method === "GET") {
+    pendingRequests.set(requestKey, fetchPromise)
+  }
 
   return fetchPromise
 }

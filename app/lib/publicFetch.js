@@ -1,22 +1,24 @@
 import { handleMaintenance } from "./maintenanceHandler"
 import { buildApiUrl } from "./apiUrl"
 
-function resolveCacheMode(url, explicitCache) {
+const pendingRequests = new Map()
+const responseCache = new Map()
+const DEFAULT_TTL = 30000
+const LONG_TTL = 60000
+
+function normalizeMethod(method) {
+  return String(method || "GET").toUpperCase()
+}
+
+function resolveCacheMode(url, explicitCache, method = "GET") {
   if (explicitCache) return explicitCache
 
   const path = String(url || "").toLowerCase()
+  const safeMethod = normalizeMethod(method)
 
-  const noStorePatterns = [
-    /\/api\/v1\/cart\b/,
-    /\/api\/v1\/wallet\b/,
-    /\/api\/v1\/orders?\b/,
-    /\/api\/v1\/payments?\b/,
-    /\/api\/v1\/topups?\b/,
-    /\/api\/v1\/withdraws?\b/,
-    /\/api\/v1\/auth\/me\b/,
-    /\/api\/v1\/profile\b/,
-    /\/api\/v1\/admin\//,
-  ]
+  if (safeMethod !== "GET") {
+    return "no-store"
+  }
 
   const cacheablePatterns = [
     /\/api\/v1\/products\b/,
@@ -33,19 +35,36 @@ function resolveCacheMode(url, explicitCache) {
     /\/api\/v1\/content\/pages?\b/,
   ]
 
-  if (noStorePatterns.some((pattern) => pattern.test(path))) {
-    return "no-store"
-  }
-
   if (cacheablePatterns.some((pattern) => pattern.test(path))) {
-    return "force-cache"
+    return "default"
   }
 
-  if (path.startsWith("/api/")) {
-    return "no-cache"
+  return "no-store"
+}
+
+function shouldUseMemoryCache(url, method = "GET") {
+  const path = String(url || "").toLowerCase()
+  const safeMethod = normalizeMethod(method)
+
+  if (safeMethod !== "GET") return false
+
+  return [
+    /\/api\/v1\/products\b/,
+    /\/api\/v1\/categories\b/,
+    /\/api\/v1\/subcategories\b/,
+    /\/api\/v1\/catalog\//,
+    /\/api\/v1\/content\//,
+  ].some((pattern) => pattern.test(path))
+}
+
+function getCacheTTL(url) {
+  const path = String(url || "").toLowerCase()
+
+  if (/\/api\/v1\/content\//.test(path)) {
+    return LONG_TTL
   }
 
-  return "default"
+  return DEFAULT_TTL
 }
 
 function buildHeaders(options = {}) {
@@ -59,31 +78,88 @@ function buildHeaders(options = {}) {
   }
 }
 
+function buildBodyKey(body) {
+  if (typeof body === "string") return body
+  if (body == null) return ""
+
+  try {
+    return JSON.stringify(body)
+  } catch {
+    return String(body)
+  }
+}
+
 export async function publicFetch(url, options = {}) {
-  const cacheMode = resolveCacheMode(url, options.cache)
+  const method = normalizeMethod(options.method)
+  const cacheMode = resolveCacheMode(url, options.cache, method)
+  const fullUrl = buildApiUrl(url)
+  const requestKey = `${method}:${fullUrl}:${buildBodyKey(options.body)}`
+  const canUseMemoryCache = shouldUseMemoryCache(url, method)
 
-  const res = await fetch(buildApiUrl(url), {
-    ...options,
-    headers: buildHeaders(options),
-    cache: cacheMode,
-  })
-
-  const contentType = res.headers.get("content-type")
-  let data = null
-
-  if (contentType && contentType.includes("application/json")) {
-    data = await res.json()
-  } else {
-    const text = await res.text()
-    console.error("Non-JSON response:", text)
-    throw new Error(`Server mengembalikan bukan JSON (HTTP ${res.status})`)
+  if (canUseMemoryCache && responseCache.has(requestKey)) {
+    const cached = responseCache.get(requestKey)
+    if (cached.expiresAt > Date.now()) {
+      return cached.data
+    }
+    responseCache.delete(requestKey)
   }
 
-  handleMaintenance(res, data)
-
-  if (!res.ok) {
-    throw new Error(data?.error?.message || data?.message || `HTTP ${res.status}`)
+  if (method === "GET" && pendingRequests.has(requestKey)) {
+    return pendingRequests.get(requestKey)
   }
 
-  return data
+  const fetchPromise = (async () => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30000)
+
+    try {
+      const res = await fetch(fullUrl, {
+        ...options,
+        method,
+        headers: buildHeaders(options),
+        cache: cacheMode,
+        signal: controller.signal,
+      })
+
+      const contentType = res.headers.get("content-type") || ""
+      let data = null
+
+      if (contentType.includes("application/json")) {
+        data = await res.json()
+      } else {
+        const text = await res.text()
+        console.error("Non-JSON response:", text)
+        throw new Error(`Server bukan JSON (HTTP ${res.status})`)
+      }
+
+      handleMaintenance(res, data)
+
+      if (!res.ok) {
+        throw new Error(data?.error?.message || data?.message || `HTTP ${res.status}`)
+      }
+
+      if (canUseMemoryCache) {
+        responseCache.set(requestKey, {
+          data,
+          expiresAt: Date.now() + getCacheTTL(url),
+        })
+      }
+
+      return data
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        throw new Error("Request timeout (lebih dari 30 detik)")
+      }
+      throw err
+    } finally {
+      clearTimeout(timeout)
+      pendingRequests.delete(requestKey)
+    }
+  })()
+
+  if (method === "GET") {
+    pendingRequests.set(requestKey, fetchPromise)
+  }
+
+  return fetchPromise
 }

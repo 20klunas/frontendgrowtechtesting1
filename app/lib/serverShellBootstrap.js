@@ -1,5 +1,4 @@
 import { cookies } from "next/headers"
-import { API_BASE_URL } from "./apiUrl"
 import { buildApiUrl } from "./apiUrl"
 import { parseJsonSafe } from "./serverApi"
 
@@ -15,7 +14,7 @@ async function getServerToken() {
 export async function getServerShellBootstrap() {
   const token = await getServerToken()
 
-  if (!API_BASE_URL || !token) {
+  if (!token) {
     return null
   }
 
