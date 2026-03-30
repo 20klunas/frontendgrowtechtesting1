@@ -351,14 +351,14 @@ export default function AksesAdminPage() {
           {Array.from({ length: 4 }).map((_, idx) => (
             <div
               key={idx}
-              className="h-28 animate-pulse rounded-3xl border border-white/10 bg-white/[0.04]"
+              className="h-28 animate-pulse rounded-3xl border border-white/10 bg-white/4"
             />
           ))}
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <div className="h-[420px] animate-pulse rounded-3xl border border-white/10 bg-white/[0.04]" />
-          <div className="h-[420px] animate-pulse rounded-3xl border border-white/10 bg-white/[0.04]" />
+          <div className="h-105 animate-pulse rounded-3xl border border-white/10 bg-white/4" />
+          <div className="h-105 animate-pulse rounded-3xl border border-white/10 bbg-white/4" />
         </div>
       </div>
     );
@@ -482,7 +482,7 @@ export default function AksesAdminPage() {
 
           <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1">
             {filteredAdmins.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-5 text-center text-sm text-gray-400">
+              <div className="rounded-2xl border border-dashed border-white/10 bg-white/3 p-5 text-center text-sm text-gray-400">
                 Tidak ada admin yang cocok dengan pencarian.
               </div>
             ) : (
@@ -499,7 +499,7 @@ export default function AksesAdminPage() {
                     className={`group w-full rounded-3xl border p-4 text-left transition ${
                       active
                         ? "border-fuchsia-400/30 bg-fuchsia-500/10 shadow-[0_10px_30px_rgba(168,85,247,0.18)]"
-                        : "border-white/8 bg-white/[0.03] hover:border-white/15 hover:bg-white/[0.05]"
+                        : "border-white/8 bg-white/3 hover:border-white/15 hover:bg-white/5"
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -537,7 +537,7 @@ export default function AksesAdminPage() {
         {/* RIGHT PANEL */}
         <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 sm:p-6 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur-xl">
           {!selected ? (
-            <div className="flex min-h-[540px] flex-col items-center justify-center rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] px-6 text-center">
+            <div className="flex min-h-135 flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/2 px-6 text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl border border-fuchsia-400/20 bg-fuchsia-500/10">
                 <ShieldCheck className="h-7 w-7 text-fuchsia-200" />
               </div>
@@ -550,7 +550,7 @@ export default function AksesAdminPage() {
               </p>
             </div>
           ) : detailLoading ? (
-            <div className="flex min-h-[540px] items-center justify-center">
+            <div className="flex min-h-135 items-center justify-center">
               <div className="flex items-center gap-3 text-gray-300">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span>Memuat detail admin...</span>
@@ -602,7 +602,7 @@ export default function AksesAdminPage() {
               </div>
 
               {selectedIsSuper ? (
-                <div className="rounded-[24px] border border-amber-400/20 bg-amber-500/10 p-4 sm:p-5">
+                <div className="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-4 sm:p-5">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-200" />
                     <div>
@@ -621,7 +621,7 @@ export default function AksesAdminPage() {
 
               <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[380px_minmax(0,1fr)]">
                 {/* ROLE PRESET */}
-                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
+                <div className="rounded-3xl border border-white/10 bg-white/3 p-5">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
                       <h3 className="text-lg font-semibold text-white">
@@ -684,7 +684,7 @@ export default function AksesAdminPage() {
                 </div>
 
                 {/* CUSTOM PERMISSIONS */}
-                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
+                <div className="rounded-3xl border border-white/10 bg-white/3 p-5">
                   <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-white">
@@ -733,7 +733,7 @@ export default function AksesAdminPage() {
                                 className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 transition ${
                                   checked
                                     ? "border-fuchsia-400/30 bg-fuchsia-500/10"
-                                    : "border-white/8 bg-white/[0.03] hover:border-white/15 hover:bg-white/[0.05]"
+                                    : "border-white/8 bg-white/3 hover:border-white/15 hover:bg-white/5"
                                 } ${
                                   selectedIsSuper ? "pointer-events-none opacity-60" : ""
                                 }`}
