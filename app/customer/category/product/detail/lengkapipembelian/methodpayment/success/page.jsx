@@ -89,24 +89,12 @@ function SuccessContent() {
     try {
       setLoading(true);
 
-      const [deliveryJson, orderJson, paymentJson] = await Promise.all([
-        authFetch(`/api/v1/orders/${orderId}/delivery`),
-        authFetch(`/api/v1/orders/${orderId}`),
-        authFetch(`/api/v1/orders/${orderId}/payments`), // ✅ tambahan
-      ]);
+      const bootstrapJson = await authFetch(`/api/v1/bootstrap/orders/${orderId}/success`);
 
-      if (deliveryJson?.success) setDelivery(deliveryJson.data);
-
-      // show order detail
-      if (orderJson?.success) {
-        // bisa dua bentuk: {order: {...}} atau langsung {...}
-        setOrder(orderJson.data?.order ?? orderJson.data);
-      }
-
-      // payment status
-      if (paymentJson?.success) {
-        // biasanya paymentStatus return langsung data
-        setPaymentInfo(paymentJson.data);
+      if (bootstrapJson?.success) {
+        setDelivery(bootstrapJson?.data?.delivery || null);
+        setOrder(bootstrapJson?.data?.order?.order ?? bootstrapJson?.data?.order ?? null);
+        setPaymentInfo(bootstrapJson?.data?.payment || null);
       }
     } catch (err) {
       console.error("Fetch error:", err);

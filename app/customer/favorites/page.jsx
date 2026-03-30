@@ -3,18 +3,15 @@ import FavoritesClient from "./FavoritesClient"
 
 export const dynamic = "force-dynamic"
 
-// FIX: tambahkan fallback string kosong + regex benar
 const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "")
 
 function buildApiUrl(path) {
-  // FIX: template string yang benar
   const normalizedPath = path.startsWith("/") ? path : `/${path}`
 
   if (!API) {
     return normalizedPath
   }
 
-  // FIX: regex & template string
   if (API.endsWith("/api/v1") && normalizedPath.startsWith("/api/v1")) {
     return `${API}${normalizedPath.replace(/^\/api\/v1/, "")}`
   }
@@ -42,10 +39,9 @@ async function getFavoritesServerData() {
       }
     }
 
-    const response = await fetch(buildApiUrl("/api/v1/favorites?per_page=24"), {
+    const response = await fetch(buildApiUrl("/api/v1/favorites?per_page=50"), {
       headers: {
         Accept: "application/json",
-        // FIX: template string
         Authorization: `Bearer ${token}`,
       },
       cache: "no-store",
@@ -69,9 +65,7 @@ async function getFavoritesServerData() {
     }
 
     return {
-      favorites: Array.isArray(payload?.data?.data)
-        ? payload.data.data
-        : [],
+      favorites: Array.isArray(payload?.data?.data) ? payload.data.data : [],
       unauthorized: false,
     }
   } catch (error) {

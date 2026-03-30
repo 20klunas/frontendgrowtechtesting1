@@ -134,8 +134,6 @@ function PaymentPage() {
       const orderId = checkout?.order?.id
       if (!orderId) throw new Error("Order tidak valid")
 
-      clearCheckoutBootstrapCache()
-
       const json = await authFetch(`/api/v1/orders/${orderId}/payments`, {
         method: "POST",
         body: JSON.stringify({
@@ -177,11 +175,13 @@ function PaymentPage() {
       }
 
       if (payload?.redirect_url) {
+        clearCheckoutBootstrapCache()
         window.location.href = payload.redirect_url
         return
       }
 
       if (selectedGateway === "wallet") {
+        clearCheckoutBootstrapCache()
         router.push(
           `/customer/category/product/detail/lengkapipembelian/methodpayment/process?order=${orderId}&method=wallet`
         )

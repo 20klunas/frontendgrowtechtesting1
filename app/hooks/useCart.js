@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { authFetch } from "../lib/authFetch";
 import useCheckoutAccess from "./useCheckoutAccess";
+import { writeCheckoutBootstrapCache } from "../lib/clientBootstrap";
 
 export default function useCartPage(router) {
   const [items, setItems] = useState([]);
@@ -91,13 +92,14 @@ export default function useCartPage(router) {
     try {
       setCheckoutLoading(true);
 
-      await authFetch("/api/v1/cart/checkout", {
+      const checkout = await authFetch("/api/v1/cart/checkout", {
         method: "POST",
         body: JSON.stringify({
           voucher_code: voucher || null,
         }),
       });
 
+      writeCheckoutBootstrapCache({ checkout: checkout?.data || null });
       router.push("/customer/category/product/detail/lengkapipembelian");
     } catch (err) {
       alert(err.message || "Checkout gagal");

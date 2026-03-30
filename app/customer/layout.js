@@ -1,12 +1,11 @@
 import NavbarCustomer from "../components/NavbarCustomer"
 import Footer from "../components/FooterCustomer"
 import CustomerProviders from "../components/CustomerProviders"
-import { getServerShellBootstrap } from "../lib/serverShellBootstrap"
 
 export const revalidate = 60
 
 export default async function CustomerLayout({ children }) {
-  const initialShellData = await getServerShellBootstrap()
+  const initialShellData = null
 
   return (
     <CustomerProviders initialShellData={initialShellData}>

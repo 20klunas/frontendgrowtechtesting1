@@ -1,7 +1,7 @@
 import { authFetch } from "./authFetch"
 
-const CHECKOUT_BOOTSTRAP_KEY = "checkout-bootstrap-v3"
-const CHECKOUT_BOOTSTRAP_TTL = 15 * 1000
+const CHECKOUT_BOOTSTRAP_KEY = "checkout-bootstrap-v4"
+const CHECKOUT_BOOTSTRAP_TTL = 45 * 1000
 
 let checkoutBootstrapMemory = null
 let checkoutBootstrapExpiry = 0
@@ -61,6 +61,20 @@ export function normalizeCheckoutBootstrapData(source) {
   }
 }
 
+function mergeBootstrapData(nextData) {
+  const existing = readMemory() || null
+  const normalized = normalizeCheckoutBootstrapData(nextData)
+
+  return {
+    checkout: normalized.checkout || existing?.checkout || null,
+    wallet: normalized.wallet || existing?.wallet || null,
+    gateways:
+      Array.isArray(normalized.gateways) && normalized.gateways.length > 0
+        ? normalized.gateways
+        : existing?.gateways || [],
+  }
+}
+
 function writeMemory(data) {
   checkoutBootstrapMemory = data
   checkoutBootstrapExpiry = Date.now() + CHECKOUT_BOOTSTRAP_TTL
@@ -100,8 +114,8 @@ export function readCheckoutBootstrapCache() {
 }
 
 export function writeCheckoutBootstrapCache(data) {
-  const normalized = normalizeCheckoutBootstrapData(data)
-  writeMemory(normalized)
+  const merged = mergeBootstrapData(data)
+  writeMemory(merged)
 
   if (!canUseSessionStorage()) return
 
@@ -109,7 +123,7 @@ export function writeCheckoutBootstrapCache(data) {
     window.sessionStorage.setItem(
       CHECKOUT_BOOTSTRAP_KEY,
       JSON.stringify({
-        data: normalized,
+        data: merged,
         expiresAt: Date.now() + CHECKOUT_BOOTSTRAP_TTL,
       })
     )

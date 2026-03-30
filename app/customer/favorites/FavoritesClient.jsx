@@ -1,12 +1,16 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { notifyCustomerCartChanged } from "../../lib/customerCartEvents"
+import { clearCheckoutBootstrapCache, writeCheckoutBootstrapCache } from "../../lib/clientBootstrap"
+import { notifyFavoriteChanged } from "../../lib/favoriteEvents"
 import { useAuth } from "../../hooks/useAuth"
 import useCatalogAccess from "../../hooks/useCatalogAccess"
 import { fetcher } from "../../lib/fetcher"
+
+const REFRESH_TTL = 60 * 1000
 
 export default function FavoritesClient({
   initialFavorites = [],
@@ -16,35 +20,32 @@ export default function FavoritesClient({
   const { user, loading: authLoading } = useAuth()
   const { catalogDisabled, catalogMessage, loading: accessLoading } = useCatalogAccess()
 
-  const [favorites, setFavorites] = useState([])
+  const [favorites, setFavorites] = useState(Array.isArray(initialFavorites) ? initialFavorites : [])
   const [productMap, setProductMap] = useState({})
   const [buyingId, setBuyingId] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!Array.isArray(initialFavorites))
 
-  // 🔐 redirect kalau unauthorized
+  const hasHydratedRef = useRef(false)
+  const lastFetchedAtRef = useRef(Array.isArray(initialFavorites) ? Date.now() : 0)
+  const focusRefreshRef = useRef(0)
+
   useEffect(() => {
     if (initialUnauthorized && !authLoading) {
       router.replace("/login")
     }
   }, [initialUnauthorized, authLoading, router])
 
-  // 🔥 ambil product realtime
   const loadProducts = useCallback(async (favoritesData) => {
     try {
-      const ids = favoritesData.map(f => f.product_id).filter(Boolean)
+      const ids = favoritesData.map((f) => Number(f?.product_id)).filter(Boolean)
 
       if (ids.length === 0) {
         setProductMap({})
         return
       }
 
-      const json = await fetcher(
-        `/api/v1/products?ids=${ids.join(",")}`,
-        {},
-        { force: true }
-      )
-
-      const items = json?.data?.data || []
+      const json = await fetcher(`/api/v1/products?ids=${ids.join(",")}`, {}, { force: true })
+      const items = Array.isArray(json?.data?.data) ? json.data.data : []
 
       const map = {}
       for (const item of items) {
@@ -57,9 +58,12 @@ export default function FavoritesClient({
     }
   }, [])
 
-  // 🔥 load favorites + sync products
-  const loadFavorites = useCallback(async () => {
+  const loadFavorites = useCallback(async ({ force = false } = {}) => {
     try {
+      if (!force && lastFetchedAtRef.current && Date.now() - lastFetchedAtRef.current < REFRESH_TTL) {
+        return favorites
+      }
+
       setLoading(true)
 
       const json = await fetcher(
@@ -68,31 +72,53 @@ export default function FavoritesClient({
         { auth: true, force: true }
       )
 
-      const data = json?.data?.data || []
+      const data = Array.isArray(json?.data?.data) ? json.data.data : []
 
       setFavorites(data)
+      lastFetchedAtRef.current = Date.now()
       await loadProducts(data)
-
+      return data
     } catch (err) {
       console.error("loadFavorites error:", err)
+      return favorites
     } finally {
       setLoading(false)
     }
-  }, [loadProducts])
+  }, [favorites, loadProducts])
 
-  // 🚀 initial load
   useEffect(() => {
-    loadFavorites()
-  }, [loadFavorites])
+    if (hasHydratedRef.current) return
+    hasHydratedRef.current = true
 
-  // 🔄 optional: refresh saat tab focus
+    if (Array.isArray(initialFavorites) && initialFavorites.length > 0) {
+      loadProducts(initialFavorites)
+      setLoading(false)
+      return
+    }
+
+    loadFavorites({ force: true })
+  }, [initialFavorites, loadFavorites, loadProducts])
+
   useEffect(() => {
-    const onFocus = () => loadFavorites()
+    const onFocus = () => {
+      if (Date.now() - focusRefreshRef.current < REFRESH_TTL) return
+      focusRefreshRef.current = Date.now()
+      loadFavorites({ force: true })
+    }
+
+    const onFavoriteChanged = () => {
+      loadFavorites({ force: true })
+    }
+
     window.addEventListener("focus", onFocus)
-    return () => window.removeEventListener("focus", onFocus)
+    window.addEventListener("favorite:changed", onFavoriteChanged)
+
+    return () => {
+      window.removeEventListener("focus", onFocus)
+      window.removeEventListener("favorite:changed", onFavoriteChanged)
+    }
   }, [loadFavorites])
 
-  // 🛒 BUY NOW (SAFE & SYNC)
   const handleBuyNow = async (productId, stock) => {
     if (stock <= 0) {
       alert("Stok habis")
@@ -107,38 +133,44 @@ export default function FavoritesClient({
     try {
       setBuyingId(productId)
 
-      await fetcher("/api/v1/cart/items", {
-        method: "POST",
-        body: JSON.stringify({
-          product_id: productId,
-          qty: 1,
-        }),
-      }, { auth: true })
+      await fetcher(
+        "/api/v1/cart/items",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            product_id: productId,
+            qty: 1,
+          }),
+        },
+        { auth: true }
+      )
 
-      const checkout = await fetcher("/api/v1/cart/checkout", {
-        method: "POST",
-        body: JSON.stringify({ voucher_code: null }),
-      }, { auth: true })
+      const checkout = await fetcher(
+        "/api/v1/cart/checkout",
+        {
+          method: "POST",
+          body: JSON.stringify({ voucher_code: null }),
+        },
+        { auth: true }
+      )
 
       if (!checkout?.success) {
         throw new Error("Checkout gagal")
       }
 
-      // 🔥 WAJIB: refresh data biar stock sync
-      await loadFavorites()
-
+      writeCheckoutBootstrapCache({ checkout: checkout?.data || null })
       notifyCustomerCartChanged()
+      notifyFavoriteChanged()
       router.push("/customer/category/product/detail/lengkapipembelian")
-
     } catch (err) {
       console.error("Buy error:", err)
+      clearCheckoutBootstrapCache()
       alert(err.message || "Terjadi kesalahan")
     } finally {
       setBuyingId(null)
     }
   }
 
-  // 🧱 UI STATES
   if (accessLoading || loading) {
     return (
       <section className="max-w-6xl mx-auto px-8 py-10 text-white">
@@ -150,9 +182,7 @@ export default function FavoritesClient({
   if (catalogDisabled) {
     return (
       <section className="max-w-6xl mx-auto px-8 py-10 text-white">
-        <p className="text-red-400">
-          {catalogMessage || "Katalog tidak tersedia"}
-        </p>
+        <p className="text-red-400">{catalogMessage || "Katalog tidak tersedia"}</p>
       </section>
     )
   }
@@ -194,9 +224,7 @@ export default function FavoritesClient({
                 <div className="p-4">
                   <h3 className="font-semibold">{product?.name}</h3>
 
-                  <p className="text-sm text-white/70">
-                    Stok: {stockValue}
-                  </p>
+                  <p className="text-sm text-white/70">Stok: {stockValue}</p>
 
                   <button
                     onClick={() => handleBuyNow(product.id, stockValue)}

@@ -7,6 +7,7 @@ import NavbarLogo from "./navbar/customer/NavbarLogo";
 import NavbarMenu from "./navbar/customer/NavbarMenu";
 import AppTransitionLink from "./AppTransitionLink";
 import { useWebsiteSettings } from "../context/WebsiteSettingsContext";
+import { useCustomerNavbar } from "../context/CustomerNavbarContext";
 
 const NavbarSearchClient = dynamic(
   () => import("./navbar/customer/NavbarSearchClient"),
@@ -23,12 +24,10 @@ const NavbarUserMenuClient = dynamic(
   { ssr: false }
 );
 
-
 export default function NavbarCustomerClient({ initialShellData = null }) {
   const { brand } = useWebsiteSettings();
+  const { favoriteCount } = useCustomerNavbar();
   const initialUser = initialShellData?.auth?.user || null;
-  const favoriteCount = Number(initialShellData?.nav?.favorite_count || 0);
-
 
   return (
     <NavbarShellClient>

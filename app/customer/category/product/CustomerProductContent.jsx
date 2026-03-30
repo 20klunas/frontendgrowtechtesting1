@@ -17,7 +17,7 @@ import { notifyCustomerCartChanged } from "../../../lib/customerCartEvents"
 import { useAuth } from "../../../hooks/useAuth"
 import useCatalogAccess from "../../../hooks/useCatalogAccess"
 import { notifyFavoriteChanged } from "../../../lib/favoriteEvents"
-import { clearCheckoutBootstrapCache } from "../../../lib/clientBootstrap"
+import { clearCheckoutBootstrapCache, writeCheckoutBootstrapCache } from "../../../lib/clientBootstrap"
 
 const ITEMS_PER_PAGE = 6
 const FAVORITE_IDS_TTL = 2 * 60 * 1000
@@ -509,7 +509,7 @@ export default function CustomerProductContent({
         throw new Error("Checkout gagal")
       }
 
-      clearCheckoutBootstrapCache()
+      writeCheckoutBootstrapCache({ checkout: checkout?.data || null })
       notifyCustomerCartChanged()
       router.push(CHECKOUT_PAGE_PATH)
     } catch (err) {
