@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { authFetch } from "../../lib/authFetch"
 import { notifyCustomerCartChanged } from "../../lib/customerCartEvents"
 import { useAuth } from "../../hooks/useAuth"
 import useCatalogAccess from "../../hooks/useCatalogAccess"
@@ -15,57 +14,97 @@ export default function FavoritesClient({
 }) {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
-  const {
-    catalogDisabled,
-    catalogMessage,
-    loading: accessLoading,
-  } = useCatalogAccess()
+  const { catalogDisabled, catalogMessage, loading: accessLoading } = useCatalogAccess()
 
-  const [favorites, setFavorites] = useState(Array.isArray(initialFavorites) ? initialFavorites : [])
+  const [favorites, setFavorites] = useState([])
+  const [productMap, setProductMap] = useState({})
   const [buyingId, setBuyingId] = useState(null)
+  const [loading, setLoading] = useState(true)
 
+  // 🔐 redirect kalau unauthorized
   useEffect(() => {
     if (initialUnauthorized && !authLoading) {
       router.replace("/login")
     }
   }, [initialUnauthorized, authLoading, router])
 
-  useEffect(() => {
-    const handler = async () => {
-      const json = await fetcher("/api/v1/favorites?per_page=50", {}, { auth: true })
-      setFavorites(json.data.data)
-    }
-
-    window.addEventListener("stock:changed", handler)
-
-    return () => {
-      window.removeEventListener("stock:changed", handler)
-    }
-  }, [])
-
-  useEffect(() => {
-    const handleFocus = () => {
-      handler()
-    }
-
-    window.addEventListener("focus", handleFocus)
-
-    return () => {
-      window.removeEventListener("focus", handleFocus)
-    }
-  }, [])
-
-  const handleBuyNow = async (productId, stock) => {
-    if (stock <= 0){
-      alert("Stok habis")
-      return
-    }
+  // 🔥 ambil product realtime
+  const loadProducts = useCallback(async (favoritesData) => {
     try {
-      if (!user) {
-        router.push("/login")
+      const ids = favoritesData.map(f => f.product_id).filter(Boolean)
+
+      if (ids.length === 0) {
+        setProductMap({})
         return
       }
 
+      const json = await fetcher(
+        `/api/v1/products?ids=${ids.join(",")}`,
+        {},
+        { force: true }
+      )
+
+      const items = json?.data?.data || []
+
+      const map = {}
+      for (const item of items) {
+        map[item.id] = item
+      }
+
+      setProductMap(map)
+    } catch (err) {
+      console.error("loadProducts error:", err)
+    }
+  }, [])
+
+  // 🔥 load favorites + sync products
+  const loadFavorites = useCallback(async () => {
+    try {
+      setLoading(true)
+
+      const json = await fetcher(
+        "/api/v1/favorites?per_page=50",
+        {},
+        { auth: true, force: true }
+      )
+
+      const data = json?.data?.data || []
+
+      setFavorites(data)
+      await loadProducts(data)
+
+    } catch (err) {
+      console.error("loadFavorites error:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [loadProducts])
+
+  // 🚀 initial load
+  useEffect(() => {
+    loadFavorites()
+  }, [loadFavorites])
+
+  // 🔄 optional: refresh saat tab focus
+  useEffect(() => {
+    const onFocus = () => loadFavorites()
+    window.addEventListener("focus", onFocus)
+    return () => window.removeEventListener("focus", onFocus)
+  }, [loadFavorites])
+
+  // 🛒 BUY NOW (SAFE & SYNC)
+  const handleBuyNow = async (productId, stock) => {
+    if (stock <= 0) {
+      alert("Stok habis")
+      return
+    }
+
+    if (!user) {
+      router.push("/login")
+      return
+    }
+
+    try {
       setBuyingId(productId)
 
       await fetcher("/api/v1/cart/items", {
@@ -76,28 +115,34 @@ export default function FavoritesClient({
         }),
       }, { auth: true })
 
-      await fetcher("/api/v1/cart/checkout", {
+      const checkout = await fetcher("/api/v1/cart/checkout", {
         method: "POST",
-        body: JSON.stringify({
-          voucher_code: null,
-        }),
-      }, { auth: true }),
+        body: JSON.stringify({ voucher_code: null }),
+      }, { auth: true })
+
+      if (!checkout?.success) {
+        throw new Error("Checkout gagal")
+      }
+
+      // 🔥 WAJIB: refresh data biar stock sync
+      await loadFavorites()
 
       notifyCustomerCartChanged()
-      window.dispatchEvent(new Event("stock:changed"))
       router.push("/customer/category/product/detail/lengkapipembelian")
+
     } catch (err) {
-      console.error("Buy now error:", err)
+      console.error("Buy error:", err)
       alert(err.message || "Terjadi kesalahan")
     } finally {
       setBuyingId(null)
     }
   }
 
-  if (accessLoading) {
+  // 🧱 UI STATES
+  if (accessLoading || loading) {
     return (
       <section className="max-w-6xl mx-auto px-8 py-10 text-white">
-        <p className="text-white/60">Cek ketersediaan...</p>
+        <p className="text-white/60">Memuat...</p>
       </section>
     )
   }
@@ -106,8 +151,7 @@ export default function FavoritesClient({
     return (
       <section className="max-w-6xl mx-auto px-8 py-10 text-white">
         <p className="text-red-400">
-          {catalogMessage ||
-            "Katalog sedang maintenance atau Anda tidak memiliki akses untuk melihat katalog."}
+          {catalogMessage || "Katalog tidak tersedia"}
         </p>
       </section>
     )
@@ -122,16 +166,14 @@ export default function FavoritesClient({
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {favorites.map((fav) => {
-            const product = fav.product
-            const isBuying = buyingId === product?.id
+            const product = productMap[fav.product_id] || fav.product
+
             const stockValue = Number(product?.available_stock ?? 0)
             const isOutOfStock = stockValue <= 0
+            const isBuying = buyingId === product?.id
 
             return (
-              <div
-                key={fav.id}
-                className="overflow-hidden rounded-2xl border border-purple-700 bg-black"
-              >
+              <div key={fav.id} className="rounded-2xl border border-purple-700 bg-black">
                 <div className="relative h-[160px] bg-white">
                   <Image
                     src={product?.subcategory?.image_url || "/placeholder.png"}
@@ -139,9 +181,10 @@ export default function FavoritesClient({
                     alt={product?.name || "Product"}
                     className="object-cover"
                   />
+
                   {isOutOfStock && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70">
-                      <span className="rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                      <span className="bg-red-600 px-3 py-1 text-xs font-bold text-white rounded">
                         STOK HABIS
                       </span>
                     </div>
@@ -149,32 +192,20 @@ export default function FavoritesClient({
                 </div>
 
                 <div className="p-4">
-                  <h3 className="mb-2 font-semibold">{product?.name}</h3>
+                  <h3 className="font-semibold">{product?.name}</h3>
+
                   <p className="text-sm text-white/70">
                     Stok: {stockValue}
                   </p>
 
-                  <div className="mb-2 flex items-center text-sm text-yellow-400">
-                    <span className="mr-1">
-                      {"★".repeat(Math.round(product?.rating || 0))}
-                      {"☆".repeat(5 - Math.round(product?.rating || 0))}
-                    </span>
-
-                    <span className="text-xs text-gray-400">
-                      {Number(product?.rating || 0).toFixed(1)} ({product?.rating_count || 0})
-                    </span>
-                  </div>
-
                   <button
-                    onClick={() => !isOutOfStock && handleBuyNow(product?.id, stockValue)}
+                    onClick={() => handleBuyNow(product.id, stockValue)}
                     disabled={isBuying || isOutOfStock}
-                    className={`
-                      mt-3 block w-full rounded-lg py-2 text-center text-sm transition
-                      ${isOutOfStock 
-                        ? "bg-gray-600 cursor-not-allowed" 
-                        : "bg-purple-600 hover:bg-purple-700"}
-                      disabled:opacity-60
-                    `}
+                    className={`mt-3 w-full py-2 rounded-lg text-sm ${
+                      isOutOfStock
+                        ? "bg-gray-600 cursor-not-allowed"
+                        : "bg-purple-600 hover:bg-purple-700"
+                    }`}
                   >
                     {isOutOfStock
                       ? "Stok Habis"

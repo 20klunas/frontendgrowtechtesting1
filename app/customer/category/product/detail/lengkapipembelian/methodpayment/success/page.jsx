@@ -5,6 +5,8 @@ import { CheckCircle, Eye, Lock, FileText, Download, Copy } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { authFetch } from "../../../../../../../lib/authFetch";
+import { clearCheckoutBootstrapCache } from "../../../../../../../lib/clientBootstrap";
+import { notifyCustomerCartChanged } from "../../../../../../../lib/customerCartEvents";
 import confetti from "canvas-confetti";
 
 const VIEW_DURATION = 10; // detik one-time view
@@ -22,10 +24,12 @@ function SuccessContent() {
     if (hasFetched.current) return;
 
     hasFetched.current = true;
+    clearCheckoutBootstrapCache();
+    notifyCustomerCartChanged();
 
     fetchAll();
     triggerConfetti();
-  }, []); // ❗ kosongin dependency
+  }, [orderId]);
   const timerRef = useRef(null);
 
   const [delivery, setDelivery] = useState(null);

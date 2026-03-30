@@ -22,6 +22,7 @@ import { Input } from "../../components/ui/input";
 // sesuaikan path kalau beda di project kamu
 import { authFetch } from "../../lib/authFetch";
 
+const API = process.env.NEXT_PUBLIC_API_URL;
 /* ================= HELPERS ================= */
 
 function formatRupiah(n) {

@@ -47,6 +47,11 @@ async function safeJson(res) {
 let lastCheck = 0
 let lastResult = null
 
+let maintenanceCache = {
+  data: null,
+  exp: 0,
+}
+
 async function checkUserAreaMaintenance(request, pathname, token, role) {
   
   if (!API) return null;
@@ -62,7 +67,7 @@ async function checkUserAreaMaintenance(request, pathname, token, role) {
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 1500) // max 1.5s
+  const timeout = setTimeout(() => controller.abort(), 30000)
 
   try {
     const res = await fetch(`${API}/api/v1/wallet/summary`, {

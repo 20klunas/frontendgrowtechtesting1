@@ -6,6 +6,7 @@ const pendingRequests = new Map()
 const responseCache = new Map()
 const DEFAULT_TTL = 15000
 const CATALOG_TTL = 60000
+const DEFAULT_TIMEOUT_MS = 45000
 let isRedirecting = false
 
 function normalizeMethod(method) {
@@ -14,6 +15,16 @@ function normalizeMethod(method) {
 
 function isMutationMethod(method) {
   return ["POST", "PUT", "PATCH", "DELETE"].includes(normalizeMethod(method))
+}
+
+function normalizeUrl(url) {
+  try {
+    const target = new URL(url, "http://localhost")
+    target.searchParams.sort()
+    return `${target.pathname}${target.search}`
+  } catch {
+    return String(url || "")
+  }
 }
 
 function resolveCacheMode(url, explicitCache, method = "GET") {
@@ -107,20 +118,52 @@ function buildBodyKey(body) {
 function buildRequestKey(fullUrl, options = {}) {
   const method = normalizeMethod(options.method)
   const bodyKey = buildBodyKey(options.body)
-  return `${method}:${fullUrl}:${bodyKey}`
+  return `${method}:${normalizeUrl(fullUrl)}:${bodyKey}`
 }
 
-function clearVolatileCaches() {
-  for (const key of Array.from(responseCache.keys())) {
-    if (
-      key.includes("/api/v1/cart") ||
-      key.includes("/api/v1/wallet") ||
-      key.includes("/api/v1/orders") ||
-      key.includes("/api/v1/bootstrap/checkout")
-    ) {
+function clearPendingRequestsByMatcher(matcher) {
+  for (const [key] of Array.from(pendingRequests.entries())) {
+    if (matcher(key)) {
+      pendingRequests.delete(key)
+    }
+  }
+}
+
+function clearResponseCacheByMatcher(matcher) {
+  for (const [key] of Array.from(responseCache.entries())) {
+    if (matcher(key)) {
       responseCache.delete(key)
     }
   }
+}
+
+function buildMatcher(patterns = []) {
+  const safePatterns = Array.isArray(patterns) ? patterns : [patterns]
+
+  return (key) =>
+    safePatterns.some((pattern) => {
+      if (!pattern) return false
+      if (typeof pattern === "function") return Boolean(pattern(key))
+      if (pattern instanceof RegExp) return pattern.test(key)
+      return key.includes(String(pattern))
+    })
+}
+
+export function invalidateAuthFetchCache(patterns = []) {
+  const matcher = buildMatcher(patterns)
+  clearResponseCacheByMatcher(matcher)
+  clearPendingRequestsByMatcher(matcher)
+}
+
+function clearVolatileCaches() {
+  invalidateAuthFetchCache([
+    "/api/v1/cart",
+    "/api/v1/wallet",
+    "/api/v1/orders",
+    "/api/v1/bootstrap/checkout",
+    "/api/v1/payment-gateways/available",
+    "/api/v1/favorites",
+  ])
 }
 
 export async function authFetch(url, options = {}) {
@@ -153,7 +196,7 @@ export async function authFetch(url, options = {}) {
 
   const fetchPromise = (async () => {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 35000)
+    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
 
     try {
       const res = await fetch(fullUrl, {
@@ -162,7 +205,6 @@ export async function authFetch(url, options = {}) {
         headers: buildHeaders(options, token),
         cache: cacheMode,
         signal: controller.signal,
-        credentials: "include",
       })
 
       const contentType = res.headers.get("content-type") || ""
@@ -210,7 +252,7 @@ export async function authFetch(url, options = {}) {
       return data
     } catch (err) {
       if (err?.name === "AbortError") {
-        throw new Error("Request timeout (lebih dari 35 detik)")
+        throw new Error("Request timeout (lebih dari 45 detik)")
       }
       throw err
     } finally {

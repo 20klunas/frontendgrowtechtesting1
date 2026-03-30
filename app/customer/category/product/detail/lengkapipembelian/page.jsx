@@ -1,137 +1,80 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { authFetch } from "../../../../../lib/authFetch";
-import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess";
+import { useEffect, useMemo, useState } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess"
+import { getCheckoutBootstrap } from "../../../../../lib/clientBootstrap"
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+function resolveProductImage(item) {
+  return (
+    item?.product?.image_url ||
+    item?.product?.image ||
+    item?.product?.thumbnail_url ||
+    item?.product?.thumbnail ||
+    item?.product?.subcategory?.image_url ||
+    item?.product?.subcategory?.image ||
+    "/placeholder.png"
+  )
+}
 
 export default function StepTwo() {
-  const [checkout, setCheckout] = useState(null);
-  // const [qty, setQty] = useState(1);
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  // const [patchingQty, setPatchingQty] = useState(false);
-  const { loading: accessLoading, allowed, message } = useCheckoutAccess();
-
-  const router = useRouter();
-
-  const handleGoPayment = () => {
-    router.push("/customer/category/product/detail/lengkapipembelian/methodpayment");
-  };
+  const [checkout, setCheckout] = useState(null)
+  const [walletBalance, setWalletBalance] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const { loading: accessLoading, allowed, message } = useCheckoutAccess()
+  const router = useRouter()
 
   useEffect(() => {
-    fetchCheckout();
-    fetchWallet();
-    fetchProducts();
-  }, []);
+    let active = true
 
-  // ================= FETCH CHECKOUT =================
-  const fetchCheckout = async () => {
-    try {
-      const json = await authFetch("/api/v1/cart/checkout");
+    const loadCheckoutState = async () => {
+      try {
+        setLoading(true)
+        const json = await getCheckoutBootstrap()
+        if (!active) return
 
-      if (json.success) {
-        setCheckout(json.data);
-        // setQty(json.data.items?.[0]?.qty || 1);
+        const checkoutData = json?.data?.checkout || null
+        const walletData = json?.data?.wallet || null
+
+        setCheckout(checkoutData)
+        setWalletBalance(Number(walletData?.wallet?.balance ?? walletData?.balance ?? 0))
+      } catch (err) {
+        if (!active) return
+        console.warn("Checkout bootstrap failed:", err.message)
+        setCheckout(null)
+        setWalletBalance(0)
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
       }
-    } catch (err) {
-      console.warn("Checkout preview failed:", err.message);
-      setCheckout(null);
-    } finally {
-      setLoading(false);
     }
-  };
 
-  // ================= FETCH WALLET =================
-  const fetchWallet = async () => {
-    try {
-      const json = await authFetch("/api/v1/wallet/summary");
+    loadCheckoutState()
 
-      if (json.success) {
-        setWalletBalance(json.data.wallet?.balance ?? 0);
-      }
-    } catch (err) {
-      console.warn("Wallet fetch failed:", err.message);
-      setWalletBalance(0);
+    return () => {
+      active = false
     }
-  };
+  }, [])
 
-  // ================= FETCH PRODUCTS (CACHED) =================
-  const fetchProducts = async () => {
-    try {
-      const cached = sessionStorage.getItem("products_cache");
+  const handleGoPayment = () => {
+    router.push("/customer/category/product/detail/lengkapipembelian/methodpayment")
+  }
 
-      if (cached) {
-        setProducts(JSON.parse(cached));
-        return;
-      }
+  const item = useMemo(() => checkout?.items?.[0] || null, [checkout])
+  const qty = Number(item?.qty ?? 1)
+  const product = item?.product || null
+  const unitPrice = Number(item?.unit_price ?? 0)
+  const productImage = resolveProductImage(item)
 
-      const res = await fetch(`${API}/api/v1/products`);
+  const subtotal = Number(checkout?.summary?.subtotal ?? 0)
+  const discount = Number(checkout?.summary?.discount_total ?? 0)
+  const taxPercent = Number(checkout?.summary?.tax_percent ?? 0)
+  const taxAmount = Number(checkout?.summary?.tax_amount ?? 0)
+  const total = Number(checkout?.summary?.total ?? 0)
 
-      const contentType = res.headers.get("content-type");
-      if (!contentType?.includes("application/json")) {
-        const text = await res.text();
-        console.error("Non-JSON response:", text);
-        throw new Error("API did not return JSON");
-      }
-
-      const json = await res.json();
-
-      if (json.success) {
-        const data = json?.data?.data || [];
-        setProducts(data);
-        sessionStorage.setItem("products_cache", JSON.stringify(data));
-      }
-    } catch (err) {
-      console.error("Failed fetch products:", err);
-      setProducts([]);
-    }
-  };
-
-  // ================= UPDATE QTY =================
-  const updateQty = async (newQty) => {
-    if (!checkout || patchingQty) return;
-
-    const item = checkout.items[0];
-    const stockAvailable = item.stock_available ?? 0;
-
-
-    if (newQty < 1 || newQty > stockAvailable) return;
-
-    const oldQty = qty;
-
-    setQty(newQty);
-    setPatchingQty(true);
-
-    try {
-      const json = await authFetch(`/api/v1/cart/items/${item.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          qty: newQty,
-        }),
-      });
-
-      if (json.success) {
-        await fetchCheckout(); // refresh checkout
-        window.dispatchEvent(new Event("cart-updated"));
-      }
-
-    } catch (err) {
-      console.error("Update qty failed:", err.message);
-      setQty(oldQty);
-    } finally {
-      setPatchingQty(false);
-    }
-  };
-
-
-  // ================= SKELETON LOADING =================
   if (loading) {
     return (
       <section className="max-w-5xl mx-auto px-6 py-12 text-white animate-pulse">
@@ -140,7 +83,7 @@ export default function StepTwo() {
         <div className="h-20 bg-purple-900/20 rounded-2xl mb-6" />
         <div className="h-12 bg-purple-900/20 rounded-xl mb-6" />
       </section>
-    );
+    )
   }
 
   if (!checkout || !checkout.items?.length) {
@@ -155,37 +98,15 @@ export default function StepTwo() {
           Kembali ke Keranjang
         </Link>
       </section>
-    );
+    )
   }
-
-  const item = checkout.items[0];
-  const qty = item.qty ?? 1;
-  const product = item.product;
-  const unitPrice = item.unit_price ?? 0;
-  const stockAvailable = item.stock_available ?? 0;
-
-  // ================= IMAGE MATCH =================
-  const matchedProduct = products.find(p => p.id === product?.id);
-
-  const productImage =
-    matchedProduct?.subcategory?.image_url ||
-    matchedProduct?.image_url ||
-    product?.subcategory?.image_url ||
-    product?.image_url ||
-    "/placeholder.png";
-
-  const subtotal = checkout.summary?.subtotal ?? 0;
-  const discount = checkout.summary?.discount_total ?? 0;
-  const taxPercent = checkout.summary?.tax_percent ?? 0;
-  const taxAmount = checkout.summary?.tax_amount ?? 0;
-  const total = checkout.summary?.total ?? 0;
 
   if (accessLoading) {
     return (
       <section className="max-w-5xl mx-auto px-6 py-12 text-white">
         <p className="text-gray-400">Checking checkout access...</p>
       </section>
-    );
+    )
   }
 
   if (!allowed) {
@@ -206,16 +127,13 @@ export default function StepTwo() {
           Kembali ke Katalog
         </Link>
       </section>
-    );
+    )
   }
 
   return (
     <section className="max-w-5xl mx-auto px-6 py-10 text-white">
-      <h1 className="text-3xl font-bold mb-10">
-        Lengkapi Data Pembelian
-      </h1>
+      <h1 className="text-3xl font-bold mb-10">Lengkapi Data Pembelian</h1>
 
-      {/* ================= PRODUK ================= */}
       <div className="rounded-2xl border border-purple-800 bg-black p-6 mb-6">
         <p className="text-sm text-gray-400 mb-4">Produk Yang Dipilih</p>
 
@@ -224,7 +142,7 @@ export default function StepTwo() {
             <Image
               src={productImage}
               fill
-              alt={product?.name}
+              alt={product?.name || "Produk"}
               className="object-cover"
             />
           </div>
@@ -232,35 +150,30 @@ export default function StepTwo() {
           <div className="flex-1">
             <p className="font-medium">{product?.name}</p>
             <p className="text-sm text-gray-400">
-              Rp {unitPrice.toLocaleString()} / unit
+              Rp {unitPrice.toLocaleString("id-ID")} / unit
             </p>
           </div>
 
           <div className="text-right">
             <p className="text-sm text-gray-400">Total</p>
             <p className="text-purple-400 font-semibold">
-              Rp {(unitPrice * qty).toLocaleString()}
+              Rp {(unitPrice * qty).toLocaleString("id-ID")}
             </p>
           </div>
         </div>
 
-        {/* ================= QTY ================= */}
         <div className="mt-6 flex items-center justify-between">
-          <span className="text-sm text-gray-400">
-            Jumlah Pembelian
-          </span>
+          <span className="text-sm text-gray-400">Jumlah Pembelian</span>
 
-          <div className="px-4 py-1 rounded-lg bg-purple-900/30">
-            {qty} Unit
-          </div>
+          <div className="px-4 py-1 rounded-lg bg-purple-900/30">{qty} Unit</div>
         </div>
         <p className="text-xs text-yellow-500 mt-2">
-            Catatan: Jumlah pembelian tidak dapat diubah di halaman ini. 
-            Untuk mengubah jumlah yang dibeli silakan ke keranjang atau masukkan produk ke keranjang dahulu.
+          Catatan: Jumlah pembelian tidak dapat diubah di halaman ini. Untuk
+          mengubah jumlah yang dibeli silakan ke keranjang atau masukkan produk ke
+          keranjang dahulu.
         </p>
       </div>
 
-      {/* ================= SALDO ================= */}
       <div className="rounded-2xl border border-purple-800 bg-black p-6 mb-8 flex justify-between items-center">
         <div>
           <p className="text-sm text-gray-300">Saldo Wallet</p>
@@ -277,7 +190,6 @@ export default function StepTwo() {
         </Link>
       </div>
 
-      {/* ================= BUTTONS ================= */}
       <div className="flex gap-4 mb-8">
         <Link
           href="/customer/category"
@@ -294,14 +206,13 @@ export default function StepTwo() {
         </button>
       </div>
 
-      {/* ================= RINGKASAN ================= */}
       <div className="rounded-2xl border border-purple-800 bg-black p-6">
         <h3 className="font-semibold mb-4">Ringkasan</h3>
 
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-400">Harga Unit</span>
-            <span>Rp {unitPrice.toLocaleString()}</span>
+            <span>Rp {unitPrice.toLocaleString("id-ID")}</span>
           </div>
 
           <div className="flex justify-between">
@@ -311,27 +222,25 @@ export default function StepTwo() {
 
           <div className="flex justify-between">
             <span className="text-gray-400">Sub Total</span>
-            <span>Rp {subtotal.toLocaleString()}</span>
+            <span>Rp {subtotal.toLocaleString("id-ID")}</span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-gray-400">Tax ({taxPercent}%)</span>
-            <span>Rp {taxAmount.toLocaleString()}</span>
+            <span>Rp {taxAmount.toLocaleString("id-ID")}</span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-gray-400">Diskon</span>
-            <span>Rp {discount.toLocaleString()}</span>
+            <span>Rp {discount.toLocaleString("id-ID")}</span>
           </div>
 
           <div className="border-t border-purple-800 pt-3 flex justify-between font-semibold">
             <span>Total</span>
-            <span className="text-purple-400">
-              Rp {total.toLocaleString()}
-            </span>
+            <span className="text-purple-400">Rp {total.toLocaleString("id-ID")}</span>
           </div>
         </div>
       </div>
     </section>
-  );
+  )
 }

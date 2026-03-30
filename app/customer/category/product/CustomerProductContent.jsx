@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import {
   ChevronLeft,
@@ -12,16 +12,16 @@ import {
   Star,
 } from "lucide-react"
 import { cn } from "../../../lib/utils"
-// import { publicFetch } from "../../../lib/publicFetch"
-// import { authFetch } from "../../../lib/authFetch"
 import { fetcher } from "../../../lib/fetcher"
 import { notifyCustomerCartChanged } from "../../../lib/customerCartEvents"
 import { useAuth } from "../../../hooks/useAuth"
 import useCatalogAccess from "../../../hooks/useCatalogAccess"
 import { notifyFavoriteChanged } from "../../../lib/favoriteEvents"
+import { clearCheckoutBootstrapCache } from "../../../lib/clientBootstrap"
 
 const ITEMS_PER_PAGE = 6
 const FAVORITE_IDS_TTL = 2 * 60 * 1000
+const CHECKOUT_PAGE_PATH = "/customer/category/product/detail/lengkapipembelian"
 
 const favoriteMemoryCache = new Map()
 
@@ -146,11 +146,9 @@ export default function CustomerProductContent({
   initialPagination = null,
   initialSubcategory = null,
   initialMaintenanceMessage = "",
-  
 }) {
   const router = useRouter()
   const subcategoryId = initialSubcategoryId
-  const prefetchedRef = useRef(false)
 
   const [products, setProducts] = useState(
     Array.isArray(initialProducts) ? initialProducts : []
@@ -183,6 +181,10 @@ export default function CustomerProductContent({
   const userTier = user?.tier?.toLowerCase() || "guest"
 
   const visibleProducts = products
+  const requestIdRef = useRef(0)
+  const skipFirstClientFetchRef = useRef(Array.isArray(initialProducts))
+  const detailPrefetchedIdsRef = useRef(new Set())
+  const actionLockRef = useRef(false)
 
   const resolvedSubcategory =
     subcategoryInfo || visibleProducts?.[0]?.subcategory || null
@@ -209,7 +211,10 @@ export default function CustomerProductContent({
     setPagination(initialPagination || getDefaultPagination())
     setSubcategoryInfo(initialSubcategory || null)
     setCatalogMaintenance(initialMaintenanceMessage || "")
-    setLoading(false)
+    setSort("latest")
+    setCurrentPage(1)
+    setLoading(!Array.isArray(initialProducts))
+    skipFirstClientFetchRef.current = Array.isArray(initialProducts)
   }, [
     initialSubcategoryId,
     initialProducts,
@@ -218,55 +223,15 @@ export default function CustomerProductContent({
     initialMaintenanceMessage,
   ])
 
-  useEffect(() => {
-    const handler = () => {
-      //  jangan panggil
-    }
+  const loadProducts = useCallback(
+    async ({ silent = false, force = false } = {}) => {
+      const requestId = ++requestIdRef.current
 
-    window.addEventListener("favorite:changed", handler)
-    window.addEventListener("cart:changed", handler)
-
-    return () => {
-      window.removeEventListener("favorite:changed", handler)
-      window.removeEventListener("cart:changed", handler)
-    }
-  }, [])
-
-  useEffect(() => {
-    setSort("latest")
-  }, [subcategoryId])
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [subcategoryId, sort])
-
-  useEffect(() => {
-    const handler = () => {
-      if (!userId) return
-
-      const cached = getCachedFavoriteIds(userId)
-      if (cached) setFavoriteIds(cached)
-    }
-
-    window.addEventListener("favorite:changed", handler)
-    return () => window.removeEventListener("favorite:changed", handler)
-  }, [userId])
-
-  useEffect(() => {
-    let active = true
-
-    const isFirstRenderWithSSR =
-      Array.isArray(initialProducts) &&
-      currentPage === 1 &&
-      sort === "latest"
-
-    if (isFirstRenderWithSSR) {
-      return
-    }
-
-    const fetchProducts = async () => {
-      try {
+      if (!silent) {
         setLoading(true)
+      }
+
+      try {
         setCatalogMaintenance("")
 
         const params = new URLSearchParams()
@@ -278,9 +243,9 @@ export default function CustomerProductContent({
           params.set("subcategory_id", String(subcategoryId))
         }
 
-        const json = await fetcher(`/api/v1/products?${params.toString()}`)
+        const json = await fetcher(`/api/v1/products?${params.toString()}`, {}, { force })
 
-        if (!active) return
+        if (requestId !== requestIdRef.current) return
 
         const parsed = normalizeProductsResponse(json)
 
@@ -292,21 +257,30 @@ export default function CustomerProductContent({
           perPage: parsed.perPage,
         })
       } catch (err) {
-        if (!active) return
+        if (requestId !== requestIdRef.current) return
         console.error("Failed fetch products:", err)
         setProducts([])
         setPagination(getDefaultPagination())
       } finally {
-        if (active) setLoading(false)
+        if (requestId === requestIdRef.current && !silent) {
+          setLoading(false)
+        }
       }
+    },
+    [subcategoryId, sort, currentPage]
+  )
+
+  useEffect(() => {
+    const canReuseInitialSnapshot =
+      skipFirstClientFetchRef.current && currentPage === 1 && sort === "latest"
+
+    if (canReuseInitialSnapshot) {
+      skipFirstClientFetchRef.current = false
+      return
     }
 
-    fetchProducts()
-
-    return () => {
-      active = false
-    }
-  }, [subcategoryId, sort, currentPage])
+    loadProducts()
+  }, [loadProducts, currentPage, sort, subcategoryId])
 
   useEffect(() => {
     if (!subcategoryId) {
@@ -328,9 +302,7 @@ export default function CustomerProductContent({
     const fetchSubcategoryInfo = async () => {
       try {
         setSubcategoryLoading(true)
-
         const json = await fetcher(`/api/v1/subcategories/${subcategoryId}`)
-
         if (!active) return
         setSubcategoryInfo(json?.data || null)
       } catch (err) {
@@ -350,6 +322,19 @@ export default function CustomerProductContent({
   }, [subcategoryId, initialSubcategory])
 
   useEffect(() => {
+    const handleFavoriteChanged = () => {
+      if (!userId) return
+      const cached = getCachedFavoriteIds(userId)
+      if (cached) {
+        setFavoriteIds(cached)
+      }
+    }
+
+    window.addEventListener("favorite:changed", handleFavoriteChanged)
+    return () => window.removeEventListener("favorite:changed", handleFavoriteChanged)
+  }, [userId])
+
+  useEffect(() => {
     if (!userId) {
       setFavoriteIds(new Set())
       return
@@ -364,7 +349,6 @@ export default function CustomerProductContent({
     let active = true
     let timeoutId = null
     let idleId = null
-    
 
     const loadFavorites = async () => {
       try {
@@ -435,7 +419,6 @@ export default function CustomerProductContent({
 
     const isFav = favoriteIds.has(productId)
 
-    // OPTIMISTIC UPDATE (BENAR)
     updateFavoriteState((next) => {
       if (isFav) next.delete(productId)
       else next.add(productId)
@@ -446,20 +429,28 @@ export default function CustomerProductContent({
       setFavoriteLoadingId(productId)
 
       if (isFav) {
-        await fetcher(`/api/v1/favorites/${productId}`, {
-          method: "DELETE",
-        }, { auth: true })
+        await fetcher(
+          `/api/v1/favorites/${productId}`,
+          {
+            method: "DELETE",
+          },
+          { auth: true }
+        )
       } else {
-        await fetcher("/api/v1/favorites", {
-          method: "POST",
-          body: JSON.stringify({ product_id: productId }),
-        }, { auth: true })
+        await fetcher(
+          "/api/v1/favorites",
+          {
+            method: "POST",
+            body: JSON.stringify({ product_id: productId }),
+          },
+          { auth: true }
+        )
       }
+
       notifyFavoriteChanged()
     } catch (err) {
       console.error("toggleFavorite error:", err)
 
-      // 🔥 ROLLBACK (INI YANG BIKIN GOD TIER)
       updateFavoriteState((next) => {
         if (isFav) next.add(productId)
         else next.delete(productId)
@@ -472,64 +463,95 @@ export default function CustomerProductContent({
     }
   }
 
+  const ensureAuthenticated = () => {
+    if (user) return true
+    router.push("/login")
+    return false
+  }
+
   const buyNow = async (productId) => {
+    if (actionLockRef.current) return
+
+    const product = products.find((item) => item.id === productId)
+    if (!product || Number(product.available_stock) <= 0) {
+      alert("Stok habis")
+      return
+    }
+
+    if (!ensureAuthenticated()) return
+
+    actionLockRef.current = true
+    setCheckoutLoadingId(productId)
+
     try {
-      if (!user) {
-        router.push("/login")
-        return
-      }
-
-      setCheckoutLoadingId(productId)
-
-      await fetcher("/api/v1/cart/items", {
-        method: "POST",
-        body: JSON.stringify({
-          product_id: productId,
-          qty: 1,
-        }),
-      }, { auth: true })
-
-      await fetcher("/api/v1/cart/checkout", {
-        method: "POST",
-        body: JSON.stringify({
-          voucher_code: null,
-        }),
-      }, { auth: true })
+      await fetcher(
+        "/api/v1/cart/items",
+        {
+          method: "POST",
+          body: JSON.stringify({ product_id: productId, qty: 1 }),
+        },
+        { auth: true }
+      )
 
       notifyCustomerCartChanged()
-      window.dispatchEvent(new Event("stock:changed"))
-      router.prefetch("/customer/category/product/detail/lengkapipembelian")
+      clearCheckoutBootstrapCache()
+
+      const checkout = await fetcher(
+        "/api/v1/cart/checkout",
+        {
+          method: "POST",
+          body: JSON.stringify({ voucher_code: null }),
+        },
+        { auth: true }
+      )
+
+      if (!checkout?.success) {
+        throw new Error("Checkout gagal")
+      }
+
+      clearCheckoutBootstrapCache()
+      notifyCustomerCartChanged()
+      router.push(CHECKOUT_PAGE_PATH)
     } catch (err) {
-      console.error("Buy now error:", err)
-      alert(err.message || "Terjadi kesalahan")
+      console.error("buyNow:", err)
+      alert(err.message || "Gagal checkout")
     } finally {
+      actionLockRef.current = false
       setCheckoutLoadingId(null)
     }
   }
 
   const addToCart = async (productId) => {
-    if (!user) {
-      router.push("/login")
+    if (actionLockRef.current) return
+
+    const product = products.find((item) => item.id === productId)
+    if (!product || Number(product.available_stock) <= 0) {
+      alert("Stok habis")
       return
     }
 
+    if (!ensureAuthenticated()) return
+
+    actionLockRef.current = true
+    setAddingId(productId)
+
     try {
-      setAddingId(productId)
+      await fetcher(
+        "/api/v1/cart/items",
+        {
+          method: "POST",
+          body: JSON.stringify({ product_id: productId, qty: 1 }),
+        },
+        { auth: true }
+      )
 
-      await fetcher("/api/v1/cart/items", {
-        method: "POST",
-        body: JSON.stringify({
-          product_id: productId,
-          qty: 1,
-        }),
-      }, { auth: true })
-
+      clearCheckoutBootstrapCache()
       notifyCustomerCartChanged()
-      window.dispatchEvent(new Event("stock:changed"))
     } catch (err) {
-      console.error("Add to cart failed:", err)
+      console.error("addToCart:", err)
       alert(err.message || "Gagal menambahkan ke keranjang")
     } finally {
+      actionLockRef.current = false
       setAddingId(null)
     }
   }
@@ -589,8 +611,7 @@ export default function CustomerProductContent({
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-white/70">
-          Menampilkan{" "}
-          <span className="font-semibold text-white">{visibleProducts.length}</span>{" "}
+          Menampilkan <span className="font-semibold text-white">{visibleProducts.length}</span>{" "}
           produk
         </div>
 
@@ -598,7 +619,11 @@ export default function CustomerProductContent({
           <label className="text-sm text-white/70">Urutkan</label>
           <select
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
+            onChange={(e) => {
+              const nextSort = e.target.value
+              setSort(nextSort)
+              setCurrentPage(1)
+            }}
             className="min-w-[180px] rounded-xl border border-fuchsia-700/50 bg-[#12031f] px-4 py-2.5 text-sm text-white outline-none transition focus:border-fuchsia-500"
           >
             <option value="latest">Terbaru</option>
@@ -640,14 +665,15 @@ export default function CustomerProductContent({
             const ratingCount = Number(product?.rating_count ?? 0)
             const stockValue = Number(product?.available_stock ?? 0)
             const badgeLabel = getBadgeLabel(product)
+            const isOutOfStock = stockValue <= 0
 
             return (
               <motion.div
                 key={product.id}
                 onMouseEnter={() => {
-                  if (!prefetchedRef.current) {
+                  if (!detailPrefetchedIdsRef.current.has(product.id)) {
                     router.prefetch(`/customer/category/product/detail?id=${product.id}`)
-                    prefetchedRef.current = true
+                    detailPrefetchedIdsRef.current.add(product.id)
                   }
                 }}
                 initial={{ opacity: 0, y: 18 }}
@@ -691,7 +717,7 @@ export default function CustomerProductContent({
                   </h3>
 
                   <p className="mt-1 text-sm text-white/75">
-                    Stok Tersedia {stockValue}
+                    {stockValue <= 0 ? "Stok Habis" : `Stok Tersedia ${stockValue}`}
                   </p>
 
                   <div className="mt-1 flex items-center gap-1.5 text-sm text-yellow-400">
@@ -732,7 +758,7 @@ export default function CustomerProductContent({
                   <div className="mt-3 flex items-center gap-3">
                     <button
                       onClick={() => buyNow(product.id)}
-                      disabled={isBuying || isAdding}
+                      disabled={isBuying || isAdding || isOutOfStock}
                       className="flex-1 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 py-3 text-sm font-bold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isBuying ? "Memproses..." : "Beli Sekarang"}
@@ -740,15 +766,11 @@ export default function CustomerProductContent({
 
                     <button
                       onClick={() => addToCart(product.id)}
-                      disabled={isAdding || isBuying}
+                      disabled={isAdding || isBuying || isOutOfStock}
                       aria-label="Tambah ke keranjang"
                       className="inline-flex h-[50px] w-[50px] items-center justify-center rounded-xl border border-fuchsia-600/70 bg-transparent text-white transition hover:bg-fuchsia-600/10 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {isAdding ? (
-                        <span className="text-xs">...</span>
-                      ) : (
-                        <ShoppingCart className="h-5 w-5" />
-                      )}
+                      {isAdding ? <span className="text-xs">...</span> : <ShoppingCart className="h-5 w-5" />}
                     </button>
                   </div>
                 </div>
@@ -758,42 +780,30 @@ export default function CustomerProductContent({
         </div>
       )}
 
-      {totalPages > 1 && !showMaintenance && (
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
+      {totalPages > 1 && !showMaintenance && !loading && (
+        <div className="mt-10 flex items-center justify-center gap-3">
           <button
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-fuchsia-700/60 bg-[#0c0314] text-fuchsia-200 transition hover:bg-fuchsia-700/20 disabled:opacity-40"
+            type="button"
+            disabled={currentPage <= 1}
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-600/40 px-4 py-2 text-sm text-white transition hover:bg-fuchsia-600/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-4 w-4" />
+            Sebelumnya
           </button>
 
-          {Array.from({ length: totalPages }).map((_, i) => {
-            const page = i + 1
-            const isActive = page === currentPage
-
-            return (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={cn(
-                  "min-w-[44px] rounded-xl px-4 py-2.5 text-sm font-semibold transition",
-                  isActive
-                    ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-lg shadow-fuchsia-900/30"
-                    : "border border-fuchsia-700/60 bg-[#0c0314] text-fuchsia-200 hover:bg-fuchsia-700/20"
-                )}
-              >
-                {page}
-              </button>
-            )
-          })}
+          <div className="rounded-xl border border-fuchsia-700/30 bg-[#100316] px-4 py-2 text-sm text-white/80">
+            Halaman <span className="font-semibold text-white">{currentPage}</span> / {totalPages}
+          </div>
 
           <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-fuchsia-700/60 bg-[#0c0314] text-fuchsia-200 transition hover:bg-fuchsia-700/20 disabled:opacity-40"
+            type="button"
+            disabled={currentPage >= totalPages}
+            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-600/40 px-4 py-2 text-sm text-white transition hover:bg-fuchsia-600/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <ChevronRight className="h-5 w-5" />
+            Berikutnya
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       )}

@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { Heart } from "lucide-react";
-import { useState, useEffect } from "react";
 import NavbarShellClient from "./navbar/customer/NavbarShellClient";
 import NavbarLogo from "./navbar/customer/NavbarLogo";
 import NavbarMenu from "./navbar/customer/NavbarMenu";
@@ -27,14 +26,6 @@ const NavbarUserMenuClient = dynamic(
 
 export default function NavbarCustomerClient({ initialShellData = null }) {
   const { brand } = useWebsiteSettings();
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
   const initialUser = initialShellData?.auth?.user || null;
   const favoriteCount = Number(initialShellData?.nav?.favorite_count || 0);
 

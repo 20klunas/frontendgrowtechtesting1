@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authFetch } from "../../../../../../../lib/authFetch";
+import { clearCheckoutBootstrapCache } from "../../../../../../../lib/clientBootstrap";
+import { notifyCustomerCartChanged } from "../../../../../../../lib/customerCartEvents";
 import { Lock, CheckCircle, XCircle } from "lucide-react";
 
 function ProcessContent() {
@@ -43,6 +45,8 @@ function ProcessContent() {
       if (SUCCESS_STATUS.includes(status) && !redirectedRef.current) {
 
         redirectedRef.current = true;
+        clearCheckoutBootstrapCache();
+        notifyCustomerCartChanged();
 
         router.replace(
           `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`

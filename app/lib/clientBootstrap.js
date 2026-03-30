@@ -1,13 +1,84 @@
 import { authFetch } from "./authFetch"
 
-const CHECKOUT_BOOTSTRAP_KEY = "checkout-bootstrap-v2"
-const CHECKOUT_BOOTSTRAP_TTL = 30 * 1000
+const CHECKOUT_BOOTSTRAP_KEY = "checkout-bootstrap-v3"
+const CHECKOUT_BOOTSTRAP_TTL = 15 * 1000
+
+let checkoutBootstrapMemory = null
+let checkoutBootstrapExpiry = 0
+let checkoutBootstrapPromise = null
 
 function canUseSessionStorage() {
   return typeof window !== "undefined" && typeof window.sessionStorage !== "undefined"
 }
 
+function normalizeGateways(value) {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.data)) return value.data
+  return null
+}
+
+function normalizeWallet(value) {
+  if (!value) return null
+  if (value.wallet) return value
+  if (value.data?.wallet) return value.data
+  return value
+}
+
+function normalizeCheckout(value) {
+  if (!value) return null
+  if (Array.isArray(value?.items) || value?.summary || value?.order) return value
+  if (Array.isArray(value?.data?.items) || value?.data?.summary || value?.data?.order) {
+    return value.data
+  }
+  return null
+}
+
+export function normalizeCheckoutBootstrapData(source) {
+  const root = source?.data || source || {}
+  const checkout =
+    normalizeCheckout(root.checkout) ||
+    normalizeCheckout(root.cart_checkout) ||
+    normalizeCheckout(root.checkout_preview) ||
+    normalizeCheckout(root.preview) ||
+    normalizeCheckout(root)
+
+  const wallet =
+    normalizeWallet(root.wallet) ||
+    normalizeWallet(root.wallet_summary) ||
+    normalizeWallet(root.wallets) ||
+    null
+
+  const gateways =
+    normalizeGateways(root.gateways) ??
+    normalizeGateways(root.payment_gateways) ??
+    normalizeGateways(root.available_gateways) ??
+    []
+
+  return {
+    checkout,
+    wallet,
+    gateways,
+  }
+}
+
+function writeMemory(data) {
+  checkoutBootstrapMemory = data
+  checkoutBootstrapExpiry = Date.now() + CHECKOUT_BOOTSTRAP_TTL
+}
+
+function readMemory() {
+  if (!checkoutBootstrapMemory) return null
+  if (checkoutBootstrapExpiry <= Date.now()) {
+    checkoutBootstrapMemory = null
+    checkoutBootstrapExpiry = 0
+    return null
+  }
+  return checkoutBootstrapMemory
+}
+
 export function readCheckoutBootstrapCache() {
+  const memory = readMemory()
+  if (memory) return memory
   if (!canUseSessionStorage()) return null
 
   try {
@@ -20,20 +91,25 @@ export function readCheckoutBootstrapCache() {
       return null
     }
 
-    return parsed.data || null
+    const normalized = normalizeCheckoutBootstrapData(parsed.data)
+    writeMemory(normalized)
+    return normalized
   } catch {
     return null
   }
 }
 
 export function writeCheckoutBootstrapCache(data) {
+  const normalized = normalizeCheckoutBootstrapData(data)
+  writeMemory(normalized)
+
   if (!canUseSessionStorage()) return
 
   try {
     window.sessionStorage.setItem(
       CHECKOUT_BOOTSTRAP_KEY,
       JSON.stringify({
-        data,
+        data: normalized,
         expiresAt: Date.now() + CHECKOUT_BOOTSTRAP_TTL,
       })
     )
@@ -41,6 +117,10 @@ export function writeCheckoutBootstrapCache(data) {
 }
 
 export function clearCheckoutBootstrapCache() {
+  checkoutBootstrapMemory = null
+  checkoutBootstrapExpiry = 0
+  checkoutBootstrapPromise = null
+
   if (!canUseSessionStorage()) return
 
   try {
@@ -60,13 +140,27 @@ export async function getCheckoutBootstrap({ force = false } = {}) {
     }
   }
 
-  const json = await authFetch("/api/v1/bootstrap/checkout", {
-    cache: "no-store",
-  })
-
-  if (json?.success && json?.data) {
-    writeCheckoutBootstrapCache(json.data)
+  if (!force && checkoutBootstrapPromise) {
+    return checkoutBootstrapPromise
   }
 
-  return json
+  checkoutBootstrapPromise = (async () => {
+    const json = await authFetch("/api/v1/bootstrap/checkout", {
+      cache: "no-store",
+    })
+
+    const normalized = normalizeCheckoutBootstrapData(json)
+    writeCheckoutBootstrapCache(normalized)
+
+    return {
+      ...json,
+      data: normalized,
+    }
+  })()
+
+  try {
+    return await checkoutBootstrapPromise
+  } finally {
+    checkoutBootstrapPromise = null
+  }
 }

@@ -1,10 +1,10 @@
-// lib/fetcher.js
 import Cookies from "js-cookie"
 import { buildApiUrl } from "./apiUrl"
 import { handleMaintenance } from "./maintenanceHandler"
 
 const pendingRequests = new Map()
 const responseCache = new Map()
+const DEFAULT_TIMEOUT_MS = 45000
 
 const TTL = {
   SHORT: 10000,
@@ -21,16 +21,20 @@ function isMutation(method) {
 }
 
 function normalizeUrl(url) {
-  const u = new URL(url, "http://dummy")
-  u.searchParams.sort()
-  return u.pathname + u.search
+  try {
+    const target = new URL(url, "http://localhost")
+    target.searchParams.sort()
+    return `${target.pathname}${target.search}`
+  } catch {
+    return String(url || "")
+  }
 }
 
 function getTTL(url) {
-  const path = url.toLowerCase()
+  const path = String(url || "").toLowerCase()
 
   if (path.includes("/content")) return TTL.LONG
-  if (path.includes("/categories")) return TTL.MEDIUM
+  if (path.includes("/categories") || path.includes("/subcategories")) return TTL.MEDIUM
 
   return TTL.SHORT
 }
@@ -38,14 +42,16 @@ function getTTL(url) {
 function shouldCache(url, method) {
   if (method !== "GET") return false
 
-  if (url.toLowerCase().includes("/products")) return false // WAJIB
+  const path = String(url || "").toLowerCase()
+
+  if (path.includes("/products?")) return false
 
   return [
     "/categories",
     "/subcategories",
     "/catalog",
     "/content",
-  ].some((p) => url.toLowerCase().includes(p))
+  ].some((part) => path.includes(part))
 }
 
 function buildHeaders(options, token) {
@@ -63,7 +69,7 @@ function buildHeaders(options, token) {
 function safeStringify(body) {
   if (!body) return ""
   if (typeof body === "string") return body
-  if (body instanceof FormData) return "formdata"
+  if (typeof FormData !== "undefined" && body instanceof FormData) return "formdata"
 
   try {
     return JSON.stringify(body)
@@ -72,21 +78,49 @@ function safeStringify(body) {
   }
 }
 
-function getRequestKey(fullUrl, method, body) {
-  return `${method}:${normalizeUrl(fullUrl)}:${safeStringify(body)}`
+function getRequestKey(fullUrl, method, body, token) {
+  return `${token || "guest"}:${method}:${normalizeUrl(fullUrl)}:${safeStringify(body)}`
 }
 
-function clearCache() {
-  responseCache.clear()
-  pendingRequests.clear()
+function buildMatcher(patterns = []) {
+  const safePatterns = Array.isArray(patterns) ? patterns : [patterns]
+
+  return (key) =>
+    safePatterns.some((pattern) => {
+      if (!pattern) return false
+      if (typeof pattern === "function") return Boolean(pattern(key))
+      if (pattern instanceof RegExp) return pattern.test(key)
+      return key.includes(String(pattern))
+    })
 }
 
-function clearCartCache() {
-  for (const key of responseCache.keys()) {
-    if (key.includes("/cart")) {
+function clearByMatcher(matcher) {
+  for (const key of Array.from(responseCache.keys())) {
+    if (matcher(key)) {
       responseCache.delete(key)
     }
   }
+
+  for (const key of Array.from(pendingRequests.keys())) {
+    if (matcher(key)) {
+      pendingRequests.delete(key)
+    }
+  }
+}
+
+export function invalidateFetcherCache(patterns = []) {
+  clearByMatcher(buildMatcher(patterns))
+}
+
+function clearVolatileCaches() {
+  invalidateFetcherCache([
+    "/api/v1/cart",
+    "/api/v1/wallet",
+    "/api/v1/orders",
+    "/api/v1/bootstrap/checkout",
+    "/api/v1/payment-gateways/available",
+    "/api/v1/favorites",
+  ])
 }
 
 export async function fetcher(url, options = {}, config = {}) {
@@ -95,6 +129,7 @@ export async function fetcher(url, options = {}, config = {}) {
 
   const token = Cookies.get("token")
   const requireAuth = config.auth ?? false
+  const force = config.force ?? false
 
   if (requireAuth && !token) {
     if (typeof window !== "undefined") {
@@ -103,7 +138,7 @@ export async function fetcher(url, options = {}, config = {}) {
     throw new Error("Unauthorized")
   }
 
-  const requestKey = `${token || "guest"}:${getRequestKey(fullUrl, method, options.body)}`
+  const requestKey = getRequestKey(fullUrl, method, options.body, token)
   const canCache = shouldCache(url, method)
 
   if (canCache && responseCache.has(requestKey)) {
@@ -112,17 +147,13 @@ export async function fetcher(url, options = {}, config = {}) {
     responseCache.delete(requestKey)
   }
 
-  if (method === "GET" && pendingRequests.has(requestKey)) {
+  if (!force && method === "GET" && pendingRequests.has(requestKey)) {
     return pendingRequests.get(requestKey)
-  }
-
-  if (isMutation(method)) {
-    clearCartCache()
   }
 
   const promise = (async () => {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 100000)
+    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
 
     try {
       const res = await fetch(fullUrl, {
@@ -134,20 +165,18 @@ export async function fetcher(url, options = {}, config = {}) {
       })
 
       let data = null
+      const contentType = res.headers.get("content-type") || ""
 
-        const contentType = res.headers.get("content-type") || ""
-
-        if (contentType.includes("application/json")) {
-            data = await res.json()
-        } else {
-            const text = await res.text()
-            console.error("Non JSON:", text)
-            throw new Error("Response bukan JSON")
-        }
+      if (contentType.includes("application/json")) {
+        data = await res.json()
+      } else {
+        const text = await res.text()
+        console.error("Non JSON:", text)
+        throw new Error("Response bukan JSON")
+      }
 
       handleMaintenance(res, data)
 
-      // 🔥 AUTO HANDLE 401
       if (res.status === 401) {
         Cookies.remove("token")
         if (typeof window !== "undefined") {
@@ -168,13 +197,13 @@ export async function fetcher(url, options = {}, config = {}) {
       }
 
       if (isMutation(method)) {
-        clearCache()
+        clearVolatileCaches()
       }
 
       return data
     } catch (err) {
-      if (err.name === "AbortError") {
-        throw new Error("Timeout >10s")
+      if (err?.name === "AbortError") {
+        throw new Error("Timeout >45s")
       }
       throw err
     } finally {
