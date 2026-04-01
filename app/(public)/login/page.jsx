@@ -12,6 +12,7 @@ import {
   persistAuthSession,
   resolvePostLoginPath,
 } from "../../lib/authSession";
+import { setTrustedDevicePreference } from "../../lib/trustedDevicePreference";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberDevice, setRememberDevice] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [popup, setPopup] = useState({
@@ -49,6 +51,20 @@ export default function LoginPage() {
     router.replace(targetPath);
   }, [authLoading, beginTransition, router, user]);
 
+  const finishLogin = (authUser, token) => {
+    const targetPath = resolvePostLoginPath(authUser);
+
+    persistAuthSession(token, authUser);
+    beginTransition(
+      targetPath,
+      targetPath === "/admin/dashboard"
+        ? "Menyiapkan dashboard admin..."
+        : "Menyiapkan dashboard Anda..."
+    );
+    setUser(authUser, { display: false });
+    router.replace(targetPath);
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -60,7 +76,7 @@ export default function LoginPage() {
 
       const json = await publicFetch("/api/v1/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, remember: rememberDevice }),
       });
 
       if (json?.data?.requires_2fa) {
@@ -79,17 +95,7 @@ export default function LoginPage() {
         throw new Error("Data user login tidak ditemukan");
       }
 
-      const targetPath = resolvePostLoginPath(authUser);
-
-      persistAuthSession(token, authUser);
-      beginTransition(
-        targetPath,
-        targetPath === "/admin/dashboard"
-          ? "Menyiapkan dashboard admin..."
-          : "Menyiapkan dashboard Anda..."
-      );
-      setUser(authUser, { display: false });
-      router.replace(targetPath);
+      finishLogin(authUser, token);
     } catch (err) {
       finishTransition();
 
@@ -117,6 +123,7 @@ export default function LoginPage() {
         return;
       }
 
+      setTrustedDevicePreference(rememberDevice);
       window.location.href = `${API}/api/v1/auth/google/redirect`;
     } catch (err) {
       if (err?.isMaintenance) {
@@ -142,6 +149,7 @@ export default function LoginPage() {
       return;
     }
 
+    setTrustedDevicePreference(rememberDevice);
     window.location.href = `${API}/api/v1/auth/discord/redirect`;
   };
 
@@ -206,6 +214,16 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+
+          <label className="flex items-start gap-3 rounded-xl border border-purple-400/20 bg-purple-950/20 px-4 py-3 text-sm text-gray-200">
+            <input
+              type="checkbox"
+              checked={rememberDevice}
+              onChange={(e) => setRememberDevice(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-purple-400/50 bg-transparent text-purple-500 focus:ring-purple-500"
+            />
+            <span>Ingat perangkat ini untuk lewati OTP hingga 30 hari</span>
+          </label>
 
           <div className="text-right">
             <a

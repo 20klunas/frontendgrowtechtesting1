@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import ChangePasswordModal from "../../components/customer/ChangePasswordModal";
 import { User, Mail, MapPin, Pencil, Filter, ReceiptText } from "lucide-react";
@@ -30,19 +30,90 @@ function formatDateTime(value) {
   });
 }
 
-function getStatusTextClass(status) {
+function getStatusClasses(status) {
   const map = {
-    paid: "text-green-400",
-    fulfilled: "text-emerald-400",
-    pending: "text-yellow-400",
-    created: "text-sky-400",
-    cancelled: "text-red-400",
-    failed: "text-rose-400",
-    expired: "text-orange-400",
-    refunded: "text-blue-400",
+    paid: "bg-green-500/15 text-green-400 border-green-500/30",
+    fulfilled: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+    created: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+    cancelled: "bg-red-500/15 text-red-400 border-red-500/30",
+    failed: "bg-rose-500/15 text-rose-400 border-rose-500/30",
+    expired: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    refunded: "bg-blue-500/15 text-blue-400 border-blue-500/30",
   };
 
-  return map[String(status || "").toLowerCase()] || "text-gray-300";
+  return map[String(status || "").toLowerCase()] || "bg-zinc-800 text-gray-200 border-zinc-700";
+}
+
+function normalizeOrderItems(order) {
+  const summaryItems = Array.isArray(order?.history_summary?.items) ? order.history_summary.items : [];
+  if (summaryItems.length > 0) return summaryItems;
+
+  const itemDetails = Array.isArray(order?.item_details) ? order.item_details : [];
+  if (itemDetails.length > 0) return itemDetails;
+
+  const rawItems = Array.isArray(order?.items)
+    ? order.items.map((item) => {
+        const product = item?.product || {};
+        const category = item?.category || product?.category || {};
+        const subcategory = item?.subcategory || product?.subcategory || {};
+
+        return {
+          order_item_id: item?.id ?? null,
+          product_id: item?.product_id ?? product?.id ?? null,
+          product: item?.product_name || product?.name || order?.product?.name || "Produk",
+          product_slug: item?.product_slug || product?.slug || order?.product?.slug || null,
+          category: category?.name || order?.product?.category?.name || null,
+          subcategory: subcategory?.name || order?.product?.subcategory?.name || null,
+          qty: Number(item?.qty || 0),
+          unit_price: Number(item?.unit_price || 0),
+          line_subtotal: Number(item?.line_subtotal || 0),
+        };
+      })
+    : [];
+
+  if (rawItems.length > 0) return rawItems;
+
+  if (order?.product) {
+    return [
+      {
+        order_item_id: null,
+        product_id: order.product?.id ?? null,
+        product: order.product?.name || "Produk",
+        product_slug: order.product?.slug || null,
+        category: order.product?.category?.name || null,
+        subcategory: order.product?.subcategory?.name || null,
+        qty: Number(order?.qty || 0),
+        unit_price: Number(order?.qty ? Number(order?.subtotal || order?.amount || 0) / Number(order.qty || 1) : order?.amount || 0),
+        line_subtotal: Number(order?.subtotal || order?.amount || 0),
+      },
+    ];
+  }
+
+  return [];
+}
+
+function buildOrderHistorySummary(order) {
+  const summary = order?.history_summary || {};
+  const items = normalizeOrderItems(order);
+
+  const categories = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(summary?.categories) ? summary.categories : []),
+        ...items.map((item) => item?.category).filter(Boolean),
+      ].filter(Boolean)
+    )
+  );
+
+  return {
+    invoice: summary?.invoice || order?.invoice_number || "-",
+    waktu: summary?.waktu || order?.transaction_datetime || order?.created_at || null,
+    harga: Number(summary?.harga || order?.amount || 0),
+    total_item_qty: Number(summary?.total_item_qty || order?.total_item_qty || items.reduce((total, item) => total + Number(item?.qty || 0), 0)),
+    categories,
+    items,
+  };
 }
 
 export default function ProfilePage() {
@@ -197,9 +268,6 @@ export default function ProfilePage() {
     fetchHistory();
   }, [user, loading, historyPage, appliedFilters]);
 
-  if (loading) return null;
-  if (!user) return <p className="text-white text-center">User tidak ditemukan</p>;
-
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -291,11 +359,10 @@ export default function ProfilePage() {
   };
 
   const avatarSrc = user?.avatar_url || user?.avatar || null;
+  const appliedFilterCount = Object.values(appliedFilters).filter(Boolean).length;
 
-  const appliedFilterCount = useMemo(
-    () => Object.values(appliedFilters).filter(Boolean).length,
-    [appliedFilters]
-  );
+  if (loading) return null;
+  if (!user) return <p className="text-white text-center">User tidak ditemukan</p>;
 
   return (
     <>
@@ -510,9 +577,9 @@ export default function ProfilePage() {
             ) : (
               <div className="space-y-4">
                 {historyItems.map((order) => {
-                  const summary = order?.history_summary || {};
-                  const items = Array.isArray(summary?.items) ? summary.items : [];
-                  const categories = Array.isArray(summary?.categories) ? summary.categories : [];
+                  const summary = buildOrderHistorySummary(order);
+                  const items = summary.items;
+                  const categories = summary.categories;
 
                   return (
                     <div
@@ -523,13 +590,13 @@ export default function ProfilePage() {
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-xs uppercase tracking-wide text-purple-300">Invoice</span>
-                            <span className="text-white font-semibold">{summary.invoice || order.invoice_number || "-"}</span>
+                            <span className="text-white font-semibold">{summary.invoice}</span>
                           </div>
-                          <div className="text-sm text-gray-300">Waktu: {formatDateTime(summary.waktu || order.created_at)}</div>
+                          <div className="text-sm text-gray-300">Waktu: {formatDateTime(summary.waktu)}</div>
                           <div className="text-sm text-gray-300">Kategori: {categories.length ? categories.join(", ") : "-"}</div>
-                          <div className="text-sm text-gray-300">
-                            Status pembayaran:{" "}
-                            <span className={`font-semibold ${getStatusTextClass(order.status)}`}>
+                          <div className="flex items-center gap-2 text-sm text-gray-300">
+                            <span>Status pembayaran:</span>
+                            <span className={`inline-flex px-2.5 py-1 rounded-full border text-xs font-semibold ${getStatusClasses(order.status)}`}>
                               {String(order.status || "-").toUpperCase()}
                             </span>
                           </div>
@@ -537,7 +604,7 @@ export default function ProfilePage() {
 
                         <div className="text-left lg:text-right space-y-2">
                           <div className="text-xs uppercase tracking-wide text-purple-300">Harga</div>
-                          <div className="text-2xl font-bold text-white">{formatRupiah(summary.harga || order.amount || 0)}</div>
+                          <div className="text-2xl font-bold text-white">{formatRupiah(summary.harga)}</div>
                           <div className="text-sm text-gray-400">Total item: {summary.total_item_qty || 0}</div>
                         </div>
                       </div>
@@ -545,9 +612,10 @@ export default function ProfilePage() {
                       <div className="mt-5 grid gap-3 lg:grid-cols-2">
                         {items.length > 0 ? (
                           items.map((item, idx) => (
-                            <div key={`${order.id}-${idx}`} className="rounded-xl border border-purple-800/50 bg-purple-950/20 p-4">
+                            <div key={`${order.id}-${item.order_item_id || idx}`} className="rounded-xl border border-purple-800/50 bg-purple-950/20 p-4">
                               <div className="text-white font-medium">{item.product || "Produk"}</div>
                               <div className="text-sm text-gray-400 mt-1">Kategori: {item.category || "-"}</div>
+                              <div className="text-sm text-gray-400">Subkategori: {item.subcategory || "-"}</div>
                               <div className="text-sm text-gray-400">Qty: {item.qty || 0}</div>
                               <div className="text-sm text-gray-400">Harga satuan: {formatRupiah(item.unit_price || 0)}</div>
                               <div className="text-sm text-gray-300 mt-1">Subtotal item: {formatRupiah(item.line_subtotal || 0)}</div>

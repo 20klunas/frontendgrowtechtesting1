@@ -204,6 +204,7 @@ export async function authFetch(url, options = {}) {
         method,
         headers: buildHeaders(options, token),
         cache: cacheMode,
+        credentials: "include",
         signal: controller.signal,
       })
 

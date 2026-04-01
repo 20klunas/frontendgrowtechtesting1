@@ -118,6 +118,7 @@ export async function publicFetch(url, options = {}) {
         method,
         headers: buildHeaders(options),
         cache: cacheMode,
+        credentials: "include",
         signal: controller.signal,
       })
 
