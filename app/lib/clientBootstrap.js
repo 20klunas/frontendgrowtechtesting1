@@ -24,13 +24,48 @@ function normalizeWallet(value) {
   return value
 }
 
+function normalizeOrderCheckout(value) {
+  const order = value?.order || value?.data?.order || null
+  if (!order) return null
+
+  const items = Array.isArray(value?.items)
+    ? value.items
+    : Array.isArray(value?.data?.items)
+    ? value.data.items
+    : Array.isArray(order?.items)
+    ? order.items
+    : []
+
+  const summary =
+    value?.summary ||
+    value?.data?.summary || {
+      subtotal: Number(order?.subtotal ?? 0),
+      discount_total: Number(order?.discount_total ?? 0),
+      tax_percent: Number(order?.tax_percent ?? 0),
+      tax_amount: Number(order?.tax_amount ?? 0),
+      total: Number(order?.amount ?? 0),
+      gateway_fee_percent: Number(order?.gateway_fee_percent ?? 0),
+      gateway_fee_amount: Number(order?.gateway_fee_amount ?? 0),
+      total_payable_gateway:
+        Number(order?.amount ?? 0) + Number(order?.gateway_fee_amount ?? 0),
+    }
+
+  return {
+    order,
+    items,
+    summary,
+  }
+}
+
 function normalizeCheckout(value) {
   if (!value) return null
-  if (Array.isArray(value?.items) || value?.summary || value?.order) return value
-  if (Array.isArray(value?.data?.items) || value?.data?.summary || value?.data?.order) {
-    return value.data
+  if (Array.isArray(value?.items) || value?.summary || value?.order) {
+    return value?.summary ? value : normalizeOrderCheckout(value)
   }
-  return null
+  if (Array.isArray(value?.data?.items) || value?.data?.summary || value?.data?.order) {
+    return value?.data?.summary ? value.data : normalizeOrderCheckout(value.data)
+  }
+  return normalizeOrderCheckout(value)
 }
 
 export function normalizeCheckoutBootstrapData(source) {

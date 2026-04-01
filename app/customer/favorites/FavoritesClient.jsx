@@ -133,23 +133,17 @@ export default function FavoritesClient({
     try {
       setBuyingId(productId)
 
-      await fetcher(
-        "/api/v1/cart/items",
+      clearCheckoutBootstrapCache()
+
+      const checkout = await fetcher(
+        "/api/v1/orders",
         {
           method: "POST",
           body: JSON.stringify({
             product_id: productId,
             qty: 1,
+            voucher_code: null,
           }),
-        },
-        { auth: true }
-      )
-
-      const checkout = await fetcher(
-        "/api/v1/cart/checkout",
-        {
-          method: "POST",
-          body: JSON.stringify({ voucher_code: null }),
         },
         { auth: true }
       )
@@ -159,7 +153,6 @@ export default function FavoritesClient({
       }
 
       writeCheckoutBootstrapCache({ checkout: checkout?.data || null })
-      notifyCustomerCartChanged()
       notifyFavoriteChanged()
       router.push("/customer/category/product/detail/lengkapipembelian")
     } catch (err) {

@@ -167,23 +167,11 @@ export function AuthProvider({ children, initialUser = null }) {
     transitionRef.current = isTransitioning;
   }, [isTransitioning]);
 
-  const initialResolvedUser = useMemo(() => {
-    if (initialUser) return initialUser;
-
-    if (typeof window === "undefined") return null;
-
-    const token = Cookies.get("token") || null;
-    return getCachedProfile(token);
-  }, [initialUser]);
+  const initialResolvedUser = initialUser || null;
 
   const [actualUser, setActualUser] = useState(() => initialResolvedUser);
   const [displayUser, setDisplayUser] = useState(() => initialResolvedUser);
-  const [loading, setLoading] = useState(() => {
-    if (typeof window === "undefined") return false;
-
-    const token = Cookies.get("token") || null;
-    return Boolean(token) && !initialResolvedUser;
-  });
+  const [loading, setLoading] = useState(Boolean(initialUser));
 
   const applyUser = useCallback((nextUser, options = {}) => {
     const resolvedUser = nextUser || null;
@@ -255,21 +243,19 @@ export function AuthProvider({ children, initialUser = null }) {
       return
     }
 
-    const token = Cookies.get("token")
-
-    // 🔥 tambahkan ini
+    const token = Cookies.get("token") || null
     if (!token) {
       setLoading(false)
       return
     }
 
-    if (actualUser) {
-      setLoading(false)
-      return
-    }
-
-    syncProfile().catch(() => {})
-  }, [initialUser, actualUser, applyUser, syncProfile])
+    setLoading(true)
+    syncProfile({ force: false, display: true })
+      .catch(() => {})
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [initialUser, applyUser, syncProfile])
 
   useEffect(() => {
     if (!isTransitioning) {

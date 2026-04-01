@@ -1,11 +1,49 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import ChangePasswordModal from "../../components/customer/ChangePasswordModal";
-import { User, Mail, MapPin, Pencil } from "lucide-react";
+import { User, Mail, MapPin, Pencil, Filter, ReceiptText } from "lucide-react";
 import { useAuth } from "../../../app/hooks/useAuth";
 import { apiFetch } from "../../../app/lib/utils";
+
+const STATUS_OPTIONS = ["", "created", "pending", "paid", "fulfilled", "cancelled", "failed", "expired", "refunded"];
+
+function formatRupiah(value) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("id-ID", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getStatusTextClass(status) {
+  const map = {
+    paid: "text-green-400",
+    fulfilled: "text-emerald-400",
+    pending: "text-yellow-400",
+    created: "text-sky-400",
+    cancelled: "text-red-400",
+    failed: "text-rose-400",
+    expired: "text-orange-400",
+    refunded: "text-blue-400",
+  };
+
+  return map[String(status || "").toLowerCase()] || "text-gray-300";
+}
 
 export default function ProfilePage() {
   const { user, setUser, loading } = useAuth();
@@ -23,6 +61,28 @@ export default function ProfilePage() {
     email: "",
     address: "",
     tier: "member",
+  });
+
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyItems, setHistoryItems] = useState([]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyLastPage, setHistoryLastPage] = useState(1);
+  const [historyMeta, setHistoryMeta] = useState({ total: 0 });
+  const [historyFilters, setHistoryFilters] = useState({
+    status: "",
+    date_from: "",
+    date_to: "",
+    invoice: "",
+    category: "",
+    product: "",
+  });
+  const [appliedFilters, setAppliedFilters] = useState({
+    status: "",
+    date_from: "",
+    date_to: "",
+    invoice: "",
+    category: "",
+    product: "",
   });
 
   useEffect(() => {
@@ -43,7 +103,6 @@ export default function ProfilePage() {
 
         setForm(profileData);
         setInitialForm(profileData);
-
         setUser(data);
       } catch (err) {
         console.error("GET PROFILE ERROR:", err);
@@ -60,7 +119,6 @@ export default function ProfilePage() {
     const uploadAvatar = async () => {
       setUploadingAvatar(true);
       try {
-
         const signRes = await apiFetch("/api/v1/auth/me/avatar/sign", {
           method: "POST",
           body: JSON.stringify({ mime: avatarFile.type }),
@@ -85,7 +143,7 @@ export default function ProfilePage() {
           body: JSON.stringify({
             avatar_path: path,
             avatar_url: public_url,
-            avatar: public_url, 
+            avatar: public_url,
           }),
         });
 
@@ -107,6 +165,38 @@ export default function ProfilePage() {
     uploadAvatar();
   }, [avatarFile, setUser]);
 
+  useEffect(() => {
+    if (loading || !user) return;
+
+    const fetchHistory = async () => {
+      setHistoryLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(historyPage));
+        params.set("per_page", "10");
+
+        Object.entries(appliedFilters).forEach(([key, value]) => {
+          if (value) params.set(key, value);
+        });
+
+        const res = await apiFetch(`/api/v1/orders?${params.toString()}`, { method: "GET" });
+        const paginated = res?.data || {};
+
+        setHistoryItems(Array.isArray(paginated?.data) ? paginated.data : []);
+        setHistoryPage(Number(paginated?.current_page || 1));
+        setHistoryLastPage(Number(paginated?.last_page || 1));
+        setHistoryMeta({ total: Number(paginated?.total || 0) });
+      } catch (err) {
+        console.error("GET HISTORY ERROR:", err);
+        setHistoryItems([]);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [user, loading, historyPage, appliedFilters]);
+
   if (loading) return null;
   if (!user) return <p className="text-white text-center">User tidak ditemukan</p>;
 
@@ -114,7 +204,7 @@ export default function ProfilePage() {
     const { name, value } = e.target;
 
     if (name === "name") {
-      const trimmed = value.slice(0, 10); // maksimal 10
+      const trimmed = value.slice(0, 10);
       setForm({ ...form, name: trimmed });
       return;
     }
@@ -152,7 +242,7 @@ export default function ProfilePage() {
       const res = await apiFetch("/api/v1/auth/me/profile", {
         method: "PATCH",
         body: JSON.stringify({
-          name: form.name, 
+          name: form.name,
           full_name: form.full_name,
           address: form.address,
         }),
@@ -165,6 +255,7 @@ export default function ProfilePage() {
         full_name: data?.full_name || "",
         email: data?.email || "",
         address: data?.address || "",
+        tier: data?.tier || form.tier || "member",
       };
 
       setForm(updated);
@@ -180,14 +271,37 @@ export default function ProfilePage() {
     }
   };
 
+  const handleApplyFilter = () => {
+    setHistoryPage(1);
+    setAppliedFilters({ ...historyFilters });
+  };
+
+  const handleResetFilter = () => {
+    const empty = {
+      status: "",
+      date_from: "",
+      date_to: "",
+      invoice: "",
+      category: "",
+      product: "",
+    };
+    setHistoryFilters(empty);
+    setAppliedFilters(empty);
+    setHistoryPage(1);
+  };
+
   const avatarSrc = user?.avatar_url || user?.avatar || null;
+
+  const appliedFilterCount = useMemo(
+    () => Object.values(appliedFilters).filter(Boolean).length,
+    [appliedFilters]
+  );
 
   return (
     <>
       <main className="min-h-screen bg-black px-4 pt-28 pb-24">
-        <div className="max-w-5xl mx-auto">
-          {/* PROFILE IMAGE */}
-          <div className="flex justify-center mb-10">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="flex justify-center mb-4">
             <div className="relative w-56 h-56 rounded-3xl border-2 border-purple-500 overflow-hidden">
               <Image
                 key={avatarSrc || "fallback"}
@@ -218,7 +332,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* PROFILE FORM */}
           <div className="border border-purple-500/50 rounded-3xl p-8">
             <h2 className="text-2xl font-semibold text-white mb-6">Profil Akun</h2>
 
@@ -255,23 +368,19 @@ export default function ProfilePage() {
                 filled={isFilled(form.address)}
                 changed={isChanged("address")}
               />
-              <div className="mt-6">
-                <label className="flex items-center gap-2 text-sm text-purple-300 mb-2">
-                  🎖 Tier Akun
-                </label>
 
-                <div className="flex items-center justify-between bg-purple-900/40 border border-purple-700 rounded-xl px-4 py-3">
-                  
+              <div className="mt-6">
+                <label className="flex items-center gap-2 text-sm text-purple-300 mb-2">🎖 Tier Akun</label>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-purple-900/40 border border-purple-700 rounded-xl px-4 py-3">
                   <span
-                    className={`px-3 py-1 rounded-lg text-sm font-semibold
-                      ${
-                        form.tier === "vip"
-                          ? "bg-yellow-500 text-black"
-                          : form.tier === "reseller"
-                          ? "bg-blue-500"
-                          : "bg-gray-600"
-                      }
-                    `}
+                    className={`px-3 py-1 rounded-lg text-sm font-semibold w-fit ${
+                      form.tier === "vip"
+                        ? "bg-yellow-500 text-black"
+                        : form.tier === "reseller"
+                        ? "bg-blue-500"
+                        : "bg-gray-600"
+                    }`}
                   >
                     {String(form.tier || "member").toUpperCase()}
                   </span>
@@ -280,16 +389,15 @@ export default function ProfilePage() {
                     href="https://discord.gg/YOUR_SERVER_LINK"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                    className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-semibold transition text-center"
                   >
                     Request Upgrade via Discord
                   </a>
-
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-4 mt-8">
+            <div className="flex justify-end gap-4 mt-8 flex-wrap">
               <button
                 type="button"
                 onClick={() => setOpenModal(true)}
@@ -308,6 +416,177 @@ export default function ProfilePage() {
               </button>
             </div>
           </div>
+
+          <section className="border border-purple-500/40 rounded-3xl p-6 lg:p-8 bg-[#06000d]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-white flex items-center gap-3">
+                  <ReceiptText className="w-6 h-6 text-purple-400" />
+                  History Transaksi
+                </h2>
+                <p className="text-sm text-purple-200/80 mt-2">
+                  Invoice, kategori, produk, harga, dan filter transaksi ada di sini.
+                </p>
+              </div>
+
+              <div className="text-sm text-purple-300 flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                {historyMeta.total} transaksi • {appliedFilterCount} filter aktif
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3 mb-5">
+              <select
+                className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white"
+                value={historyFilters.status}
+                onChange={(e) => setHistoryFilters((prev) => ({ ...prev, status: e.target.value }))}
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status || "all"} value={status}>
+                    {status ? status.toUpperCase() : "Semua Status"}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="date"
+                className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white"
+                value={historyFilters.date_from}
+                onChange={(e) => setHistoryFilters((prev) => ({ ...prev, date_from: e.target.value }))}
+              />
+
+              <input
+                type="date"
+                className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white"
+                value={historyFilters.date_to}
+                onChange={(e) => setHistoryFilters((prev) => ({ ...prev, date_to: e.target.value }))}
+              />
+
+              <input
+                className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white placeholder:text-gray-500"
+                placeholder="Cari invoice"
+                value={historyFilters.invoice}
+                onChange={(e) => setHistoryFilters((prev) => ({ ...prev, invoice: e.target.value }))}
+              />
+
+              <input
+                className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white placeholder:text-gray-500"
+                placeholder="Cari kategori"
+                value={historyFilters.category}
+                onChange={(e) => setHistoryFilters((prev) => ({ ...prev, category: e.target.value }))}
+              />
+
+              <input
+                className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white placeholder:text-gray-500"
+                placeholder="Cari produk"
+                value={historyFilters.product}
+                onChange={(e) => setHistoryFilters((prev) => ({ ...prev, product: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-3 mb-6">
+              <button
+                type="button"
+                onClick={handleApplyFilter}
+                className="bg-purple-700 hover:bg-purple-800 px-5 py-2.5 rounded-xl text-white font-medium"
+              >
+                Terapkan Filter
+              </button>
+              <button
+                type="button"
+                onClick={handleResetFilter}
+                className="border border-purple-600 px-5 py-2.5 rounded-xl text-purple-200 hover:bg-purple-900/20"
+              >
+                Reset Filter
+              </button>
+            </div>
+
+            {historyLoading ? (
+              <div className="text-center py-14 text-purple-200">Memuat history transaksi...</div>
+            ) : historyItems.length === 0 ? (
+              <div className="text-center py-14 text-gray-400 border border-dashed border-purple-800 rounded-2xl">
+                Tidak ada transaksi yang cocok dengan filter.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {historyItems.map((order) => {
+                  const summary = order?.history_summary || {};
+                  const items = Array.isArray(summary?.items) ? summary.items : [];
+                  const categories = Array.isArray(summary?.categories) ? summary.categories : [];
+
+                  return (
+                    <div
+                      key={order.id}
+                      className="rounded-2xl border border-purple-700/40 bg-black/60 p-5 lg:p-6"
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs uppercase tracking-wide text-purple-300">Invoice</span>
+                            <span className="text-white font-semibold">{summary.invoice || order.invoice_number || "-"}</span>
+                          </div>
+                          <div className="text-sm text-gray-300">Waktu: {formatDateTime(summary.waktu || order.created_at)}</div>
+                          <div className="text-sm text-gray-300">Kategori: {categories.length ? categories.join(", ") : "-"}</div>
+                          <div className="text-sm text-gray-300">
+                            Status pembayaran:{" "}
+                            <span className={`font-semibold ${getStatusTextClass(order.status)}`}>
+                              {String(order.status || "-").toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-left lg:text-right space-y-2">
+                          <div className="text-xs uppercase tracking-wide text-purple-300">Harga</div>
+                          <div className="text-2xl font-bold text-white">{formatRupiah(summary.harga || order.amount || 0)}</div>
+                          <div className="text-sm text-gray-400">Total item: {summary.total_item_qty || 0}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                        {items.length > 0 ? (
+                          items.map((item, idx) => (
+                            <div key={`${order.id}-${idx}`} className="rounded-xl border border-purple-800/50 bg-purple-950/20 p-4">
+                              <div className="text-white font-medium">{item.product || "Produk"}</div>
+                              <div className="text-sm text-gray-400 mt-1">Kategori: {item.category || "-"}</div>
+                              <div className="text-sm text-gray-400">Qty: {item.qty || 0}</div>
+                              <div className="text-sm text-gray-400">Harga satuan: {formatRupiah(item.unit_price || 0)}</div>
+                              <div className="text-sm text-gray-300 mt-1">Subtotal item: {formatRupiah(item.line_subtotal || 0)}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="rounded-xl border border-purple-800/50 bg-purple-950/20 p-4 text-gray-400">
+                            Detail item belum tersedia.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                type="button"
+                disabled={historyPage <= 1}
+                onClick={() => setHistoryPage((prev) => Math.max(1, prev - 1))}
+                className="px-4 py-2 rounded-xl border border-purple-700 text-white disabled:opacity-40"
+              >
+                Sebelumnya
+              </button>
+              <span className="text-sm text-purple-200">
+                Halaman {historyPage} / {historyLastPage}
+              </span>
+              <button
+                type="button"
+                disabled={historyPage >= historyLastPage}
+                onClick={() => setHistoryPage((prev) => Math.min(historyLastPage, prev + 1))}
+                className="px-4 py-2 rounded-xl border border-purple-700 text-white disabled:opacity-40"
+              >
+                Berikutnya
+              </button>
+            </div>
+          </section>
         </div>
       </main>
 
@@ -325,7 +604,7 @@ function Input({
   disabled = false,
   filled = false,
   changed = false,
-  maxLength
+  maxLength,
 }) {
   return (
     <div>
@@ -341,10 +620,9 @@ function Input({
         disabled={disabled}
         maxLength={maxLength}
         placeholder={disabled ? "" : "Belum diisi"}
-        className={`w-full rounded-xl px-4 py-2 outline-none text-white border
-          ${filled ? "bg-purple-900/60 border-purple-500" : "bg-black border-purple-700/30 text-gray-400"}
-          ${changed ? "ring-2 ring-purple-500/40" : ""}
-          disabled:opacity-60`}
+        className={`w-full rounded-xl px-4 py-2 outline-none text-white border ${
+          filled ? "bg-purple-900/60 border-purple-500" : "bg-black border-purple-700/30 text-gray-400"
+        } ${changed ? "ring-2 ring-purple-500/40" : ""} disabled:opacity-60`}
       />
     </div>
   );

@@ -10,10 +10,7 @@ import {
   AlertCircle,
 } from "lucide-react"
 import { authFetch } from "../../../../../../lib/authFetch"
-import {
-  clearCheckoutBootstrapCache,
-  getCheckoutBootstrap,
-} from "../../../../../../lib/clientBootstrap"
+import { clearCheckoutBootstrapCache, getCheckoutBootstrap, readCheckoutBootstrapCache } from "../../../../../../lib/clientBootstrap"
 import { notifyCustomerCartChanged } from "../../../../../../lib/customerCartEvents"
 
 export default function PaymentPageWrapper() {
@@ -75,38 +72,41 @@ function PaymentPage() {
   useEffect(() => {
     let active = true
 
-    const loadPaymentBootstrap = async () => {
-      try {
-        setLoading(true)
+    const cached = readCheckoutBootstrapCache()
 
-        const json = await getCheckoutBootstrap()
-        if (!active) return
+    // 1. SYNC RENDER (NO FLICKER)
+    if (cached) {
+      setCheckout(cached.checkout)
+      setWalletBalance(
+        Number(cached.wallet?.wallet?.balance ?? cached.wallet?.balance ?? 0)
+      )
+      setGateways(cached.gateways || [])
 
-        const checkoutData = json?.data?.checkout || null
-        const walletData = json?.data?.wallet || null
-        const gatewayRows = Array.isArray(json?.data?.gateways) ? json.data.gateways : []
+      const firstGateway = (cached.gateways || []).find(
+        (row) => String(row?.code || "").toLowerCase() !== "wallet"
+      )
+      setSelectedGateway(firstGateway?.code || "wallet")
 
-        setCheckout(checkoutData)
-        setWalletBalance(Number(walletData?.wallet?.balance ?? walletData?.balance ?? 0))
-        setGateways(gatewayRows)
-
-        const firstGateway = gatewayRows.find((row) => String(row?.code || "").toLowerCase() !== "wallet")
-        setSelectedGateway(firstGateway?.code || "wallet")
-      } catch (err) {
-        if (!active) return
-        console.error("checkout bootstrap error", err)
-        setCheckout(null)
-        setWalletBalance(0)
-        setGateways([])
-        setSelectedGateway("wallet")
-      } finally {
-        if (active) {
-          setLoading(false)
-        }
-      }
+      setLoading(false)
     }
 
-    loadPaymentBootstrap()
+    // 2. BACKGROUND REFRESH
+    getCheckoutBootstrap({ force: true }).then((res) => {
+      if (!active) return
+
+      const data = res?.data || {}
+
+      setCheckout(data.checkout)
+      setWalletBalance(
+        Number(data.wallet?.wallet?.balance ?? data.wallet?.balance ?? 0)
+      )
+      setGateways(data.gateways || [])
+
+      const firstGateway = (data.gateways || []).find(
+        (row) => String(row?.code || "").toLowerCase() !== "wallet"
+      )
+      setSelectedGateway(firstGateway?.code || "wallet")
+    })
 
     return () => {
       active = false
@@ -119,6 +119,7 @@ function PaymentPage() {
   )
 
   const insufficientWallet = walletBalance < total
+  const checkoutItems = checkout?.items || checkout?.order?.items || []
 
   const handleCreatePayment = async () => {
     if (!checkout || processing) return
@@ -202,7 +203,7 @@ function PaymentPage() {
     )
   }
 
-  if (!checkout || !checkout.items?.length) {
+  if (!checkout || !checkoutItems?.length) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center text-white">
         Checkout kosong

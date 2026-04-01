@@ -4,19 +4,32 @@ import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 
-function resolveMemberPrice(product) {
+function resolveMemberPricing(product) {
   const pricing = product?.tier_pricing
+  const profitPricing = product?.tier_profit
+  const finalPricing = product?.tier_final_pricing
 
+  let base = 0
   if (pricing && typeof pricing === "object" && !Array.isArray(pricing)) {
-    return Number(pricing.member || pricing.reseller || pricing.vip || product?.price || 0)
-  }
-
-  if (Array.isArray(pricing) && pricing.length > 0) {
+    base = Number(pricing.member || pricing.reseller || pricing.vip || product?.price || 0)
+  } else if (Array.isArray(pricing) && pricing.length > 0) {
     const first = pricing[0] || {}
-    return Number(first.member || first.reseller || first.vip || product?.price || 0)
+    base = Number(first.member || first.reseller || first.vip || product?.price || 0)
+  } else {
+    base = Number(product?.price || 0)
   }
 
-  return Number(product?.price || 0)
+  let profit = 0
+  if (profitPricing && typeof profitPricing === "object" && !Array.isArray(profitPricing)) {
+    profit = Number(profitPricing.member || 0)
+  } else if (Array.isArray(profitPricing) && profitPricing.length > 0) {
+    profit = Number((profitPricing[0] || {}).member || 0)
+  } else {
+    profit = Number(product?.display_price_breakdown?.profit || 0)
+  }
+
+  const final = Number(finalPricing?.member || product?.display_price || base + profit || 0)
+  return { base, profit, final }
 }
 
 export default function ProductsContent({
@@ -38,7 +51,7 @@ export default function ProductsContent({
     }
 
     if (sort === "termurah") {
-      data.sort((a, b) => resolveMemberPrice(a) - resolveMemberPrice(b))
+      data.sort((a, b) => resolveMemberPricing(a).final - resolveMemberPricing(b).final)
     }
 
     if (sort === "terbaru") {
@@ -121,7 +134,7 @@ export default function ProductsContent({
           <EmptyState />
         ) : (
           filteredProducts.map((product, i) => {
-            const memberPrice = resolveMemberPrice(product)
+            const memberPricing = resolveMemberPricing(product)
 
             return (
               <motion.div
@@ -163,8 +176,11 @@ export default function ProductsContent({
                   <div className="mt-4">
                     <p className="text-xs text-zinc-400">Harga mulai</p>
                     <p className="text-xl font-bold text-purple-400">
-                      Rp {memberPrice.toLocaleString("id-ID")}
+                      Rp {memberPricing.final.toLocaleString("id-ID")}
                     </p>
+                    {memberPricing.profit > 0 ? (
+                      <p className="text-xs text-green-400">+ profit {memberPricing.profit.toLocaleString("id-ID")}</p>
+                    ) : null}
                   </div>
 
                   <button

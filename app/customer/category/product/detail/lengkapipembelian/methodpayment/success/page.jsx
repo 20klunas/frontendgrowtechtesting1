@@ -5,7 +5,7 @@ import { CheckCircle, Eye, Lock, FileText, Download, Copy } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { authFetch } from "../../../../../../../lib/authFetch";
-import { clearCheckoutBootstrapCache } from "../../../../../../../lib/clientBootstrap";
+import { clearCheckoutBootstrapCache, readCheckoutBootstrapCache } from "../../../../../../../lib/clientBootstrap";
 import { notifyCustomerCartChanged } from "../../../../../../../lib/customerCartEvents";
 import confetti from "canvas-confetti";
 
@@ -17,6 +17,10 @@ function SuccessContent() {
   const orderId = searchParams.get("order");
 
   const hasFetched = useRef(false);
+
+  useEffect(() => {
+    setRevealedData(null)
+  }, [orderId])
 
   useEffect(() => {
     if (!orderId) return;
@@ -32,17 +36,24 @@ function SuccessContent() {
   }, [orderId]);
   const timerRef = useRef(null);
 
-  const [delivery, setDelivery] = useState(null);
+  const cached = readCheckoutBootstrapCache();
 
-  // order detail (GET /orders/{id})
-  const [order, setOrder] = useState(null);
+  const [delivery, setDelivery] = useState(cached?.delivery || null);
+  const [order, setOrder] = useState(cached?.order || null);
+  const [paymentInfo, setPaymentInfo] = useState(cached?.payment || null);
+  const [loading, setLoading] = useState(!cached);
 
-  // payment status (GET /orders/{id}/payments)
-  const [paymentInfo, setPaymentInfo] = useState(null);
+  // const [delivery, setDelivery] = useState(null);
+
+  // // order detail (GET /orders/{id})
+  // const [order, setOrder] = useState(null);
+
+  // // payment status (GET /orders/{id}/payments)
+  // const [paymentInfo, setPaymentInfo] = useState(null);
 
   const [revealedData, setRevealedData] = useState(null);
 
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
   const [revealing, setRevealing] = useState(false);
   const [resending, setResending] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -149,14 +160,47 @@ function SuccessContent() {
   };
 
   useEffect(() => {
+    if (!delivery || delivery.can_reveal) return;
+
+    const interval = setInterval(async () => {
+      const json = await authFetch(`/api/v1/orders/${orderId}/delivery`);
+      if (json?.success) {
+        setDelivery(json.data);
+
+        if (json.data?.can_reveal) {
+          clearInterval(interval);
+        }
+      }
+    }, 1500); // tiap 1.5 detik
+
+    return () => clearInterval(interval);
+  }, [delivery, orderId]);
+
+  useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
+  const hasAutoRevealed = useRef(false)
+
+  useEffect(() => {
+    if (
+      delivery?.is_revealed &&
+      !revealedData &&
+      !hasAutoRevealed.current
+    ) {
+      hasAutoRevealed.current = true
+      handleReveal()
+    }
+  }, [delivery])
+
   /* ================= REVEAL ================= */
   const handleReveal = async () => {
-    if (!delivery?.can_reveal) return;
+    if (!delivery?.can_reveal && !delivery?.is_revealed) {
+      showToast("Menunggu sistem siap...", "info");
+      return;
+    }
 
     try {
       setRevealing(true);
@@ -166,8 +210,10 @@ function SuccessContent() {
         { method: "POST" }
       );
 
+        console.log("REVEAL RESPONSE:", json);
+
       if (json?.success) {
-        setRevealedData(json.data.data);
+        setRevealedData(json.data);
         setBlurred(false);
         startCountdown();
         fetchDelivery();
@@ -182,6 +228,11 @@ function SuccessContent() {
       setRevealing(false);
     }
   };
+
+  console.log({
+    delivery,
+    revealedData,
+  });
 
   /* ================= COPY ================= */
   const copyLicense = async () => {
@@ -202,7 +253,7 @@ function SuccessContent() {
       });
 
       if (!json?.success) {
-        showToast(json?.error?.message || "Gagal resend email", "error");
+        showToast(json?.error?.message || "Gagal kirim email", "error");
         return;
       }
 
@@ -411,10 +462,12 @@ function SuccessContent() {
           <div className="rounded-2xl border border-purple-500/40 p-6">
             <h2 className="text-lg font-semibold mb-4">Akses Produk Digital</h2>
 
-            {delivery?.delivery_mode === "one_time" && !revealedData ? (
+            {delivery?.delivery_mode?.toLowerCase() === "one_time" &&
+            !delivery?.is_revealed ? (
+
               <button
                 onClick={handleReveal}
-                disabled={!delivery?.can_reveal || revealing}
+                disabled={revealing}
                 className={`w-full rounded-xl py-3 font-semibold flex items-center justify-center gap-2
                   ${
                     delivery?.can_reveal
@@ -425,27 +478,23 @@ function SuccessContent() {
                 <Eye size={18} />
                 {revealing ? "Membuka..." : "One Time View"}
               </button>
-            ) : (
+
+            ) : revealedData ? (
+
               <div className="border border-green-500/40 rounded-xl p-4">
                 <p className="text-sm text-gray-400">Produk</p>
                 <p className="font-semibold mb-3">{revealedData?.product_name}</p>
 
                 <p className="text-sm text-gray-400">License Key</p>
 
-                <div
-                  className={`rounded-lg p-3 font-mono text-green-400 bg-green-500/10 border border-green-500 relative
-                    ${blurred ? "blur-sm select-none" : ""}`}
-                >
+                <div className={`rounded-lg p-3 font-mono text-green-400 bg-green-500/10 border border-green-500 ${blurred ? "blur-sm select-none" : ""}`}>
                   {revealedData?.license_key}
                 </div>
 
                 {!blurred && (
                   <div className="flex justify-between mt-2 text-xs text-gray-400">
                     <span>Auto blur dalam {countdown}s</span>
-                    <button
-                      onClick={copyLicense}
-                      className="flex items-center gap-1 hover:text-white"
-                    >
+                    <button onClick={copyLicense} className="flex items-center gap-1 hover:text-white">
                       <Copy size={14} />
                       Copy
                     </button>
@@ -458,6 +507,13 @@ function SuccessContent() {
                   </p>
                 )}
               </div>
+
+            ) : (
+
+              <div className="text-yellow-400 text-sm text-center py-4">
+                Klik <span className="font-semibold">"One Time View"</span> untuk melihat kode
+              </div>
+
             )}
 
             {/* ACTION BUTTONS */}
@@ -467,7 +523,7 @@ function SuccessContent() {
                 disabled={resending}
                 className="rounded-xl border border-purple-500 py-2 text-sm"
               >
-                {resending ? "Mengirim..." : "Resend Email"}
+                {resending ? "Mengirim..." : "Send Email"}
               </button>
 
               <Link

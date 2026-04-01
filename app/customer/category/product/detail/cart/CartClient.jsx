@@ -5,9 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authFetch } from "../../../../../lib/authFetch";
+import { clearCheckoutBootstrapCache, writeCheckoutBootstrapCache } from "../../../../../lib/clientBootstrap";
 import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess";
 import { normalizeCartPayload } from "./cartApi";
-
+import { notifyCustomerCartChanged } from "../../../../../lib/customerCartEvents";
 function formatRupiah(value) {
   return `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
 }
@@ -309,6 +310,7 @@ export default function CartClient({ initialItems, initialSummary }) {
   const total = previewSummary?.total ?? subtotal;
 
   const savedAmount = Math.max(baseTotal - total, 0);
+  const [syncing, setSyncing] = useState(false);
 
   const prevTotalRef = useRef(total);
 
@@ -325,15 +327,32 @@ export default function CartClient({ initialItems, initialSummary }) {
 
   const handleCheckout = async () => {
     try {
+
+      if (!items.length) {
+        alert("Keranjang kosong");
+        return;
+      }
+
       setCheckoutLoading(true);
 
-      await authFetch("/api/v1/cart/checkout", {
+      // sync dulu
+      const latestCart = await authFetch("/api/v1/cart")
+
+      if (!latestCart?.data?.items?.length) {
+        alert("Cart kosong (backend belum sync)");
+        return;
+      }
+
+      const checkout = await authFetch("/api/v1/cart/checkout", {
         method: "POST",
         body: JSON.stringify({
           voucher_code: voucher.trim() || null,
         }),
       });
 
+      clearCheckoutBootstrapCache();
+      writeCheckoutBootstrapCache({ checkout: checkout?.data || null });
+      notifyCustomerCartChanged();
       router.push("/customer/category/product/detail/lengkapipembelian");
     } catch (error) {
       console.error("Checkout error:", error?.message || error);
@@ -349,6 +368,8 @@ export default function CartClient({ initialItems, initialSummary }) {
   const updateQty = async (itemId, newQty) => {
     if (newQty < 1) return;
 
+    setSyncing(true);
+
     try {
       setBusyItemId(itemId);
 
@@ -359,7 +380,7 @@ export default function CartClient({ initialItems, initialSummary }) {
 
       if (json?.success) {
         await refreshCart();
-        window.dispatchEvent(new Event("cart-updated"));
+        notifyCustomerCartChanged();
       }
     } catch (error) {
       console.error("Update qty error:", error?.message || error);
@@ -369,10 +390,12 @@ export default function CartClient({ initialItems, initialSummary }) {
       }
     } finally {
       setBusyItemId(null);
+      setSyncing(false);
     }
   };
 
   const removeItem = async (itemId) => {
+    setSyncing(true);
     try {
       setBusyItemId(itemId);
 
@@ -382,7 +405,7 @@ export default function CartClient({ initialItems, initialSummary }) {
 
       if (json?.success) {
         await refreshCart();
-        window.dispatchEvent(new Event("cart-updated"));
+        notifyCustomerCartChanged();
       }
     } catch (error) {
       console.error("Remove item error:", error?.message || error);
@@ -392,6 +415,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       }
     } finally {
       setBusyItemId(null);
+      setSyncing(false);
     }
   };
 
@@ -400,8 +424,10 @@ export default function CartClient({ initialItems, initialSummary }) {
   }
 
   const checkoutBlocked = accessLoading || !allowed;
+  const isUpdating = syncing || busyItemId !== null || cartLoading;
+
   const checkoutButtonDisabled =
-    checkoutLoading || items.length === 0 || checkoutBlocked;
+    checkoutLoading || items.length === 0 || checkoutBlocked || isUpdating;
 
   return (
     <main className="min-h-screen bg-black text-white relative overflow-hidden">

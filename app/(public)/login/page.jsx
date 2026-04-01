@@ -150,7 +150,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-2xl border border-purple-400/60 bg-black p-8">
         {popup.open && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-            <div className="w-[380px] rounded-2xl border border-purple-500 bg-black p-6 shadow-xl">
+            <div className="w-95 rounded-2xl border border-purple-500 bg-black p-6 shadow-xl">
               <h2 className="text-lg font-semibold text-purple-300 mb-3">
                 Pemberitahuan !
               </h2>

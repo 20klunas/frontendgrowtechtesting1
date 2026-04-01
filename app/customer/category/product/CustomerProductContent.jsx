@@ -484,23 +484,17 @@ export default function CustomerProductContent({
     setCheckoutLoadingId(productId)
 
     try {
-      await fetcher(
-        "/api/v1/cart/items",
-        {
-          method: "POST",
-          body: JSON.stringify({ product_id: productId, qty: 1 }),
-        },
-        { auth: true }
-      )
-
-      notifyCustomerCartChanged()
       clearCheckoutBootstrapCache()
 
       const checkout = await fetcher(
-        "/api/v1/cart/checkout",
+        "/api/v1/orders",
         {
           method: "POST",
-          body: JSON.stringify({ voucher_code: null }),
+          body: JSON.stringify({
+            product_id: productId,
+            qty: 1,
+            voucher_code: null,
+          }),
         },
         { auth: true }
       )
@@ -510,7 +504,6 @@ export default function CustomerProductContent({
       }
 
       writeCheckoutBootstrapCache({ checkout: checkout?.data || null })
-      notifyCustomerCartChanged()
       router.push(CHECKOUT_PAGE_PATH)
     } catch (err) {
       console.error("buyNow:", err)

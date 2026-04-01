@@ -11,36 +11,27 @@ const PAGE_SIZE = 5
 
 export default function DiscountPage() {
   const API = process.env.NEXT_PUBLIC_API_URL
-
-  const [subcategories, setSubcategories] = useState([])
-  const [products, setProducts] = useState([])
-
   const [discounts, setDiscounts] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState(null)
   const [openDelete, setOpenDelete] = useState(false)
-
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('priority')
-  const [sortDir, setSortDir] = useState('asc')
+  const [sortDir, setSortDir] = useState('desc')
   const [page, setPage] = useState(1)
 
   const loadDiscounts = async () => {
     try {
       setLoading(true)
-
       const res = await fetch(`${API}/api/v1/admin/discount-campaigns`, {
-        headers: {
-          Authorization: `Bearer ${Cookies.get('token')}`,
-        },
+        headers: { Authorization: `Bearer ${Cookies.get('token')}` },
       })
-
       const json = await res.json()
-      const list = json.data?.data || json.data || []
-
+      const list = Array.isArray(json.data?.data) ? json.data.data : Array.isArray(json.data) ? json.data : []
       setDiscounts(list)
     } catch (err) {
       console.error(err)
+      setDiscounts([])
     } finally {
       setLoading(false)
     }
@@ -48,490 +39,171 @@ export default function DiscountPage() {
 
   useEffect(() => {
     loadDiscounts()
-
-    fetch(`${API}/api/v1/admin/subcategories`, {
-      headers: { Authorization: `Bearer ${Cookies.get('token')}` },
-    })
-      .then(res => res.json())
-      .then(json => {
-        const list = Array.isArray(json.data)
-          ? json.data
-          : json.data?.data || []
-        setSubcategories(list)
-      })
-
-    fetch(`${API}/api/v1/admin/products`, {
-      headers: { Authorization: `Bearer ${Cookies.get('token')}` },
-    })
-      .then(res => res.json())
-      .then(json => {
-        setProducts(json.data || [])
-      })
-
   }, [])
 
-  const toggleEnabled = async (d) => {
-    await fetch(`${API}/api/v1/admin/discount-campaigns/${d.id}`, {
+  const toggleEnabled = async (discount) => {
+    await fetch(`${API}/api/v1/admin/discount-campaigns/${discount.id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${Cookies.get('token')}`,
       },
-      body: JSON.stringify({ enabled: !d.enabled }),
+      body: JSON.stringify({ enabled: !discount.enabled }),
     })
-
     loadDiscounts()
   }
 
-  const handleDelete = async () => {
+  const confirmDelete = async () => {
+    if (!selectedId) return
     await fetch(`${API}/api/v1/admin/discount-campaigns/${selectedId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${Cookies.get('token')}` },
     })
-
     setOpenDelete(false)
+    setSelectedId(null)
     loadDiscounts()
   }
 
-  // ================= FILTER =================
   const filtered = useMemo(() => {
-    return discounts.filter(d =>
-      d.nama_discount?.toLowerCase().includes(search.toLowerCase())
-    )
-  }, [discounts, search])
-
-  // ================= SORT =================
-  const sorted = useMemo(() => {
-    const copy = [...filtered]
-
-    copy.sort((a, b) => {
-      const valA = a[sortKey]
-      const valB = b[sortKey]
-
-      if (valA == null) return 1
-      if (valB == null) return -1
-
-      if (typeof valA === 'number') {
-        return sortDir === 'asc' ? valA - valB : valB - valA
-      }
-
-      return sortDir === 'asc'
-        ? String(valA).localeCompare(String(valB))
-        : String(valB).localeCompare(String(valA))
+    const lower = search.toLowerCase()
+    const list = discounts.filter((item) => {
+      const haystack = [
+        item.nama_discount,
+        item.kategori_produk,
+        item.sub_kategori,
+        item.status,
+        item.tier_summary,
+      ].join(' ').toLowerCase()
+      return haystack.includes(lower)
     })
 
-    return copy
-  }, [filtered, sortKey, sortDir])
-
-  // ================= PAGINATION =================
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
+    return list.sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1
+      const av = a?.[sortKey] ?? ''
+      const bv = b?.[sortKey] ?? ''
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+      return String(av).localeCompare(String(bv)) * dir
+    })
+  }, [discounts, search, sortKey, sortDir])
 
   const paginated = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE
-    return sorted.slice(start, start + PAGE_SIZE)
-  }, [sorted, page])
+    return filtered.slice(start, start + PAGE_SIZE)
+  }, [filtered, page])
 
-  const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortKey(key)
-      setSortDir('asc')
-    }
-  }
+  const totalPage = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+
+  useEffect(() => {
+    if (page > totalPage) setPage(totalPage)
+  }, [page, totalPage])
 
   return (
-    <div className="p-4 md:p-10 text-white max-w-[1600px] mx-auto">
-      <motion.div
-        className="flex justify-between items-center mb-6"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-4xl font-bold tracking-tight">
-          Manajemen Discount
-        </h1>
-
-        <Link href="/admin/voucher/discount/add" className="btn-primary">
+    <div className="min-h-screen bg-black text-white p-8 space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold">Manajemen Discount</h1>
+          <p className="text-sm text-gray-400 mt-2">Sudah mendukung konfigurasi discount berdasarkan tier user.</p>
+        </div>
+        <Link href="/admin/voucher/discount/add" className="rounded-xl bg-purple-600 px-5 py-3 font-semibold hover:bg-purple-700 w-fit">
           + Tambah Discount
         </Link>
-      </motion.div>
-
-      <VoucherTabs />
-
-      {/* SEARCH */}
-      <div className="mt-6 mb-3">
-        <input
-          type="text"
-          placeholder="Cari discount..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value)
-            setPage(1)
-          }}
-          className="w-full md:w-80 px-4 py-2 rounded-lg bg-black border border-purple-800/40 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
-        />
       </div>
 
-      {/* ================= DESKTOP TABLE ================= */}
-      <div className="hidden md:block">
-        <div className="rounded-2xl border border-purple-900/40 overflow-x-auto bg-gradient-to-b from-black to-purple-950/20">
-          <table className="min-w-[1200px] w-full text-sm">
-            <thead className="bg-purple-900/40 text-gray-300 sticky top-0 z-10 backdrop-blur">
-              <tr className="text-xs uppercase tracking-wider">
-                <SortableTh label="Nama" onClick={() => handleSort('nama_discount')} />
-                <SortableTh label="Nominal" align="right" onClick={() => handleSort('nominal')} />
-                <SortableTh label="Type" align="center" onClick={() => handleSort('discount_type')} />
-                <SortableTh label="Value" align="center" onClick={() => handleSort('discount_value')} />
-                <th className="text-center p-3">Min Order</th>
-                <th className="text-center p-3">Max Discount</th>
-                <th className="text-center p-3">Starts</th>
-                <th className="text-center p-3">Ends</th>
-                <SortableTh label="Priority" align="center" onClick={() => handleSort('priority')} />
-                <SortableTh label="Stack" align="center" onClick={() => handleSort('stack_policy')} />
-                <th className="text-center p-3">Usage</th>
-                <th className="text-center p-3">Per User</th>
-                <th className="text-center p-3">Status</th>
-                <th className="text-center p-3">Targets</th>
-                <th className="text-center p-3 pr-6">Aksi</th>
-              </tr>
-            </thead>
+      <div className="rounded-2xl border border-purple-600/40 bg-purple-950/10 p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <VoucherTabs />
 
-            <tbody>
-              {loading ? (
-                <SkeletonRows />
-              ) : paginated.length === 0 ? (
-                <tr>
-                  <td colSpan="15" className="p-8 text-center text-gray-500">
-                    Tidak ada discount
-                  </td>
-                </tr>
-              ) : (
-                paginated.map((d, i) => (
-                  <tr
-                    key={d.id}
-                    className={`
-                      border-t border-purple-900/30
-                      ${i % 2 === 0 ? 'bg-black/40' : 'bg-purple-950/10'}
-                      hover:bg-purple-900/20 transition
-                    `}
-                  >
-                    <td className="p-4 font-medium whitespace-nowrap text-center">
-                      {d.nama_discount}
-                    </td>
-
-                    <td className="text-center font-mono">
-                      {d.nominal}
-                    </td>
-
-                    <td className="text-center">
-                      <TypeBadge type={d.discount_type} />
-                    </td>
-
-                    <td className="text-center font-mono">
-                      {d.discount_value}
-                    </td>
-
-                    <td className="text-center">
-                      {d.min_order_amount ?? '-'}
-                    </td>
-
-                    <td className="text-center">
-                      {d.max_discount_amount ?? '-'}
-                    </td>
-
-                    <td className="text-center text-xs text-gray-400">
-                      {formatDate(d.starts_at)}
-                    </td>
-
-                    <td className="text-center text-xs text-gray-400">
-                      {formatDate(d.ends_at)}
-                    </td>
-
-                    <td className="text-center">{d.priority}</td>
-
-                    <td className="text-center">
-                      <StackBadge policy={d.stack_policy} />
-                    </td>
-
-                    <td className="text-center">
-                      {d.usage_limit_total ?? '-'}
-                    </td>
-
-                    <td className="text-center">
-                      {d.usage_limit_per_user ?? '-'}
-                    </td>
-
-                    {/* STATUS = ENABLED */}
-                    <td className="text-center">
-                      <button
-                        onClick={() => toggleEnabled(d)}
-                        className="hover:scale-105 transition"
-                      >
-                        <ToggleSwitch enabled={d.enabled} />
-                      </button>
-                    </td>
-
-                    <td className="text-center">
-                      <div className="flex flex-wrap gap-1">
-                        {d.targets?.length ? (
-                          d.targets.map(t => (
-                            <span
-                              key={`${t.type}-${t.id}`}
-                              className="px-2 py-1 rounded-md text-xs bg-purple-900/30 border border-purple-700/40"
-                            >
-                              {t.type}: {getTargetName(t.type, t.id, subcategories, products)}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-gray-500 text-xs">-</span>
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="flex justify-end gap-2 p-4">
-                      <Link
-                        href={`/admin/voucher/discount/edit/${d.id}`}
-                        className="action-btn bg-orange-500 hover:bg-orange-400"
-                      >
-                        ✏
-                      </Link>
-
-                      <button
-                        onClick={() => {
-                          setSelectedId(d.id)
-                          setOpenDelete(true)
-                        }}
-                        className="action-btn bg-red-600 hover:bg-red-500"
-                      >
-                        🗑
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            <input
+              className="rounded-xl bg-purple-900/30 border border-purple-600/30 px-4 h-11 text-sm w-full lg:w-80"
+              placeholder="Cari discount / kategori / tier"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+            />
+            <select className="rounded-xl bg-zinc-950 border border-purple-700/50 px-4 h-11" value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
+              <option value="priority">Priority</option>
+              <option value="nama_discount">Nama</option>
+              <option value="status">Status</option>
+              <option value="sub_kategori">Subkategori</option>
+            </select>
+            <select className="rounded-xl bg-zinc-950 border border-purple-700/50 px-4 h-11" value={sortDir} onChange={(e) => setSortDir(e.target.value)}>
+              <option value="desc">DESC</option>
+              <option value="asc">ASC</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* ================= MOBILE CARD ================= */}
-      <div className="md:hidden space-y-4">
-        {loading ? (
-          <SkeletonRows />
-        ) : paginated.length === 0 ? (
-          <div className="text-center text-gray-500 py-10">
-            Tidak ada discount
-          </div>
-        ) : (
-          paginated.map((d) => (
-            <div
-              key={d.id}
-              className="bg-gradient-to-br from-black to-purple-950/40 border border-purple-900/40 rounded-2xl p-4 space-y-3"
-            >
-              {/* HEADER */}
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {d.nama_discount}
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    Priority: {d.priority}
-                  </p>
+      {loading ? (
+        <div className="rounded-2xl border border-purple-700/30 p-6 text-gray-400">Loading...</div>
+      ) : paginated.length === 0 ? (
+        <div className="rounded-2xl border border-purple-700/30 p-6 text-gray-400">Discount tidak ditemukan.</div>
+      ) : (
+        <div className="space-y-4">
+          {paginated.map((item) => (
+            <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-purple-700/40 bg-[#0b0612] p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
+                <Block label="Nama" value={item.nama_discount} bold />
+                <Block label="Nominal" value={item.nominal} />
+                <Block label="Kategori" value={item.kategori_produk} />
+                <Block label="Subkategori" value={item.sub_kategori} />
+                <Block label="Tier" value={item.tier_summary || 'Semua tier'} />
+                <Block label="Priority" value={item.priority ?? 0} />
+              </div>
+
+              <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap gap-3 text-sm text-gray-400">
+                  <span>Status: <StatusBadge active={item.enabled} label={item.status} /></span>
+                  <span>Starts: {item.starts_at ? new Date(item.starts_at).toLocaleString('id-ID') : '-'}</span>
+                  <span>Ends: {item.ends_at ? new Date(item.ends_at).toLocaleString('id-ID') : '-'}</span>
                 </div>
 
-                <button onClick={() => toggleEnabled(d)}>
-                  <ToggleSwitch enabled={d.enabled} />
-                </button>
-              </div>
-
-              {/* INFO */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <Info label="Nominal" value={d.nominal} />
-                <Info label="Type" value={<TypeBadge type={d.discount_type} />} />
-                <Info label="Value" value={d.discount_value} />
-                <Info label="Min Order" value={d.min_order_amount ?? '-'} />
-                <Info label="Max Discount" value={d.max_discount_amount ?? '-'} />
-                <Info label="Stack" value={<StackBadge policy={d.stack_policy} />} />
-                <Info label="Starts" value={formatDate(d.starts_at)} />
-                <Info label="Ends" value={formatDate(d.ends_at)} />
-              </div>
-
-              {/* TARGETS */}
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Targets</p>
-                <div className="flex flex-wrap gap-1">
-                  {d.targets?.length ? (
-                    d.targets.map((t) => (
-                      <span
-                        key={`${t.type}-${t.id}`}
-                        className="px-2 py-1 rounded-md text-xs bg-purple-900/30 border border-purple-700/40"
-                      >
-                        {t.type}: {getTargetName(t.type, t.id, subcategories, products)}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-500 text-xs">-</span>
-                  )}
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => toggleEnabled(item)} className="rounded-lg border border-purple-600 px-4 py-2 text-sm hover:bg-purple-700/20">
+                    {item.enabled ? 'Nonaktifkan' : 'Aktifkan'}
+                  </button>
+                  <Link href={`/admin/voucher/discount/edit/${item.id}`} className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-black">
+                    Edit
+                  </Link>
+                  <button onClick={() => { setSelectedId(item.id); setOpenDelete(true) }} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium">
+                    Hapus
+                  </button>
                 </div>
               </div>
-
-              {/* ACTION */}
-              <div className="flex gap-2 pt-2">
-                <Link
-                  href={`/admin/voucher/discount/edit/${d.id}`}
-                  className="flex-1 text-center py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-sm"
-                >
-                  Edit
-                </Link>
-
-                <button
-                  onClick={() => {
-                    setSelectedId(d.id)
-                    setOpenDelete(true)
-                  }}
-                  className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-      {/* PAGINATION */}
-      {!loading && totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            className="px-3 py-1 rounded bg-purple-900/40"
-          >
-            Prev
-          </button>
-
-          <span className="px-3 py-1 text-sm">
-            {page} / {totalPages}
-          </span>
-
-          <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            className="px-3 py-1 rounded bg-purple-900/40"
-          >
-            Next
-          </button>
+            </motion.div>
+          ))}
         </div>
       )}
+
+      <div className="flex justify-end items-center gap-2">
+        <button disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))} className="rounded-lg border border-purple-700 px-4 py-2 disabled:opacity-40">Prev</button>
+        <span>{page} / {totalPage}</span>
+        <button disabled={page >= totalPage} onClick={() => setPage((prev) => Math.min(totalPage, prev + 1))} className="rounded-lg border border-purple-700 px-4 py-2 disabled:opacity-40">Next</button>
+      </div>
 
       <ConfirmDeleteModal
         open={openDelete}
         onClose={() => setOpenDelete(false)}
-        onConfirm={handleDelete}
+        onConfirm={confirmDelete}
+        title="Hapus Discount"
+        message="Yakin ingin menghapus discount ini?"
       />
     </div>
   )
 }
 
-// ================= COMPONENTS =================
-
-function SortableTh({ label, align = 'left', onClick }) {
-  return (
-    <th
-      onClick={onClick}
-      className={`p-3 cursor-pointer select-none text-${align} hover:text-white`}
-    >
-      {label}
-    </th>
-  )
-}
-
-function ToggleSwitch({ enabled }) {
-  return (
-    <div
-      className={`w-12 h-6 flex items-center rounded-full p-1 transition
-        ${enabled ? 'bg-green-600' : 'bg-red-600'}`}
-    >
-      <div
-        className={`bg-white w-4 h-4 rounded-full shadow transform transition
-          ${enabled ? 'translate-x-6' : ''}`}
-      />
-    </div>
-  )
-}
-
-function SkeletonRows() {
-  return (
-    <>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <tr key={i} className="border-t border-purple-900/20">
-          <td colSpan="15" className="p-4">
-            <div className="h-6 bg-gradient-to-r from-purple-900/20 via-purple-700/20 to-purple-900/20 animate-pulse rounded" />
-          </td>
-        </tr>
-      ))}
-    </>
-  )
-}
-
-function TypeBadge({ type }) {
-  const labelMap = {
-    fixed: 'Rupiah',
-    percent: 'Percent',
-  }
-
-  const styleMap = {
-    fixed: 'bg-blue-600/20 text-blue-400 border-blue-600/40',
-    percent: 'bg-purple-600/20 text-purple-400 border-purple-600/40',
-  }
-
-  const label = labelMap[type] || type
-
-  return (
-    <span className={`px-2 py-1 rounded-md text-xs border ${styleMap[type] || 'border-white/10'}`}>
-      {label}
-    </span>
-  )
-}
-
-
-function StackBadge({ policy }) {
-  const exclusive = policy === 'exclusive'
-
-  return (
-    <span
-      className={`px-2 py-1 rounded-md text-xs border
-        ${exclusive
-          ? 'bg-red-600/20 text-red-400 border-red-600/40'
-          : 'bg-emerald-600/20 text-emerald-400 border-emerald-600/40'
-        }`}
-    >
-      {policy}
-    </span>
-  )
-}
-
-function formatDate(date) {
-  if (!date) return '-'
-  return new Date(date).toLocaleString('id-ID')
-}
-
-function Info({ label, value }) {
+function Block({ label, value, bold = false }) {
   return (
     <div>
-      <p className="text-gray-400">{label}</p>
-      <div className="mt-1">{value}</div>
+      <div className="text-xs text-gray-400 uppercase tracking-wide">{label}</div>
+      <div className={bold ? 'font-semibold text-lg text-white' : 'text-gray-100'}>{value || '-'}</div>
     </div>
   )
 }
 
-function getTargetName(type, id, subcategories, products) {
-  if (type === 'subcategory') {
-    const found = subcategories.find(s => s.id === id)
-    return found?.name || `#${id}`
-  }
-
-  if (type === 'product') {
-    const found = products.find(p => p.id === id)
-    return found?.name || `#${id}`
-  }
-
-  return `#${id}`
+function StatusBadge({ active, label }) {
+  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{label || (active ? 'Aktif' : 'Nonaktif')}</span>
 }

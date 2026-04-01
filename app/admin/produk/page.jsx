@@ -35,6 +35,9 @@ export default function ProdukPage() {
     member_price: "",
     reseller_price: "",
     vip_price: "",
+    member_profit: "",
+    reseller_profit: "",
+    vip_profit: "",
   });
 
   // ================= TOAST =================
@@ -224,6 +227,15 @@ export default function ProdukPage() {
       vip_price: product.tier_pricing?.vip
         ? formatRupiah(product.tier_pricing.vip.toString())
         : "",
+      member_profit: product.tier_profit?.member
+        ? formatRupiah(product.tier_profit.member.toString())
+        : "",
+      reseller_profit: product.tier_profit?.reseller
+        ? formatRupiah(product.tier_profit.reseller.toString())
+        : "",
+      vip_profit: product.tier_profit?.vip
+        ? formatRupiah(product.tier_profit.vip.toString())
+        : "",
     });
 
     setShowEditModal(true);
@@ -267,7 +279,12 @@ export default function ProdukPage() {
           member: parseRupiah(editForm.member_price),
           reseller: parseRupiah(editForm.reseller_price),
           vip: parseRupiah(editForm.vip_price),
-        }
+        },
+        tier_profit: {
+          member: parseRupiah(editForm.member_profit),
+          reseller: parseRupiah(editForm.reseller_profit),
+          vip: parseRupiah(editForm.vip_profit),
+        },
       });
 
       showToast("success", "Produk berhasil diupdate");
@@ -289,7 +306,17 @@ export default function ProdukPage() {
   };
 
   const parseRupiah = (value) => {
-    return Number(value.replace(/\D/g, ""));
+    return Number(String(value || "").replace(/\D/g, ""));
+  };
+
+  const formatPriceWithProfit = (price, profit) => {
+    const safePrice = Number(price || 0);
+    const safeProfit = Number(profit || 0);
+
+    if (safePrice <= 0) return "-";
+    if (safeProfit <= 0) return `Rp ${formatRupiah(safePrice)}`;
+
+    return `Rp ${formatRupiah(safePrice)} (+${formatRupiah(safeProfit)})`;
   };
 
   useEffect(() => {
@@ -411,21 +438,15 @@ export default function ProdukPage() {
                         <td className="py-3 text-center">{p.duration_days} hari</td>
 
                         <td className="py-3 text-center">
-                          Rp {p.tier_pricing?.member
-                            ? formatRupiah(p.tier_pricing.member)
-                            : "-"}
+                          {formatPriceWithProfit(p.tier_pricing?.member, p.tier_profit?.member)}
                         </td>
 
                         <td className="py-3 text-center">
-                          Rp {p.tier_pricing?.reseller
-                            ? formatRupiah(p.tier_pricing.reseller)
-                            : "-"}
+                          {formatPriceWithProfit(p.tier_pricing?.reseller, p.tier_profit?.reseller)}
                         </td>
 
                         <td className="py-3 text-center">
-                          Rp {p.tier_pricing?.vip
-                            ? formatRupiah(p.tier_pricing.vip)
-                            : "-"}
+                          {formatPriceWithProfit(p.tier_pricing?.vip, p.tier_profit?.vip)}
                         </td>
 
                         {/* STATUS */}
@@ -562,21 +583,21 @@ export default function ProdukPage() {
                     <div className="bg-purple-900/30 p-2 rounded-lg text-center">
                       <p className="text-gray-400">Member</p>
                       <p className="text-white font-semibold">
-                        Rp {formatRupiah(p.tier_pricing?.member)}
+                        {formatPriceWithProfit(p.tier_pricing?.member, p.tier_profit?.member)}
                       </p>
                     </div>
 
                     <div className="bg-purple-900/30 p-2 rounded-lg text-center">
                       <p className="text-gray-400">Reseller</p>
                       <p className="text-white font-semibold">
-                        Rp {formatRupiah(p.tier_pricing?.reseller)}
+                        {formatPriceWithProfit(p.tier_pricing?.reseller, p.tier_profit?.reseller)}
                       </p>
                     </div>
 
                     <div className="bg-purple-900/30 p-2 rounded-lg text-center">
                       <p className="text-gray-400">VIP</p>
                       <p className="text-white font-semibold">
-                        Rp {formatRupiah(p.tier_pricing?.vip)}
+                        {formatPriceWithProfit(p.tier_pricing?.vip, p.tier_profit?.vip)}
                       </p>
                     </div>
                   </div>
@@ -804,7 +825,7 @@ export default function ProdukPage() {
 
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="modal-title text-sm font-semibold">
-                        Harga Paket
+                        Harga & Profit Paket
                       </h3>
 
                       <span className="modal-text text-xs">
@@ -812,38 +833,54 @@ export default function ProdukPage() {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
                       {[
-                        { key: "member_price", label: "Member" },
-                        { key: "reseller_price", label: "Reseller" },
-                        { key: "vip_price", label: "VIP" }
+                        { priceKey: "member_price", profitKey: "member_profit", label: "Member" },
+                        { priceKey: "reseller_price", profitKey: "reseller_profit", label: "Reseller" },
+                        { priceKey: "vip_price", profitKey: "vip_profit", label: "VIP" }
                       ].map((price) => (
 
-                        <div key={price.key} className="space-y-1">
+                        <div key={price.priceKey} className="space-y-3 rounded-2xl border border-purple-700/30 bg-black/30 p-3">
 
-                          <label className="modal-text text-xs">
+                          <label className="modal-text text-xs font-semibold uppercase tracking-wide">
                             {price.label}
                           </label>
 
-                          <div className="relative">
+                          <div className="space-y-1">
+                            <label className="modal-text text-[11px]">Harga</label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-2 text-gray-500 text-sm">Rp</span>
+                              <input
+                                value={editForm[price.priceKey]}
+                                onChange={(e) =>
+                                  setEditForm({
+                                    ...editForm,
+                                    [price.priceKey]: formatRupiah(e.target.value)
+                                  })
+                                }
+                                className="input-primary pl-10"
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
 
-                            <span className="absolute left-3 top-2 text-gray-500 text-sm">
-                              Rp
-                            </span>
-
-                            <input
-                              value={editForm[price.key]}
-                              onChange={(e) =>
-                                setEditForm({
-                                  ...editForm,
-                                  [price.key]: formatRupiah(e.target.value)
-                                })
-                              }
-                              className="input-primary pl-10"
-                              placeholder="0"
-                            />
-
+                          <div className="space-y-1">
+                            <label className="modal-text text-[11px]">Profit</label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-2 text-green-400 text-sm">+</span>
+                              <input
+                                value={editForm[price.profitKey]}
+                                onChange={(e) =>
+                                  setEditForm({
+                                    ...editForm,
+                                    [price.profitKey]: formatRupiah(e.target.value)
+                                  })
+                                }
+                                className="input-primary pl-10"
+                                placeholder="0"
+                              />
+                            </div>
                           </div>
 
                         </div>
@@ -861,7 +898,7 @@ export default function ProdukPage() {
                 <div className="flex justify-between items-center px-6 py-4 border-t border-purple-800/30">
 
                   <p className="modal-text text-xs">
-                    Pastikan harga sesuai dengan paket produk
+                    Pastikan harga dan profit sesuai dengan paket produk
                   </p>
 
                   <div className="flex gap-3">

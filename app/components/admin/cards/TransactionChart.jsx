@@ -1,13 +1,14 @@
 "use client";
 
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
+  Bar,
+  BarChart,
   CartesianGrid,
+  Legend,
   ResponsiveContainer,
   Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
@@ -21,39 +22,38 @@ function formatRupiah(n) {
   }).format(x);
 }
 
-function toJuta(n) {
-  return Number(n || 0) / 1_000_000;
-}
-
 export default function TransactionChart({
   labels = [],
-  values = [],
+  revenue = [],
+  profit = [],
   offset = 0,
   setOffset = () => {},
   loading = false,
 }) {
   const [debouncedOffset, setDebouncedOffset] = useState(offset);
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  // debounce slider biar smooth
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const t = setTimeout(() => setDebouncedOffset(offset), 120);
     return () => clearTimeout(t);
   }, [offset]);
 
   const fullData = useMemo(() => {
-    const L = Array.isArray(labels) ? labels : [];
-    const V = Array.isArray(values) ? values : [];
+    const safeLabels = Array.isArray(labels) ? labels : [];
+    const safeRevenue = Array.isArray(revenue) ? revenue : [];
+    const safeProfit = Array.isArray(profit) ? profit : [];
 
-    return L.map((date, i) => {
-      const raw = Number(V[i] ?? 0);
-
-      return {
-        dayLabel: date,
-        value: raw,
-      };
-    });
-  }, [labels, values]);
-
+    return safeLabels.map((dayLabel, index) => ({
+      dayLabel,
+      revenue: Number(safeRevenue[index] ?? 0),
+      profit: Number(safeProfit[index] ?? 0),
+    }));
+  }, [labels, revenue, profit]);
 
   const windowSize = 7;
 
@@ -64,32 +64,29 @@ export default function TransactionChart({
     return fullData.slice(start, start + windowSize);
   }, [fullData, debouncedOffset]);
 
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  const isDark = mounted && theme === "dark";
-
-  // kalau data berubah, pastikan offset ga out of range
   useEffect(() => {
     const max = Math.max(0, fullData.length - windowSize);
     if (offset > max) setOffset(max);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fullData.length]);
+  }, [fullData.length, offset, setOffset]);
 
+  const isDark = mounted && theme === "dark";
   const gridColor = isDark ? "#3d2b5e" : "#e5e7eb";
   const axisColor = isDark ? "#a1a1aa" : "#6b7280";
   const tooltipBg = isDark ? "#1a1a2e" : "#ffffff";
   const tooltipBorder = isDark ? "#3d2b5e" : "#e5e7eb";
-  const lineColor = isDark ? "#ffffff" : "#000000";
-
 
   return (
     <div className="rounded-xl bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-[#3d2b5e] p-6">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-semibold text-gray-900 dark:text-white">Grafik Pemasukan</p>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+            Grafik Revenue vs Profit
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Profit menggunakan margin produk per tier yang disimpan backend.
+          </p>
+        </div>
+
         {loading ? (
           <span className="text-xs text-gray-400">Loading...</span>
         ) : (
@@ -99,24 +96,12 @@ export default function TransactionChart({
         )}
       </div>
 
-      <div className="h-[300px]">
-        { mounted ? (
+      <div className="h-[320px]">
+        {mounted ? (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={sliced}>
-              <CartesianGrid
-                stroke={gridColor}
-                strokeDasharray="3 3"
-                vertical={false}
-              />
-
-
-              <XAxis
-                dataKey="dayLabel"
-                stroke={axisColor}
-                tick={{ fontSize: 11 }}
-                interval="preserveStartEnd"
-              />
-
+            <BarChart data={sliced} barGap={8}>
+              <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="dayLabel" stroke={axisColor} tick={{ fontSize: 11 }} interval="preserveStartEnd" />
               <YAxis
                 stroke={axisColor}
                 domain={[0, "auto"]}
@@ -127,44 +112,31 @@ export default function TransactionChart({
                   return v;
                 }}
               />
-
               <Tooltip
-                formatter={(value) => formatRupiah(value)}
+                formatter={(value, name, props) => {
+                  const key = props.dataKey;
+
+                  return [
+                    formatRupiah(value),
+                    key === "revenue" ? "Revenue" : "Profit"
+                  ];
+                }}
                 contentStyle={{
                   backgroundColor: tooltipBg,
                   border: `1px solid ${tooltipBorder}`,
                   borderRadius: "8px",
                 }}
-                labelStyle={{
-                  color: isDark ? "#a78bfa" : "#4f46e5",
-                  fontSize: 12
-                }}
-                itemStyle={{
-                  color: isDark ? "#ffffff" : "#111827",
-                  fontSize: 12
-                }}
+                labelStyle={{ color: isDark ? "#a78bfa" : "#4f46e5", fontSize: 12 }}
+                itemStyle={{ color: isDark ? "#ffffff" : "#111827", fontSize: 12 }}
               />
-
-              <Line
-                type="natural"
-                dataKey="value"
-                stroke={lineColor}
-                strokeWidth={2}
-                isAnimationActive
-                animationDuration={600}
-                dot={{
-                  r: 5,
-                  fill: isDark ? "#a855f7" : "#000000",
-                  stroke: isDark ? "#0f172a" : "#ffffff",
-                  strokeWidth: 2
-                }}
-              />
-            </LineChart>
+              <Legend />
+              <Bar dataKey="revenue" name="Revenue" radius={[6, 6, 0, 0]} fill="#8b5cf6" />
+              <Bar dataKey="profit" name="Profit" radius={[6, 6, 0, 0]} fill="#22c55e" />
+            </BarChart>
           </ResponsiveContainer>
-        ) : null }
+        ) : null}
       </div>
 
-      {/* SLIDER */}
       <input
         type="range"
         min={0}

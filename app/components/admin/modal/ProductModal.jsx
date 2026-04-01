@@ -9,9 +9,8 @@ export default function ProductModal({
   open,
   onClose,
   onSubmit,
-  initialData = null
+  initialData = null,
 }) {
-
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
 
@@ -24,6 +23,10 @@ export default function ProductModal({
     description: "",
     member_price: "",
     reseller_price: "",
+    vip_price: "",
+    member_profit: "",
+    reseller_profit: "",
+    vip_profit: "",
     is_active: true,
     is_published: false,
   });
@@ -36,7 +39,6 @@ export default function ProductModal({
     };
   };
 
-  // ================= FETCH CATEGORIES =================
   const fetchCategories = async () => {
     const res = await fetch(`${API}/api/v1/admin/categories`, {
       headers: authHeaders(),
@@ -75,8 +77,12 @@ export default function ProductModal({
         type: initialData.type,
         duration_days: initialData.duration_days,
         description: initialData.description,
-        member_price: initialData.tier_pricing.member,
-        reseller_price: initialData.tier_pricing.reseller,
+        member_price: initialData.tier_pricing?.member ?? "",
+        reseller_price: initialData.tier_pricing?.reseller ?? "",
+        vip_price: initialData.tier_pricing?.vip ?? "",
+        member_profit: initialData.tier_profit?.member ?? "",
+        reseller_profit: initialData.tier_profit?.reseller ?? "",
+        vip_profit: initialData.tier_profit?.vip ?? "",
         is_active: initialData.is_active,
         is_published: initialData.is_published,
       });
@@ -106,8 +112,14 @@ export default function ProductModal({
       duration_days: Number(form.duration_days),
       description: form.description,
       tier_pricing: {
-        member: Number(form.member_price),
-        reseller: Number(form.reseller_price),
+        member: Number(form.member_price || 0),
+        reseller: Number(form.reseller_price || 0),
+        vip: Number(form.vip_price || 0),
+      },
+      tier_profit: {
+        member: Number(form.member_profit || 0),
+        reseller: Number(form.reseller_profit || 0),
+        vip: Number(form.vip_profit || 0),
       },
       is_active: form.is_active,
       is_published: form.is_published,
@@ -122,8 +134,6 @@ export default function ProductModal({
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-
-          {/* CATEGORY */}
           <select
             name="category_id"
             value={form.category_id}
@@ -139,7 +149,6 @@ export default function ProductModal({
             ))}
           </select>
 
-          {/* SUBCATEGORY */}
           <select
             name="subcategory_id"
             value={form.subcategory_id}
@@ -194,42 +203,22 @@ export default function ProductModal({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <input
-              type="number"
-              name="member_price"
-              placeholder="Harga member"
-              value={form.member_price}
-              onChange={handleChange}
-              className="input"
-            />
-            <input
-              type="number"
-              name="reseller_price"
-              placeholder="Harga reseller"
-              value={form.reseller_price}
-              onChange={handleChange}
-              className="input"
-            />
+            <input type="number" name="member_price" placeholder="Harga member" value={form.member_price} onChange={handleChange} className="input" />
+            <input type="number" name="member_profit" placeholder="Profit member" value={form.member_profit} onChange={handleChange} className="input" />
+            <input type="number" name="reseller_price" placeholder="Harga reseller" value={form.reseller_price} onChange={handleChange} className="input" />
+            <input type="number" name="reseller_profit" placeholder="Profit reseller" value={form.reseller_profit} onChange={handleChange} className="input" />
+            <input type="number" name="vip_price" placeholder="Harga vip" value={form.vip_price} onChange={handleChange} className="input" />
+            <input type="number" name="vip_profit" placeholder="Profit vip" value={form.vip_profit} onChange={handleChange} className="input" />
           </div>
 
           <div className="flex gap-4 text-sm text-purple-300">
             <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="is_active"
-                checked={form.is_active}
-                onChange={handleChange}
-              />
+              <input type="checkbox" name="is_active" checked={form.is_active} onChange={handleChange} />
               Aktif
             </label>
 
             <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="is_published"
-                checked={form.is_published}
-                onChange={handleChange}
-              />
+              <input type="checkbox" name="is_published" checked={form.is_published} onChange={handleChange} />
               Publish
             </label>
           </div>

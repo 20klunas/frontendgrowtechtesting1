@@ -13,14 +13,16 @@ function resolveProductImage(product) {
   );
 }
 
-function resolveProductPrice(product) {
-  const raw =
-    product?.tier_pricing?.member ??
-    product?.tier_pricing?.guest ??
-    product?.price ??
-    0;
+function resolveProductPricing(product) {
+  const finalPricing = product?.tier_final_pricing;
+  const basePricing = product?.tier_pricing;
+  const profitPricing = product?.tier_profit;
 
-  return Number(raw) || 0;
+  const final = Number(finalPricing?.member ?? basePricing?.member ?? product?.display_price ?? product?.price ?? 0) || 0;
+  const base = Number(basePricing?.member ?? product?.display_price_breakdown?.base_price ?? product?.price ?? 0) || 0;
+  const profit = Number(profitPricing?.member ?? product?.display_price_breakdown?.profit ?? 0) || 0;
+
+  return { final, base, profit };
 }
 
 function renderStars(rating) {
@@ -33,7 +35,7 @@ export default function ProductCardPopular({ product }) {
 
   const href = resolveProductHref(product);
   const imageSrc = resolveProductImage(product);
-  const price = resolveProductPrice(product);
+  const pricing = resolveProductPricing(product);
   const stock = Number(product?.available_stock ?? 0);
   const productName = product?.name || "Produk";
   const ratingStars = renderStars(product?.rating);
@@ -64,7 +66,10 @@ export default function ProductCardPopular({ product }) {
         <div className="text-yellow-400 text-sm mb-2">{ratingStars}</div>
 
         <p className="font-bold text-green-400">
-          Rp {price.toLocaleString("id-ID")}
+          Rp {pricing.final.toLocaleString("id-ID")}
+          {pricing.profit > 0 ? (
+            <span className="ml-2 text-sm font-medium text-green-300">(+ {pricing.profit.toLocaleString("id-ID")})</span>
+          ) : null}
         </p>
       </div>
     </Link>

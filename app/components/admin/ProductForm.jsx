@@ -1,135 +1,176 @@
 'use client'
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import Cookies from "js-cookie"
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "")
+
+const defaultForm = {
+  category_id: "",
+  subcategory_id: "",
+  name: "",
+  type: "ACCOUNT_CREDENTIAL",
+  duration_days: 7,
+  description: "",
+  member_price: "",
+  reseller_price: "",
+  vip_price: "",
+  is_active: true,
+  is_published: false,
+}
 
 export default function ProductForm({ mode, id }) {
-  const router = useRouter();
+  const router = useRouter()
 
-  const [subcategories, setSubcategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const [form, setForm] = useState({
-    category_id: "",
-    subcategory_id: "",
-    name: "",
-    type: "ACCOUNT_CREDENTIAL",
-    duration_days: 7,
-    description: "",
-    member_price: "",
-    reseller_price: "",
-    vip_price: "",
-    is_active: true,
-    is_published: false,
-  });
+  const [categories, setCategories] = useState([])
+  const [subcategories, setSubcategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [subLoading, setSubLoading] = useState(false)
+  const [form, setForm] = useState(defaultForm)
 
   const authHeaders = () => {
-    const token = Cookies.get("token");
+    const token = Cookies.get("token")
     return {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       Accept: "application/json",
-    };
-  };
-
-  // ================= FETCH SUBCATEGORIES =================
-  const fetchSubcategories = async () => {
-    try {
-      const res = await fetch(`${API}/api/v1/admin/subcategories`, {
-        headers: authHeaders(),
-      });
-
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error?.message);
-
-      setSubcategories(json.data || []);
-    } catch (err) {
-      console.error(err);
-      alert("Gagal mengambil subkategori");
-      setSubcategories([]);
     }
-  };
+  }
 
-  // ================= FETCH PRODUCT =================
+  const fetchCategories = async () => {
+    const res = await fetch(`${API}/api/v1/admin/categories`, {
+      headers: authHeaders(),
+      cache: "no-store",
+    })
+    const json = await res.json().catch(() => null)
+    if (!res.ok || !json?.success) {
+      throw new Error(json?.error?.message || "Gagal mengambil kategori")
+    }
+    const rows = Array.isArray(json?.data) ? json.data : []
+    setCategories(rows)
+    return rows
+  }
+
+  const fetchSubcategories = async (categoryId = "") => {
+    setSubLoading(true)
+    try {
+      const query = categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : ""
+      const res = await fetch(`${API}/api/v1/admin/subcategories${query}`, {
+        headers: authHeaders(),
+        cache: "no-store",
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error?.message || "Gagal mengambil subkategori")
+      }
+      const rows = Array.isArray(json?.data) ? json.data : []
+      setSubcategories(rows)
+      return rows
+    } finally {
+      setSubLoading(false)
+    }
+  }
+
   const fetchProduct = async () => {
-    if (mode !== "edit" || !id) return;
+    if (mode !== "edit" || !id) return null
 
-    try {
-      const res = await fetch(`${API}/api/v1/admin/products/${id}`, {
-        headers: authHeaders(),
-      });
+    const res = await fetch(`${API}/api/v1/admin/products/${id}`, {
+      headers: authHeaders(),
+      cache: "no-store",
+    })
+    const json = await res.json().catch(() => null)
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error?.message);
-
-      const data = json.data;
-
-      if (!data) throw new Error("Produk tidak ditemukan");
-
-      setForm({
-        category_id: data.category_id,
-        subcategory_id: data.subcategory_id,
-        name: data.name || "",
-        type: data.type || "ACCOUNT_CREDENTIAL",
-        duration_days: data.duration_days ?? 7,
-        description: data.description || "",
-        member_price: data.tier_pricing?.member ?? "",
-        reseller_price: data.tier_pricing?.reseller ?? "",
-        vip_price: data.tier_pricing?.vip ?? "",
-        is_active: !!data.is_active,
-        is_published: !!data.is_published,
-      });
-
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Gagal load produk");
-      router.push("/admin/produk");
+    if (!res.ok || !json?.success) {
+      throw new Error(json?.error?.message || "Gagal load produk")
     }
-  };
 
-  // ================= INITIAL LOAD =================
+    return json?.data || null
+  }
+
   useEffect(() => {
+    let mounted = true
+
     const init = async () => {
-      setLoading(true);
-      await fetchSubcategories();
-      await fetchProduct();
-      setLoading(false);
-    };
+      try {
+        setLoading(true)
+        await fetchCategories()
 
-    init();
-  }, []);
+        if (mode === "edit" && id) {
+          const product = await fetchProduct()
+          if (!mounted || !product) return
 
-  // ================= HANDLE CHANGE =================
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    const newValue = type === "checkbox" ? checked : value;
+          const categoryId = String(product.category_id || "")
+          await fetchSubcategories(categoryId)
 
-    if (name === "subcategory_id") {
-      const selectedSub = subcategories.find(
-        (sub) => sub.id === Number(value)
-      );
+          setForm({
+            category_id: categoryId,
+            subcategory_id: String(product.subcategory_id || ""),
+            name: product.name || "",
+            type: product.type || "ACCOUNT_CREDENTIAL",
+            duration_days: product.duration_days ?? 7,
+            description: product.description || "",
+            member_price: product.tier_pricing?.member ?? "",
+            reseller_price: product.tier_pricing?.reseller ?? "",
+            vip_price: product.tier_pricing?.vip ?? "",
+            is_active: Boolean(product.is_active),
+            is_published: Boolean(product.is_published),
+          })
+          return
+        }
 
+        await fetchSubcategories("")
+      } catch (error) {
+        console.error(error)
+        alert(error.message || "Gagal memuat form produk")
+        if (mode === "edit") {
+          router.push("/admin/produk")
+        }
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    init()
+
+    return () => {
+      mounted = false
+    }
+  }, [mode, id, router])
+
+  const filteredSubcategories = useMemo(() => {
+    if (!form.category_id) return subcategories
+    return subcategories.filter((item) => String(item.category_id) === String(form.category_id))
+  }, [subcategories, form.category_id])
+
+  const handleChange = async (e) => {
+    const { name, value, type, checked } = e.target
+    const nextValue = type === "checkbox" ? checked : value
+
+    if (name === "category_id") {
       setForm((prev) => ({
         ...prev,
-        subcategory_id: value,
-        category_id: selectedSub?.category_id ?? "",
-      }));
+        category_id: nextValue,
+        subcategory_id: "",
+      }))
 
-      return;
+      try {
+        await fetchSubcategories(nextValue)
+      } catch (error) {
+        console.error(error)
+        alert(error.message || "Gagal mengambil subkategori")
+      }
+      return
     }
 
     setForm((prev) => ({
       ...prev,
-      [name]: newValue,
-    }));
-  };
+      [name]: nextValue,
+    }))
+  }
 
-  // ================= SUBMIT =================
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
 
     try {
       const payload = {
@@ -137,74 +178,91 @@ export default function ProductForm({ mode, id }) {
         subcategory_id: Number(form.subcategory_id),
         name: form.name,
         type: form.type,
-        duration_days: Number(form.duration_days),
+        duration_days: Number(form.duration_days || 0) || null,
         description: form.description,
         tier_pricing: {
-          member: Number(form.member_price),
-          reseller: Number(form.reseller_price),
-          vip: Number(form.vip_price),
+          member: Number(form.member_price || 0),
+          reseller: Number(form.reseller_price || 0),
+          vip: Number(form.vip_price || 0),
         },
-        is_active: form.is_active,
-        is_published: form.is_published,
-      };
+        is_active: Boolean(form.is_active),
+        is_published: Boolean(form.is_published),
+      }
 
       const url =
         mode === "edit"
           ? `${API}/api/v1/admin/products/${id}`
-          : `${API}/api/v1/admin/products`;
+          : `${API}/api/v1/admin/products`
 
-      const method = mode === "edit" ? "PATCH" : "POST";
+      const method = mode === "edit" ? "PATCH" : "POST"
 
       const res = await fetch(url, {
         method,
         headers: authHeaders(),
         body: JSON.stringify(payload),
-      });
+      })
 
-      const json = await res.json();
+      const json = await res.json().catch(() => null)
 
-      if (!res.ok || !json.success) {
-        throw new Error(json?.error?.message || "Gagal menyimpan produk");
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error?.message || "Gagal menyimpan produk")
       }
 
-      router.push("/admin/produk");
-
-    } catch (err) {
-      console.error(err);
-      alert(err.message);
+      router.push("/admin/produk")
+    } catch (error) {
+      console.error(error)
+      alert(error.message || "Gagal menyimpan produk")
     }
-  };
+  }
 
-  // ================= UI =================
   if (loading) {
-    return <p className="text-white">Loading...</p>;
+    return <p className="text-white">Loading...</p>
   }
 
   return (
-    <div className="max-w-2xl mx-auto bg-black p-6 rounded-2xl border border-purple-600/60">
-      <h1 className="text-2xl font-bold text-white mb-6">
+    <div className="mx-auto max-w-2xl rounded-2xl border border-purple-600/60 bg-black p-6">
+      <h1 className="mb-6 text-2xl font-bold text-white">
         {mode === "edit" ? "Edit Produk" : "Tambah Produk"}
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <select
+          name="category_id"
+          value={form.category_id}
+          onChange={handleChange}
+          className="input"
+          required
+        >
+          <option value="">Pilih Kategori</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
 
-        {/* SUBCATEGORY */}
         <select
           name="subcategory_id"
           value={form.subcategory_id}
           onChange={handleChange}
           className="input"
           required
+          disabled={!form.category_id || subLoading}
         >
-          <option value="">Pilih Subkategori</option>
-          {subcategories.map((sub) => (
-            <option key={sub.id} value={sub.id}>
-              {sub.name}
+          <option value="">
+            {!form.category_id
+              ? "Pilih kategori terlebih dahulu"
+              : subLoading
+              ? "Memuat subkategori..."
+              : "Pilih Subkategori"}
+          </option>
+          {filteredSubcategories.map((subcategory) => (
+            <option key={subcategory.id} value={subcategory.id}>
+              {subcategory.name}
             </option>
           ))}
         </select>
 
-        {/* NAME */}
         <input
           name="name"
           placeholder="Nama Produk"
@@ -214,7 +272,6 @@ export default function ProductForm({ mode, id }) {
           required
         />
 
-        {/* DESCRIPTION */}
         <textarea
           name="description"
           placeholder="Deskripsi"
@@ -223,7 +280,6 @@ export default function ProductForm({ mode, id }) {
           className="input"
         />
 
-        {/* DURATION */}
         <input
           type="number"
           name="duration_days"
@@ -231,10 +287,10 @@ export default function ProductForm({ mode, id }) {
           value={form.duration_days}
           onChange={handleChange}
           className="input"
+          min="1"
         />
 
-        {/* PRICING */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <input
             type="number"
             name="member_price"
@@ -242,8 +298,8 @@ export default function ProductForm({ mode, id }) {
             value={form.member_price}
             onChange={handleChange}
             className="input"
+            min="0"
           />
-
           <input
             type="number"
             name="reseller_price"
@@ -251,8 +307,8 @@ export default function ProductForm({ mode, id }) {
             value={form.reseller_price}
             onChange={handleChange}
             className="input"
+            min="0"
           />
-
           <input
             type="number"
             name="vip_price"
@@ -260,13 +316,32 @@ export default function ProductForm({ mode, id }) {
             value={form.vip_price}
             onChange={handleChange}
             className="input"
+            min="0"
           />
         </div>
 
-        <button className="btn-add w-full">
-          Simpan
-        </button>
+        <label className="flex items-center gap-2 text-sm text-white/80">
+          <input
+            type="checkbox"
+            name="is_active"
+            checked={form.is_active}
+            onChange={handleChange}
+          />
+          Produk aktif
+        </label>
+
+        <label className="flex items-center gap-2 text-sm text-white/80">
+          <input
+            type="checkbox"
+            name="is_published"
+            checked={form.is_published}
+            onChange={handleChange}
+          />
+          Produk dipublish
+        </label>
+
+        <button className="btn-add w-full">Simpan</button>
       </form>
     </div>
-  );
+  )
 }

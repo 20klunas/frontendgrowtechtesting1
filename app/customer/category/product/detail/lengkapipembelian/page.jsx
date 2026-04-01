@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess"
-import { getCheckoutBootstrap } from "../../../../../lib/clientBootstrap"
+import { getCheckoutBootstrap, clearCheckoutBootstrapCache } from "../../../../../lib/clientBootstrap"
 
 function resolveProductImage(item) {
   return (
@@ -25,45 +25,53 @@ export default function StepTwo() {
   const [loading, setLoading] = useState(true)
   const { loading: accessLoading, allowed, message } = useCheckoutAccess()
   const router = useRouter()
+  useEffect(() => {
+    clearCheckoutBootstrapCache(); 
+  }, []);
 
   useEffect(() => {
-    let active = true
+    let active = true;
 
-    const loadCheckoutState = async () => {
-      try {
-        setLoading(true)
-        const json = await getCheckoutBootstrap()
-        if (!active) return
+    // ambil cache dulu (instant)
+    const cached = getCheckoutBootstrap();
+    cached.then((json) => {
+      if (!active) return;
 
-        const checkoutData = json?.data?.checkout || null
-        const walletData = json?.data?.wallet || null
+      const checkoutData = json?.data?.checkout || null;
+      const walletData = json?.data?.wallet || null;
 
-        setCheckout(checkoutData)
-        setWalletBalance(Number(walletData?.wallet?.balance ?? walletData?.balance ?? 0))
-      } catch (err) {
-        if (!active) return
-        console.warn("Checkout bootstrap failed:", err.message)
-        setCheckout(null)
-        setWalletBalance(0)
-      } finally {
-        if (active) {
-          setLoading(false)
-        }
-      }
-    }
+      setCheckout(checkoutData);
+      setWalletBalance(
+        Number(walletData?.wallet?.balance ?? walletData?.balance ?? 0)
+      );
+      setLoading(false);
+    });
 
-    loadCheckoutState()
+    // background refresh
+    getCheckoutBootstrap({ force: true }).then((json) => {
+      if (!active) return;
+
+      const checkoutData = json?.data?.checkout || null;
+      const walletData = json?.data?.wallet || null;
+
+      setCheckout(checkoutData);
+      setWalletBalance(
+        Number(walletData?.wallet?.balance ?? walletData?.balance ?? 0)
+      );
+    });
 
     return () => {
-      active = false
-    }
-  }, [])
+      active = false;
+    };
+  }, []);
 
-  const handleGoPayment = () => {
+  const handleGoPayment = async () => {
+    await getCheckoutBootstrap({ force: true }) // preload
     router.push("/customer/category/product/detail/lengkapipembelian/methodpayment")
   }
 
-  const item = useMemo(() => checkout?.items?.[0] || null, [checkout])
+  const items = useMemo(() => checkout?.items || checkout?.order?.items || [], [checkout])
+  const item = useMemo(() => items?.[0] || null, [items])
   const qty = Number(item?.qty ?? 1)
   const product = item?.product || null
   const unitPrice = Number(item?.unit_price ?? 0)
@@ -86,7 +94,7 @@ export default function StepTwo() {
     )
   }
 
-  if (!checkout || !checkout.items?.length) {
+  if (!checkout || !items?.length) {
     return (
       <section className="max-w-5xl mx-auto px-6 py-12 text-white text-center">
         <p className="text-gray-400">Checkout kosong</p>
