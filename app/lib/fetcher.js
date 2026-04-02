@@ -161,6 +161,7 @@ export async function fetcher(url, options = {}, config = {}) {
         method,
         headers: buildHeaders(options, token),
         cache: "no-store",
+        credentials: "include",
         signal: controller.signal,
       })
 

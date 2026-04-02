@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { publicFetch } from "../../lib/publicFetch";
-import { setTrustedDevicePreference } from "../../lib/trustedDevicePreference";
+import {
+  getTrustedDevicePreference,
+  setTrustedDevicePreference,
+} from "../../lib/trustedDevicePreference";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -19,6 +22,13 @@ export default function RegisterPage() {
   });
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      remember: getTrustedDevicePreference(true),
+    }));
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -40,6 +50,8 @@ export default function RegisterPage() {
     }
 
     try {
+      setTrustedDevicePreference(form.remember);
+
       const json = await publicFetch("/api/v1/auth/register", {
         method: "POST",
         body: JSON.stringify(form),

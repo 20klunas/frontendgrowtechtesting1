@@ -12,7 +12,10 @@ import {
   persistAuthSession,
   resolvePostLoginPath,
 } from "../../lib/authSession";
-import { setTrustedDevicePreference } from "../../lib/trustedDevicePreference";
+import {
+  getTrustedDevicePreference,
+  setTrustedDevicePreference,
+} from "../../lib/trustedDevicePreference";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,6 +33,10 @@ export default function LoginPage() {
     type: "info",
     message: "",
   });
+
+  useEffect(() => {
+    setRememberDevice(getTrustedDevicePreference(true));
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -70,9 +77,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (!API) {
-        throw new Error("NEXT_PUBLIC_API_URL belum diset");
-      }
+      setTrustedDevicePreference(rememberDevice);
 
       const json = await publicFetch("/api/v1/auth/login", {
         method: "POST",
