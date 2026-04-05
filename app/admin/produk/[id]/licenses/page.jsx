@@ -314,7 +314,7 @@ export default function LicensesPage() {
           {[
             ["available", summary?.available ?? 0, "Available"],
             ["taken", summary?.taken ?? 0, "Taken"],
-            ["sold", summary?.sold ?? summary?.delivered ?? 0, "Sold"],
+            ["sold", summary?.sold ?? 0, "Sold"],
             ["total", summary?.total ?? 0, "Total"],
           ].map(([key, val, label]) => (
             <div key={key} className="rounded-lg bg-purple-900/30 p-3 text-center">
