@@ -16,9 +16,33 @@ const defaultForm = {
   member_price: "",
   reseller_price: "",
   vip_price: "",
+  member_profit: "",
+  reseller_profit: "",
+  vip_profit: "",
   is_active: true,
   is_published: false,
 }
+
+const tierFields = [
+  {
+    key: "member",
+    label: "Member",
+    priceName: "member_price",
+    profitName: "member_profit",
+  },
+  {
+    key: "reseller",
+    label: "Reseller",
+    priceName: "reseller_price",
+    profitName: "reseller_profit",
+  },
+  {
+    key: "vip",
+    label: "VIP",
+    priceName: "vip_price",
+    profitName: "vip_profit",
+  },
+]
 
 export default function ProductForm({ mode, id }) {
   const router = useRouter()
@@ -27,6 +51,7 @@ export default function ProductForm({ mode, id }) {
   const [subcategories, setSubcategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [subLoading, setSubLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState(defaultForm)
 
   const authHeaders = () => {
@@ -113,6 +138,9 @@ export default function ProductForm({ mode, id }) {
             member_price: product.tier_pricing?.member ?? "",
             reseller_price: product.tier_pricing?.reseller ?? "",
             vip_price: product.tier_pricing?.vip ?? "",
+            member_profit: product.tier_profit?.member ?? "",
+            reseller_profit: product.tier_profit?.reseller ?? "",
+            vip_profit: product.tier_profit?.vip ?? "",
             is_active: Boolean(product.is_active),
             is_published: Boolean(product.is_published),
           })
@@ -169,10 +197,17 @@ export default function ProductForm({ mode, id }) {
     }))
   }
 
+  const toNumber = (value) => {
+    const parsed = Number(value || 0)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     try {
+      setSubmitting(true)
+
       const payload = {
         category_id: Number(form.category_id),
         subcategory_id: Number(form.subcategory_id),
@@ -181,9 +216,14 @@ export default function ProductForm({ mode, id }) {
         duration_days: Number(form.duration_days || 0) || null,
         description: form.description,
         tier_pricing: {
-          member: Number(form.member_price || 0),
-          reseller: Number(form.reseller_price || 0),
-          vip: Number(form.vip_price || 0),
+          member: toNumber(form.member_price),
+          reseller: toNumber(form.reseller_price),
+          vip: toNumber(form.vip_price),
+        },
+        tier_profit: {
+          member: toNumber(form.member_profit),
+          reseller: toNumber(form.reseller_profit),
+          vip: toNumber(form.vip_profit),
         },
         is_active: Boolean(form.is_active),
         is_published: Boolean(form.is_published),
@@ -208,10 +248,13 @@ export default function ProductForm({ mode, id }) {
         throw new Error(json?.error?.message || "Gagal menyimpan produk")
       }
 
+      alert(mode === "edit" ? "Produk berhasil diubah" : "Produk berhasil ditambahkan")
       router.push("/admin/produk")
     } catch (error) {
       console.error(error)
       alert(error.message || "Gagal menyimpan produk")
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -220,10 +263,13 @@ export default function ProductForm({ mode, id }) {
   }
 
   return (
-    <div className="mx-auto max-w-2xl rounded-2xl border border-purple-600/60 bg-black p-6">
-      <h1 className="mb-6 text-2xl font-bold text-white">
+    <div className="mx-auto max-w-4xl rounded-2xl border border-purple-600/60 bg-black p-6">
+      <h1 className="mb-2 text-2xl font-bold text-white">
         {mode === "edit" ? "Edit Produk" : "Tambah Produk"}
       </h1>
+      <p className="mb-6 text-sm text-white/70">
+        Harga tier adalah harga jual yang sudah dipakai di checkout. Profit tier disimpan terpisah untuk kebutuhan margin dan laporan admin.
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <select
@@ -277,7 +323,7 @@ export default function ProductForm({ mode, id }) {
           placeholder="Deskripsi"
           value={form.description}
           onChange={handleChange}
-          className="input"
+          className="input min-h-28"
         />
 
         <input
@@ -290,34 +336,49 @@ export default function ProductForm({ mode, id }) {
           min="1"
         />
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <input
-            type="number"
-            name="member_price"
-            placeholder="Harga Member"
-            value={form.member_price}
-            onChange={handleChange}
-            className="input"
-            min="0"
-          />
-          <input
-            type="number"
-            name="reseller_price"
-            placeholder="Harga Reseller"
-            value={form.reseller_price}
-            onChange={handleChange}
-            className="input"
-            min="0"
-          />
-          <input
-            type="number"
-            name="vip_price"
-            placeholder="Harga VIP"
-            value={form.vip_price}
-            onChange={handleChange}
-            className="input"
-            min="0"
-          />
+        <div className="space-y-3 rounded-2xl border border-purple-700/30 bg-black/30 p-4">
+          <div>
+            <h2 className="text-base font-semibold text-white">Harga & Profit per Tier</h2>
+            <p className="mt-1 text-xs text-white/60">
+              Isi 3 tier sesuai kode yang aktif: member, reseller, dan vip.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {tierFields.map((tier) => (
+              <div key={tier.key} className="rounded-2xl border border-purple-700/30 bg-black/40 p-4">
+                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/80">
+                  {tier.label}
+                </h3>
+
+                <div className="mb-3 space-y-1">
+                  <label className="text-xs text-white/60">Harga Jual</label>
+                  <input
+                    type="number"
+                    min="0"
+                    name={tier.priceName}
+                    placeholder={`Harga ${tier.label}`}
+                    value={form[tier.priceName]}
+                    onChange={handleChange}
+                    className="input"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs text-white/60">Profit</label>
+                  <input
+                    type="number"
+                    min="0"
+                    name={tier.profitName}
+                    placeholder={`Profit ${tier.label}`}
+                    value={form[tier.profitName]}
+                    onChange={handleChange}
+                    className="input"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <label className="flex items-center gap-2 text-sm text-white/80">
@@ -340,7 +401,9 @@ export default function ProductForm({ mode, id }) {
           Produk dipublish
         </label>
 
-        <button className="btn-add w-full">Simpan</button>
+        <button disabled={submitting} className="btn-add w-full disabled:opacity-60">
+          {submitting ? "Menyimpan..." : "Simpan"}
+        </button>
       </form>
     </div>
   )
