@@ -301,14 +301,10 @@ export function AuthProvider({ children, initialUser = null }) {
           method: "POST",
           headers: {
             Accept: "application/json",
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            forget_trusted_device: false,
-          }),
-          cache: "no-store",
           credentials: "include",
+          cache: "no-store",
         });
       }
     } catch (err) {

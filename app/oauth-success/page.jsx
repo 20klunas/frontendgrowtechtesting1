@@ -22,10 +22,22 @@ function OAuthHandler() {
   return <p className="text-white text-center mt-10">Logging you in...</p>
 }
 
+function OAuthSuccessRedirect() {
+  const router = useRouter()
+  const params = useSearchParams()
+
+  useEffect(() => {
+    const query = params?.toString()
+    router.replace(query ? `/auth/callback?${query}` : '/auth/callback')
+  }, [params, router])
+
+  return <p className="text-white text-center mt-10">Redirecting...</p>
+}
+
 export default function OAuthSuccessPage() {
   return (
     <Suspense fallback={<p className="text-white text-center mt-10">Loading...</p>}>
-      <OAuthHandler />
+      <OAuthSuccessRedirect />
     </Suspense>
   )
 }
