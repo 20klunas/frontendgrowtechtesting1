@@ -1,8 +1,17 @@
 import Link from "next/link";
 
 function resolveProductHref(product) {
-  const idOrSlug = product?.slug ?? product?.id ?? "";
-  return `/customer/category/product/${encodeURIComponent(String(idOrSlug))}`;
+  const productId = product?.id;
+  if (productId) {
+    return `/customer/category/product/detail?id=${encodeURIComponent(String(productId))}`;
+  }
+
+  const subcategoryId = product?.subcategory_id ?? product?.subcategory?.id ?? null;
+  if (subcategoryId) {
+    return `/customer/category/product?subcategory_id=${encodeURIComponent(String(subcategoryId))}`;
+  }
+
+  return "/customer/category";
 }
 
 function resolveProductImage(product) {

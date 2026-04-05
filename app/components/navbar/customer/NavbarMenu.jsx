@@ -22,7 +22,12 @@ export default function NavbarMenu() {
 
   const isActive = (href) => {
     if (!pathname) return false;
-    return pathname === href || pathname.startsWith(`${href}/`)
+
+    if (href === "/customer") {
+      return pathname === href;
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   return (

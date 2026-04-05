@@ -20,6 +20,12 @@ import { usePermission } from "../../hooks/usePermission";
 
 const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
+const HIDDEN_CUSTOM_PERMISSION_KEYS = new Set([
+  "manage_stock_proofs",
+  "manage_product_stocks",
+  "manage_licenses",
+]);
+
 function buildUrl(path) {
   if (API.endsWith("/api/v1")) {
     return `${API}${path}`;
@@ -278,7 +284,9 @@ export default function AksesAdminPage() {
   }, [admins, search]);
 
   const editablePermissions = useMemo(() => {
-    return permissions.filter((perm) => !perm.is_protected);
+    return permissions.filter(
+      (perm) => !perm.is_protected && !HIDDEN_CUSTOM_PERMISSION_KEYS.has(perm.key)
+    );
   }, [permissions]);
 
   const protectedPermissions = useMemo(() => {

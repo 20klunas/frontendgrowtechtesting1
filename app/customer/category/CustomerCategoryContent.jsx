@@ -157,7 +157,8 @@ export default function CustomerCategoryContent({
 
     return source.filter((sub) => {
       if (selectedCategory !== null) {
-        if (normalizeId(sub?.category?.id) !== normalizeId(selectedCategory)) {
+        const subcategoryCategoryId = normalizeId(sub?.category?.id ?? sub?.category_id)
+        if (subcategoryCategoryId !== normalizeId(selectedCategory)) {
           return false
         }
       }

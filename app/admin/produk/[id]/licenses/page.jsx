@@ -310,10 +310,15 @@ export default function LicensesPage() {
 
       {/* SUMMARY */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-          {Object.entries(summary).map(([key, val]) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {[
+            ["available", summary?.available ?? 0, "Available"],
+            ["taken", summary?.taken ?? 0, "Taken"],
+            ["sold", summary?.sold ?? summary?.delivered ?? 0, "Sold"],
+            ["total", summary?.total ?? 0, "Total"],
+          ].map(([key, val, label]) => (
             <div key={key} className="rounded-lg bg-purple-900/30 p-3 text-center">
-              <p className="text-xs text-gray-400 capitalize">{key}</p>
+              <p className="text-xs text-gray-400 capitalize">{label}</p>
               <p className="text-lg text-white font-bold">{val}</p>
             </div>
           ))}
