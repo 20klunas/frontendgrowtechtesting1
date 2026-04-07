@@ -77,6 +77,7 @@ export default function InvoicePage() {
           {/* INFO */}
           <div className="space-y-3 text-sm">
             <Row label="Order ID" value={delivery.order_id} />
+            <Row label="Produk" value={delivery.primary_product_name || "-"} />
             <Row label="Total Qty" value={delivery.total_qty} />
             <Row label="Delivery Mode" value={delivery.delivery_mode} />
             <Row label="Jumlah Delivery" value={delivery.deliveries_count} />

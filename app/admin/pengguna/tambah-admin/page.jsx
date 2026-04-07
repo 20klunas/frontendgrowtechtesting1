@@ -23,7 +23,7 @@ export default function TambahAdminPage() {
 
           <select className="input" defaultValue="admin">
             <option value="admin">Admin</option>
-            <option value="superadmin">Super Admin</option>
+            
           </select>
 
           <input

@@ -135,7 +135,16 @@ export default function ProductDetailClient({ productId = null, initialProduct =
       );
 
       clearCheckoutBootstrapCache();
-      notifyCustomerCartChanged();
+      notifyCustomerCartChanged({
+        type: "add",
+        item: {
+          id: product.id,
+          product_id: product.id,
+          qty: 1,
+          product_name: product.name,
+          product_slug: product.slug,
+        },
+      });
       router.push("/customer/category/product/detail/cart");
     } catch (error) {
       alert(error?.message || "Gagal menambahkan ke keranjang");

@@ -27,7 +27,7 @@ export default function AdminLayout({ children }) {
   }, [theme]);
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <AdminAuthProvider>
         <div
           className="admin min-h-screen flex flex-col transition-colors"

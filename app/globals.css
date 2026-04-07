@@ -1147,3 +1147,123 @@ table tbody tr:hover {
   }
 
 }
+
+/* ================= ADMIN THEME INPUT + TEXT CONSISTENCY ================= */
+.dark .admin {
+  color: #ffffff;
+}
+
+.dark .admin input:not([type="checkbox"]):not([type="radio"]),
+.dark .admin select,
+.dark .admin textarea {
+  background: rgba(15, 23, 42, 0.92);
+  border: 1.5px solid rgba(168, 85, 247, 0.9);
+  color: #ffffff;
+}
+
+.dark .admin input:not([type="checkbox"]):not([type="radio"])::placeholder,
+.dark .admin textarea::placeholder {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.dark .admin input:not([type="checkbox"]):not([type="radio"]):focus,
+.dark .admin select:focus,
+.dark .admin textarea:focus {
+  outline: none;
+  border-color: rgb(196, 181, 253);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.18);
+}
+
+html:not(.dark) .admin input:not([type="checkbox"]):not([type="radio"]),
+html:not(.dark) .admin select,
+html:not(.dark) .admin textarea {
+  background: #ffffff;
+  border: 1.5px solid #111827;
+  color: #111827;
+}
+
+html:not(.dark) .admin input:not([type="checkbox"]):not([type="radio"]):focus,
+html:not(.dark) .admin select:focus,
+html:not(.dark) .admin textarea:focus {
+  outline: none;
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+}
+
+
+/* ================= ADMIN EXPLICIT THEME LAYER ================= */
+html.dark .admin {
+  --background: #030712;
+  --foreground: #f9fafb;
+}
+
+html.light .admin {
+  --background: #f8fafc;
+  --foreground: #111827;
+}
+
+html.dark .admin input,
+html.dark .admin select,
+html.dark .admin textarea {
+  color-scheme: dark;
+}
+
+html.light .admin input,
+html.light .admin select,
+html.light .admin textarea {
+  color-scheme: light;
+}
+
+.admin input[type="file"] {
+  width: 100%;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(168, 85, 247, 0.55);
+  padding: 0.75rem 0.9rem;
+  background: transparent;
+}
+
+.admin input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.55rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+html.dark .admin input[type="file"] {
+  color: #f9fafb;
+  background: rgba(3, 7, 18, 0.78);
+}
+
+html.dark .admin input[type="file"]::file-selector-button {
+  background: #7c3aed;
+  color: #ffffff;
+}
+
+html.light .admin input[type="file"] {
+  color: #111827;
+  background: #ffffff;
+  border-color: #111827;
+}
+
+html.light .admin input[type="file"]::file-selector-button {
+  background: #111827;
+  color: #ffffff;
+}
+
+html.dark .admin .modal-card button:not(:disabled):not(.btn-danger):not(.btn-primary):not(.btn-outline) {
+  color: #f9fafb;
+}
+
+html.light .admin .modal-card button:not(:disabled):not(.btn-danger):not(.btn-primary):not(.btn-outline) {
+  color: #111827;
+}
+
+html.dark .admin .modal-card .text-black {
+  color: #111827 !important;
+}
+
+html.light .admin .modal-card .text-white {
+  color: #111827 !important;
+}

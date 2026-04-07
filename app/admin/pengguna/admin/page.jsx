@@ -118,7 +118,7 @@ export default function ManajemenAdminPage() {
           </h1>
 
           <button
-            onClick={() => router.push("/admin/pengguna/tambah-admin")}
+            onClick={() => router.push("/admin/admin-users/tambah")}
             className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl 
               bg-gradient-to-r from-green-400 to-emerald-500 
               text-black font-semibold shadow-lg hover:scale-105 transition"
@@ -185,7 +185,7 @@ export default function ManajemenAdminPage() {
                           <td className="text-center">{row.full_name ?? "-"}</td>
                           <td className="text-center space-x-2">
                             <button
-                              onClick={() => router.push(`/admin/pengguna/edit-admin/${row.id}`)}
+                              onClick={() => router.push(`/admin/admin-users/edit/${row.id}`)}
                               className="bg-yellow-400 hover:bg-yellow-300 text-black px-3 py-1 rounded-lg transition"
                             >
                               <Pencil size={14} />
@@ -219,7 +219,7 @@ export default function ManajemenAdminPage() {
 
                       <div className="flex gap-2 pt-2">
                         <button
-                          onClick={() => router.push(`/admin/pengguna/edit-admin/${row.id}`)}
+                          onClick={() => router.push(`/admin/admin-users/edit/${row.id}`)}
                           className="flex-1 bg-yellow-400 text-black py-2 rounded-lg"
                         >
                           Edit

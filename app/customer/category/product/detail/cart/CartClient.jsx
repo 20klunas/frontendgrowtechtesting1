@@ -380,7 +380,12 @@ export default function CartClient({ initialItems, initialSummary }) {
 
       if (json?.success) {
         await refreshCart();
-        notifyCustomerCartChanged();
+        notifyCustomerCartChanged({
+          type: "update",
+          item_id: itemId,
+          qty: newQty,
+          skipServerSync: true,
+        });
       }
     } catch (error) {
       console.error("Update qty error:", error?.message || error);
@@ -405,7 +410,11 @@ export default function CartClient({ initialItems, initialSummary }) {
 
       if (json?.success) {
         await refreshCart();
-        notifyCustomerCartChanged();
+        notifyCustomerCartChanged({
+          type: "remove",
+          item_id: itemId,
+          skipServerSync: true,
+        });
       }
     } catch (error) {
       console.error("Remove item error:", error?.message || error);

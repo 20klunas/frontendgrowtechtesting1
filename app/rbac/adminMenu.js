@@ -61,8 +61,7 @@ export const adminMenu = [
       },
       {
         label: "Admin",
-        href: "/admin/pengguna/admin",
-        icon: Users,
+        href: "/admin/admin-users",
         adminFlag: "can_manage_rbac",
       },
       {

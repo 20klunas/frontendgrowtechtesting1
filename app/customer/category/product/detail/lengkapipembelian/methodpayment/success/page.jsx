@@ -20,6 +20,7 @@ function SuccessContent() {
 
   useEffect(() => {
     setRevealedData(null)
+    hasFetched.current = false
   }, [orderId])
 
   useEffect(() => {
@@ -67,6 +68,10 @@ function SuccessContent() {
   const [hover, setHover] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
+  const primaryProductName = useMemo(() => {
+    return revealedData?.product_name || delivery?.primary_product_name || paymentInfo?.items?.[0]?.product_name || paymentInfo?.items?.[0]?.product?.name || order?.item_details?.[0]?.product || order?.product?.name || null;
+  }, [revealedData, delivery, paymentInfo, order]);
 
   // const rawParams = useSearchParams();
 
@@ -432,6 +437,7 @@ function SuccessContent() {
 
             <InfoRow label="Order ID" value={paymentInfo?.order_id || delivery?.order_id || "-"} />
             <InfoRow label="Invoice" value={invoiceNumber} />
+            <InfoRow label="Produk" value={primaryProductName || "-"} />
             <InfoRow label="Qty" value={delivery?.total_qty || "-"} />
             <InfoRow label="Mode" value={delivery?.delivery_mode || "-"} />
             <InfoRow
@@ -483,7 +489,7 @@ function SuccessContent() {
 
               <div className="border border-green-500/40 rounded-xl p-4">
                 <p className="text-sm text-gray-400">Produk</p>
-                <p className="font-semibold mb-3">{revealedData?.product_name}</p>
+                <p className="font-semibold mb-3">{primaryProductName || revealedData?.product_name || "Produk digital"}</p>
 
                 <p className="text-sm text-gray-400">License Key</p>
 

@@ -19,6 +19,9 @@ export default function ReferralSettingsPage() {
 
   const [commissionType, setCommissionType] = useState('percent')
   const [commissionValue, setCommissionValue] = useState('')
+  const [discountType, setDiscountType] = useState('percent')
+  const [discountValue, setDiscountValue] = useState('')
+  const [discountMaxAmount, setDiscountMaxAmount] = useState('')
   const [minWithdrawal, setMinWithdrawal] = useState('')
 
   const [toast, setToast] = useState(null)
@@ -71,8 +74,11 @@ export default function ReferralSettingsPage() {
         setSettings(data)
 
         setCommissionType(data.commission_type)
-        setCommissionValue(String(data.commission_value))
-        setMinWithdrawal(formatRupiah(String(data.min_withdrawal)))
+        setCommissionValue(String(data.commission_value ?? ''))
+        setDiscountType(data.discount_type || 'percent')
+        setDiscountValue(String(data.discount_value ?? ''))
+        setDiscountMaxAmount(formatRupiah(String(data.discount_max_amount ?? '')))
+        setMinWithdrawal(formatRupiah(String(data.min_withdrawal ?? '')))
       }
     } catch (err) {
       console.error(err)
@@ -98,6 +104,9 @@ export default function ReferralSettingsPage() {
         body: JSON.stringify({
           commission_type: commissionType,
           commission_value: Number(commissionValue),
+          discount_type: discountType,
+          discount_value: Number(discountValue),
+          discount_max_amount: Number(unformatRupiah(discountMaxAmount || '0')),
         }),
       })
 
@@ -111,7 +120,7 @@ export default function ReferralSettingsPage() {
 
       if (json.success) {
         fetchSettings(token)
-        showToast('Komisi berhasil diperbarui')
+        showToast('Komisi & diskon referral berhasil diperbarui')
       } else {
         showToast('Gagal menyimpan komisi', 'error')
       }
@@ -172,7 +181,7 @@ export default function ReferralSettingsPage() {
           </h1>
 
           <p className="modal-text text-sm">
-            Kelola komisi referral dan aturan withdrawal sistem
+            Kelola komisi, diskon referral, dan aturan withdrawal sistem
           </p>
         </div>
         <ReferralTabs />
@@ -215,7 +224,7 @@ export default function ReferralSettingsPage() {
             </h1>
 
             <p className="modal-text text-sm">
-              Kelola komisi referral dan aturan withdrawal sistem
+              Kelola komisi, diskon referral, dan aturan withdrawal sistem
             </p>
           </div>
           <ReferralTabs />
@@ -297,6 +306,85 @@ export default function ReferralSettingsPage() {
                 {savingCommission ? 'Menyimpan...' : 'Simpan Perubahan'}
               </button>
 
+            </motion.div>
+
+            <motion.div
+              className="modal-card rounded-2xl p-6 md:p-8 transition-all"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <h2 className="text-xl font-semibold mb-4 modal-title">
+                Diskon Referral Untuk Pembeli
+              </h2>
+
+              <div className="flex flex-wrap gap-4 mb-4 modal-text">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={discountType === 'percent'}
+                    onChange={() => setDiscountType('percent')}
+                  />
+                  Persentase (%)
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={discountType === 'fixed'}
+                    onChange={() => setDiscountType('fixed')}
+                  />
+                  Rupiah (Rp)
+                </label>
+              </div>
+
+              <input
+                type="text"
+                value={discountValue}
+                onChange={(e) => setDiscountValue(e.target.value.replace(/\D/g, ''))}
+                className="input-primary w-full mb-3"
+              />
+
+              <div className="flex w-full mb-4">
+                <span className="flex items-center px-4 border border-purple-700 rounded-l-lg modal-text">
+                  Max
+                </span>
+                <input
+                  type="text"
+                  value={discountMaxAmount}
+                  onChange={(e) => setDiscountMaxAmount(formatRupiah(e.target.value))}
+                  className="input-primary flex-1 rounded-l-none"
+                  placeholder="0 = tanpa batas"
+                />
+              </div>
+
+              <p className="modal-text text-sm mb-4">
+                Contoh pembelian Rp 100.000 akan mendapat diskon{' '}
+                <span className="font-semibold ml-1">
+                  {discountType === 'percent'
+                    ? `Rp ${Math.floor(100000 * Number(discountValue || 0) / 100).toLocaleString('id-ID')}`
+                    : `Rp ${Number(discountValue || 0).toLocaleString('id-ID')}`}
+                </span>
+                {Number(unformatRupiah(discountMaxAmount || '0')) > 0 ? (
+                  <span className="ml-1">
+                    (maksimal Rp {Number(unformatRupiah(discountMaxAmount || '0')).toLocaleString('id-ID')})
+                  </span>
+                ) : null}
+              </p>
+
+              <div className="p-4 rounded-lg border border-purple-700/40 text-sm modal-text mb-5">
+                <b>Catatan</b>
+                <div className="mt-1">
+                  Nilai ini dipakai untuk diskon user yang menggunakan kode referral.
+                </div>
+              </div>
+
+              <button
+                onClick={handleSaveCommission}
+                disabled={savingCommission}
+                className="btn-primary w-full"
+              >
+                {savingCommission ? 'Menyimpan...' : 'Simpan Komisi & Diskon'}
+              </button>
             </motion.div>
 
             {/* Minimum WD */}

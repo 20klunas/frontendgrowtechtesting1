@@ -209,8 +209,74 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
   }, [authLoading, userId, initialCartCount, initialFavoriteCount, resetAll, fetchFavoriteCount])
 
   useEffect(() => {
-    const handleCartRefresh = () => {
-      refreshCart()
+    const handleCartRefresh = (event) => {
+      const detail = event?.detail || {}
+      const actionType = String(detail?.type || "refresh").toLowerCase()
+
+      if (actionType === "add" && detail?.item) {
+        const incomingQty = Math.max(1, Number(detail.item.qty) || 1)
+        const incomingProductId = Number(detail.item.product_id || detail.item.id || 0)
+
+        if (incomingProductId > 0) {
+          const nextItems = [...(cartItemsRef.current || [])]
+          const existingIndex = nextItems.findIndex((row) => Number(row?.product_id || row?.id || 0) === incomingProductId)
+
+          if (existingIndex >= 0) {
+            const currentQty = Math.max(1, Number(nextItems[existingIndex]?.qty) || 1)
+            nextItems[existingIndex] = {
+              ...nextItems[existingIndex],
+              ...detail.item,
+              qty: currentQty + incomingQty,
+            }
+          } else {
+            nextItems.unshift({
+              ...detail.item,
+              qty: incomingQty,
+            })
+          }
+
+          applyCartData(nextItems)
+        }
+      }
+
+      if (actionType === "update") {
+        const itemId = Number(detail?.item_id || 0)
+        const qty = Math.max(1, Number(detail?.qty) || 1)
+
+        if (itemId > 0) {
+          const nextItems = [...(cartItemsRef.current || [])].map((row) => (
+            Number(row?.id || 0) === itemId
+              ? {
+                  ...row,
+                  qty,
+                  line_subtotal: Number(row?.unit_price || 0) * qty,
+                }
+              : row
+          ))
+
+          applyCartData(nextItems)
+        }
+      }
+
+      if (actionType === "remove") {
+        const itemId = Number(detail?.item_id || 0)
+
+        if (itemId > 0) {
+          const nextItems = [...(cartItemsRef.current || [])].filter(
+            (row) => Number(row?.id || 0) !== itemId
+          )
+
+          applyCartData(nextItems)
+        }
+      }
+
+      if (actionType === "reset") {
+        applyCartData([])
+      }
+
+      if (!detail?.skipServerSync) {
+        refreshCart()
+      }
     }
 
     const handleFavoriteRefresh = () => {
@@ -244,7 +310,7 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
       window.removeEventListener(FAVORITE_REFRESH_EVENT, handleFavoriteRefresh)
       document.removeEventListener("visibilitychange", handleVisible)
     }
-  }, [fetchCart, refreshCart, fetchFavoriteCount])
+  }, [applyCartData, fetchCart, refreshCart, fetchFavoriteCount])
 
   const value = useMemo(
     () => ({

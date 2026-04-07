@@ -199,7 +199,7 @@ export default function EditAdminPage() {
               }
             >
               <option value="admin">Admin</option>
-              <option value="superadmin">Super Admin</option>
+              
             </select>
           </div>
 
