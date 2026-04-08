@@ -1,6 +1,6 @@
-import { cache } from "react"
 import { buildApiUrl } from "./apiUrl"
 import { cookies } from "next/headers"
+
 async function parseJsonSafe(response) {
   try {
     return await response.json()
@@ -20,20 +20,11 @@ function buildCacheOptions(options = {}) {
     return { next }
   }
 
-    return {
-    // next: {
-    //     revalidate: 60,
-    //     tags: ["catalog"], 
-    // },
-    cache: "no-store"
-    }
+  return { cache: "no-store" }
 }
 
-export const serverFetch = cache(async (path, options = {}) => {
+async function doServerFetch(path, options = {}, token = "") {
   const { headers = {}, method = "GET", ...rest } = options
-
-  const cookieStore = await cookies()
-  const token = cookieStore.get("token")?.value
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 30000)
@@ -64,4 +55,18 @@ export const serverFetch = cache(async (path, options = {}) => {
   } finally {
     clearTimeout(timeoutId)
   }
-})
+}
+
+export async function serverPublicFetch(path, options = {}) {
+  return doServerFetch(path, options, "")
+}
+
+export async function serverAuthFetch(path, options = {}) {
+  const cookieStore = await cookies()
+  const token = cookieStore.get("token")?.value || ""
+
+  return doServerFetch(path, options, token)
+}
+
+// Backward-compatible default for existing public catalog/product usage.
+export const serverFetch = serverPublicFetch

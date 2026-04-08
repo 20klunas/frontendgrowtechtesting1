@@ -1,4 +1,4 @@
-import { serverFetch } from "./serverFetch"
+import { serverPublicFetch } from "./serverFetch"
 
 const CATEGORY_REVALIDATE = 0
 const PRODUCT_REVALIDATE = 0
@@ -38,7 +38,7 @@ function resolveCatalogMaintenance(payload) {
 
 async function fetchFeatureAccessSnapshot() {
   try {
-    return await serverFetch("/api/v1/content/feature-access", {
+    return await serverPublicFetch("/api/v1/content/feature-access", {
       next: { revalidate: FEATURE_ACCESS_REVALIDATE },
     })
   } catch {
@@ -55,10 +55,10 @@ export async function getCategoryPageServerData() {
 
   const [access, categories, subcategories] = await Promise.allSettled([
     fetchFeatureAccessSnapshot(),
-    serverFetch("/api/v1/catalog/categories", {
+    serverPublicFetch("/api/v1/catalog/categories", {
       next: { revalidate: CATEGORY_REVALIDATE },
     }),
-    serverFetch("/api/v1/catalog/subcategories", {
+    serverPublicFetch("/api/v1/catalog/subcategories", {
       next: { revalidate: CATEGORY_REVALIDATE },
     }),
   ])
@@ -118,11 +118,11 @@ export async function getProductPageServerData({
 
   const [access, products, subcategory] = await Promise.allSettled([
     fetchFeatureAccessSnapshot(),
-    serverFetch(`/api/v1/products?${params.toString()}`, {
-      next: { revalidate: 0 },
+    serverPublicFetch(`/api/v1/products?${params.toString()}`, {
+      next: { revalidate: PRODUCT_REVALIDATE },
     }),
     subcategoryId
-      ? serverFetch(`/api/v1/subcategories/${subcategoryId}`, {
+      ? serverPublicFetch(`/api/v1/subcategories/${subcategoryId}`, {
           next: { revalidate: CATEGORY_REVALIDATE },
         })
       : Promise.resolve(null),
@@ -155,10 +155,10 @@ export async function getProductPageServerData({
 export async function getPublicCategoryBrowserServerData() {
   const [access, categories, subcategories] = await Promise.allSettled([
     fetchFeatureAccessSnapshot(),
-    serverFetch("/api/v1/categories", {
+    serverPublicFetch("/api/v1/categories", {
       next: { revalidate: CATEGORY_REVALIDATE, tags: ["categories"] },
     }),
-    serverFetch("/api/v1/subcategories", {
+    serverPublicFetch("/api/v1/subcategories", {
       next: { revalidate: CATEGORY_REVALIDATE, tags: ["subcategories"] },
     }),
   ])
@@ -194,8 +194,8 @@ export async function getPublicProductsServerData({
   }
 
   try {
-    const payload = await serverFetch(`/api/v1/products?${params.toString()}`, {
-      next: { revalidate: 0 },
+    const payload = await serverPublicFetch(`/api/v1/products?${params.toString()}`, {
+      next: { revalidate: PRODUCT_REVALIDATE },
     })
 
     return normalizePaginator(payload, perPage).items
