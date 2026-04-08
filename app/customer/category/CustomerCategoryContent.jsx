@@ -1,6 +1,7 @@
 "use client"
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Search } from "lucide-react"
 import ProductCard from "../../components/customer/SubCategoryCard"
@@ -41,6 +42,7 @@ export default function CustomerCategoryContent({
   initialSubcategories = null,
   maintenanceMessage = "",
 }) {
+  const router = useRouter()
   const hasInitialCategories = Array.isArray(initialCategories)
   const hasInitialSubcategories = Array.isArray(initialSubcategories)
 
@@ -156,6 +158,13 @@ export default function CustomerCategoryContent({
     const source = Array.isArray(subcategories) ? subcategories : []
 
     return source.filter((sub) => {
+      if (sub?.is_active === false) {
+        return false
+      }
+
+      if (sub?.category?.is_active === false) {
+        return false
+      }
       if (selectedCategory !== null) {
         const subcategoryCategoryId = normalizeId(sub?.category?.id ?? sub?.category_id)
         if (subcategoryCategoryId !== normalizeId(selectedCategory)) {
@@ -172,8 +181,12 @@ export default function CustomerCategoryContent({
     })
   }, [subcategories, deferredSearch, selectedCategory])
 
+  const visibleCategories = useMemo(() => {
+    return (Array.isArray(categories) ? categories : []).filter((cat) => cat?.is_active !== false)
+  }, [categories])
+
   const selectedCategoryName = useMemo(() => {
-    const selected = (Array.isArray(categories) ? categories : []).find(
+    const selected = visibleCategories.find(
       (cat) => normalizeId(cat?.id) === normalizeId(selectedCategory)
     )
     return selected?.name || ""
@@ -192,6 +205,14 @@ export default function CustomerCategoryContent({
   }, [filteredSubcategories, currentPage])
 
   const handleCategoryClick = (categoryId) => {
+    const nextCategory = visibleCategories.find((cat) => normalizeId(cat?.id) === normalizeId(categoryId))
+    const redirectLink = String(nextCategory?.redirect_link || "").trim()
+
+    if (redirectLink) {
+      router.push(redirectLink)
+      return
+    }
+
     setSelectedCategory(categoryId)
     setSearch("")
     setCurrentPage(1)
@@ -240,7 +261,7 @@ export default function CustomerCategoryContent({
             Semua Kategori
           </button>
 
-          {(Array.isArray(categories) ? categories : []).map((cat) => {
+          {visibleCategories.map((cat) => {
             const catId = normalizeId(cat?.id)
             const isActive = normalizeId(selectedCategory) === catId
 

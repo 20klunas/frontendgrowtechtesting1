@@ -223,13 +223,13 @@ export async function authFetch(url, options = {}) {
 
       if (res.status === 401 && !isRedirecting) {
         isRedirecting = true
-        Cookies.remove("token")
-        Cookies.remove("role")
-        Cookies.remove("user_name")
-        Cookies.remove("user_email")
+        Cookies.remove("token", { path: "/" })
+        Cookies.remove("role", { path: "/" })
+        Cookies.remove("user_name", { path: "/" })
+        Cookies.remove("user_email", { path: "/" })
 
         if (typeof window !== "undefined") {
-          window.location.href = "/login"
+          window.location.replace("/login")
         }
 
         throw new Error("Session expired")

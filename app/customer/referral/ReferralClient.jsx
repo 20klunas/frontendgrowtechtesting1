@@ -84,6 +84,12 @@ export default function ReferralPage() {
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [withdrawMessage, setWithdrawMessage] = useState(null)
   const [walletBalance, setWalletBalance] = useState(null)
+
+  const minWithdraw = Number(walletBalance?.min_withdrawal || 0)
+  const withdrawAmountNumber = Number(withdrawAmount || 0)
+  const availableWithdraw = Number(walletBalance?.available || 0)
+  const withdrawBlockedByMinimum = minWithdraw > 0 && availableWithdraw < minWithdraw
+  const withdrawInvalidAmount = withdrawAmount !== "" && minWithdraw > 0 && withdrawAmountNumber < minWithdraw
   
 
   /* ================= INIT ================= */
@@ -264,6 +270,22 @@ export default function ReferralPage() {
 
     if (!withdrawAmount) return
 
+    if (withdrawBlockedByMinimum) {
+      setWithdrawMessage({
+        type: "error",
+        text: `Minimal withdraw adalah Rp ${minWithdraw.toLocaleString()}`
+      })
+      return
+    }
+
+    if (withdrawInvalidAmount) {
+      setWithdrawMessage({
+        type: "error",
+        text: `Nominal withdraw minimal Rp ${minWithdraw.toLocaleString()}`
+      })
+      return
+    }
+
     try {
 
       setWithdrawLoading(true)
@@ -373,7 +395,7 @@ export default function ReferralPage() {
 
   const referralLink = `${typeof window !== 'undefined'
     ? window.location.origin
-    : ''}/customer/referral?ref=${referralCode}`
+    : ''}/register?ref=${referralCode}`
 
 
   return (
@@ -582,7 +604,6 @@ export default function ReferralPage() {
           </ul>
 
         </div>
-
       </Card>
 
       {/* ================= ATTACH ================= */}
@@ -820,7 +841,6 @@ export default function ReferralPage() {
           Diskon akhir akan diterapkan secara otomatis saat pembayaran jika semua persyaratan rujukan terpenuhi.
 
         </div>
-
       </Card>
 
       {/* ================= WITHDRAW ================= */}
@@ -834,22 +854,30 @@ export default function ReferralPage() {
         <p className="text-xs text-gray-400 mb-2">
             Saldo Referral Tersedia:
             <span className="text-green-400 ml-1">
-                Rp {walletBalance?.available?.toLocaleString()}
+                Rp {walletBalance?.available?.toLocaleString() || 0}
             </span>
+        </p>
+
+        <p className="text-xs text-gray-400 mb-4">
+          Minimal Withdraw:
+          <span className="ml-1 text-purple-300">Rp {minWithdraw.toLocaleString()}</span>
         </p>
 
         <div className="flex gap-2">
 
           <input
             type="number"
+            min={minWithdraw || 0}
             value={withdrawAmount}
             onChange={(e)=>setWithdrawAmount(e.target.value)}
             className="flex-1 rounded-xl bg-purple-900/40 border border-purple-700 px-4 py-2"
+            placeholder={minWithdraw > 0 ? `Minimal Rp ${minWithdraw.toLocaleString()}` : "Masukkan nominal"}
           />
 
           <button
             onClick={handleWithdraw}
-            className="bg-purple-700 px-4 rounded-xl hover:bg-purple-600 transition"
+            disabled={withdrawLoading || withdrawBlockedByMinimum || withdrawInvalidAmount}
+            className="bg-purple-700 px-4 rounded-xl hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
 
             {withdrawLoading
@@ -860,6 +888,19 @@ export default function ReferralPage() {
 
         </div>
 
+        {withdrawBlockedByMinimum && (
+          <p className="mt-3 text-xs text-amber-300">Saldo referral belum memenuhi minimal withdraw.</p>
+        )}
+
+        {!withdrawBlockedByMinimum && withdrawInvalidAmount && (
+          <p className="mt-3 text-xs text-amber-300">Nominal yang diajukan masih di bawah minimum withdraw.</p>
+        )}
+
+        {withdrawMessage && (
+          <p className={`mt-3 text-xs ${withdrawMessage.type === "success" ? "text-emerald-300" : "text-red-300"}`}>
+            {withdrawMessage.text}
+          </p>
+        )}
       </Card>
 
       {/* ================= CHART ================= */}
@@ -897,7 +938,6 @@ export default function ReferralPage() {
           </ResponsiveContainer>
 
         </div>
-
       </Card>
 
       {/* ================= HISTORY ================= */}
@@ -937,7 +977,6 @@ export default function ReferralPage() {
           ))}
 
         </div>
-
       </Card>
 
     </motion.section>

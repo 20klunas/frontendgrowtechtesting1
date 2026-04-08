@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { publicFetch } from "../../lib/publicFetch";
 import {
@@ -11,6 +11,7 @@ import {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const API = process.env.NEXT_PUBLIC_API_URL;
 
   const [form, setForm] = useState({
@@ -19,16 +20,19 @@ export default function RegisterPage() {
     password_confirmation: "",
     name: "",
     remember: true,
+    referral_code: "",
   });
 
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const ref = String(searchParams.get("ref") || "").trim().toUpperCase();
     setForm((prev) => ({
       ...prev,
       remember: getTrustedDevicePreference(true),
+      referral_code: ref || prev.referral_code || "",
     }));
-  }, []);
+  }, [searchParams]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -139,6 +143,18 @@ export default function RegisterPage() {
               value={form.password}
               onChange={handleChange}
               required
+              className="mt-1 w-full rounded-lg border border-purple-400/50 bg-black px-4 py-2 text-white outline-none focus:border-purple-500"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-purple-300">Kode Referral (opsional)</label>
+            <input
+              type="text"
+              name="referral_code"
+              value={form.referral_code}
+              onChange={handleChange}
+              placeholder="Masukkan kode referral"
               className="mt-1 w-full rounded-lg border border-purple-400/50 bg-black px-4 py-2 text-white outline-none focus:border-purple-500"
             />
           </div>

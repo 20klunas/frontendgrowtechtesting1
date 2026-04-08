@@ -11,6 +11,9 @@ import {
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { useAppTransition } from "../hooks/useAppTransition";
+import { clearAuthSession } from "../lib/authSession";
+import { invalidateAuthFetchCache } from "../lib/authFetch";
+import { invalidateFetcherCache } from "../lib/fetcher";
 
 export const AuthContext = createContext(null);
 
@@ -312,14 +315,21 @@ export function AuthProvider({ children, initialUser = null }) {
     }
 
     clearProfileCache();
-    Cookies.remove("token");
-    Cookies.remove("role");
-    Cookies.remove("user_name");
-    Cookies.remove("user_email");
+    invalidateAuthFetchCache([() => true]);
+    invalidateFetcherCache([() => true]);
+    clearAuthSession();
 
     applyUser(null, { display: true });
     setLoading(false);
-    router.push("/login");
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage?.removeItem("auth-me-profile-cache-v1");
+      window.location.replace("/login");
+      return;
+    }
+
+    router.replace("/login");
+    router.refresh();
   }, [applyUser, router]);
 
   const refreshUser = useCallback(() => {

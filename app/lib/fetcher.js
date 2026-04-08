@@ -33,8 +33,7 @@ function normalizeUrl(url) {
 function getTTL(url) {
   const path = String(url || "").toLowerCase()
 
-  if (path.includes("/content")) return TTL.LONG
-  if (path.includes("/categories") || path.includes("/subcategories")) return TTL.MEDIUM
+  if (path.includes("/payment-gateways/available")) return TTL.SHORT
 
   return TTL.SHORT
 }
@@ -44,13 +43,19 @@ function shouldCache(url, method) {
 
   const path = String(url || "").toLowerCase()
 
-  if (path.includes("/products?")) return false
+  if (
+    path.includes("/products?") ||
+    path.includes("/content/pages/") ||
+    path.includes("/catalog/categories") ||
+    path.includes("/catalog/subcategories") ||
+    path.includes("/categories") ||
+    path.includes("/subcategories")
+  ) {
+    return false
+  }
 
   return [
-    "/categories",
-    "/subcategories",
-    "/catalog",
-    "/content",
+    "/payment-gateways/available",
   ].some((part) => path.includes(part))
 }
 

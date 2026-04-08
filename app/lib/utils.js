@@ -21,6 +21,8 @@ export async function apiFetch(url, options = {}) {
     `${process.env.NEXT_PUBLIC_API_URL}${url}`,
     {
       ...options,
+      cache: "no-store",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",

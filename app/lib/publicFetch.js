@@ -22,9 +22,7 @@ function resolveCacheMode(url, explicitCache, method = "GET") {
 
   const cacheablePatterns = [
     /\/api\/v1\/products\b/,
-    /\/api\/v1\/categories\b/,
-    /\/api\/v1\/subcategories\b/,
-    /\/api\/v1\/catalog\//,
+    /\/api\/v1\/catalog\/products\b/,
     /\/api\/v1\/content\/settings\b/,
     /\/api\/v1\/content\/feature-access\b/,
     /\/api\/v1\/content\/banners?\b/,
@@ -50,9 +48,7 @@ function shouldUseMemoryCache(url, method = "GET") {
 
   return [
     /\/api\/v1\/products\b/,
-    /\/api\/v1\/categories\b/,
-    /\/api\/v1\/subcategories\b/,
-    /\/api\/v1\/catalog\//,
+    /\/api\/v1\/catalog\/products\b/,
     /\/api\/v1\/content\//,
   ].some((pattern) => pattern.test(path))
 }

@@ -1,32 +1,24 @@
 import Cookies from 'js-cookie'
 
+const AUTH_COOKIE_DAYS = 30
+const COOKIE_OPTIONS = {
+  path: '/',
+  sameSite: 'lax',
+  expires: AUTH_COOKIE_DAYS,
+}
+
 export function persistAuthSession(token, user = {}) {
-  Cookies.set('token', token, {
-    path: '/',
-    sameSite: 'lax',
-  })
-
-  Cookies.set('role', user?.role || 'user', {
-    path: '/',
-    sameSite: 'lax',
-  })
-
-  Cookies.set('user_name', user?.name || user?.full_name || '', {
-    path: '/',
-    sameSite: 'lax',
-  })
-
-  Cookies.set('user_email', user?.email || '', {
-    path: '/',
-    sameSite: 'lax',
-  })
+  Cookies.set('token', token, COOKIE_OPTIONS)
+  Cookies.set('role', user?.role || 'user', COOKIE_OPTIONS)
+  Cookies.set('user_name', user?.name || user?.full_name || '', COOKIE_OPTIONS)
+  Cookies.set('user_email', user?.email || '', COOKIE_OPTIONS)
 }
 
 export function clearAuthSession() {
-  Cookies.remove('token')
-  Cookies.remove('role')
-  Cookies.remove('user_name')
-  Cookies.remove('user_email')
+  Cookies.remove('token', { path: '/' })
+  Cookies.remove('role', { path: '/' })
+  Cookies.remove('user_name', { path: '/' })
+  Cookies.remove('user_email', { path: '/' })
 }
 
 export function resolvePostLoginPath(user = {}) {

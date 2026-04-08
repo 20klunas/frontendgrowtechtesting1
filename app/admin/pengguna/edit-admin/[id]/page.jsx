@@ -4,7 +4,6 @@ import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import Cookies from "js-cookie"
 import { PERMISSIONS } from "../../../../lib/permissions"
-import { email } from "zod"
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -93,7 +92,7 @@ export default function EditAdminPage() {
       const token = Cookies.get("token")
 
       await fetch(`${API}/api/v1/admin/users/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
@@ -103,7 +102,7 @@ export default function EditAdminPage() {
 
       alert("Admin berhasil diperbarui")
 
-      router.push("/admin/pengguna")
+      router.replace("/admin/pengguna/admin")
 
     } catch (err) {
       console.error(err)

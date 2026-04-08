@@ -9,7 +9,7 @@ import { clearCheckoutBootstrapCache, readCheckoutBootstrapCache } from "../../.
 import { notifyCustomerCartChanged } from "../../../../../../../lib/customerCartEvents";
 import confetti from "canvas-confetti";
 
-const VIEW_DURATION = 10; // detik one-time view
+const DEFAULT_VIEW_DURATION = 30; // detik one-time view
 
 function SuccessContent() {
   // const params = useSearchParams();
@@ -59,8 +59,10 @@ function SuccessContent() {
   const [resending, setResending] = useState(false);
   const [closing, setClosing] = useState(false);
 
-  const [countdown, setCountdown] = useState(VIEW_DURATION);
+  const [countdown, setCountdown] = useState(DEFAULT_VIEW_DURATION);
   const [blurred, setBlurred] = useState(false);
+
+  const revealWindowSeconds = Number(delivery?.reveal_window_seconds || DEFAULT_VIEW_DURATION);
 
   const [toast, setToast] = useState(null);
 
@@ -145,34 +147,40 @@ function SuccessContent() {
   };
 
   /* ================= COUNTDOWN ================= */
-  const startCountdown = () => {
+  const startCountdown = (initialSeconds = revealWindowSeconds) => {
     if (timerRef.current) clearInterval(timerRef.current);
 
-    let timeLeft = VIEW_DURATION;
+    let timeLeft = Math.max(0, Number(initialSeconds || 0));
     setCountdown(timeLeft);
+
+    if (timeLeft <= 0) {
+      setBlurred(true);
+      return;
+    }
 
     timerRef.current = setInterval(() => {
       timeLeft -= 1;
-      setCountdown(timeLeft);
+      setCountdown(Math.max(0, timeLeft));
 
       if (timeLeft <= 0) {
         clearInterval(timerRef.current);
         timerRef.current = null;
         setBlurred(true);
+        setRevealedData(null);
         showToast("One-time view habis", "info");
       }
     }, 1000);
   };
 
   useEffect(() => {
-    if (!delivery || delivery.can_reveal) return;
+    if (!delivery || delivery.can_reveal || delivery?.reveal_active) return;
 
     const interval = setInterval(async () => {
       const json = await authFetch(`/api/v1/orders/${orderId}/delivery`);
       if (json?.success) {
         setDelivery(json.data);
 
-        if (json.data?.can_reveal) {
+        if (json.data?.can_reveal || json.data?.reveal_active) {
           clearInterval(interval);
         }
       }
@@ -192,17 +200,24 @@ function SuccessContent() {
   useEffect(() => {
     if (
       delivery?.is_revealed &&
+      delivery?.reveal_active &&
       !revealedData &&
       !hasAutoRevealed.current
     ) {
       hasAutoRevealed.current = true
       handleReveal()
     }
-  }, [delivery])
+  }, [delivery, revealedData])
+
+  useEffect(() => {
+    if (!delivery?.reveal_active) return
+    setBlurred(false)
+    startCountdown(Number(delivery?.reveal_remaining_seconds || revealWindowSeconds))
+  }, [delivery?.reveal_active, delivery?.reveal_remaining_seconds, revealWindowSeconds])
 
   /* ================= REVEAL ================= */
   const handleReveal = async () => {
-    if (!delivery?.can_reveal && !delivery?.is_revealed) {
+    if (!delivery?.can_reveal && !delivery?.reveal_active && !delivery?.is_revealed) {
       showToast("Menunggu sistem siap...", "info");
       return;
     }
@@ -220,7 +235,7 @@ function SuccessContent() {
       if (json?.success) {
         setRevealedData(json.data);
         setBlurred(false);
-        startCountdown();
+        startCountdown(Number(json?.data?.reveal_remaining_seconds || delivery?.reveal_remaining_seconds || revealWindowSeconds));
         fetchDelivery();
         showToast("Kode berhasil ditampilkan");
       } else {

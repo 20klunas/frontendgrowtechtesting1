@@ -29,27 +29,21 @@ export async function getPage(slug) {
   }
 
   try {
-    const res = await fetch(
-      // FIX: harus pakai template string, bukan regex
-      buildApiUrl(`/api/v1/content/pages/${slug}`),
-      {
-        headers: {
-          Accept: "application/json",
-        },
-        next: { revalidate: 300 },
-      }
-    )
+    const res = await fetch(buildApiUrl(`/api/v1/content/pages/${slug}`), {
+      headers: {
+        Accept: "application/json",
+      },
+      cache: "no-store",
+      next: { revalidate: 0 },
+    })
 
     if (!res.ok) {
       throw new Error("Gagal fetch halaman")
     }
 
     const json = await parseJsonSafe(res)
-
-    // FIX: operator || 
     return json?.data || null
   } catch (err) {
-    // FIX: console.error format
     console.error(`Error getPage (${slug}):`, err)
     return null
   }

@@ -1,7 +1,7 @@
 import { serverFetch } from "./serverFetch"
 
-const CATEGORY_REVALIDATE = 30
-const PRODUCT_REVALIDATE = 60
+const CATEGORY_REVALIDATE = 0
+const PRODUCT_REVALIDATE = 0
 const FEATURE_ACCESS_REVALIDATE = 300
 
 function normalizeCollection(json) {

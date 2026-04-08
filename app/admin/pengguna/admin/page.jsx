@@ -64,7 +64,7 @@ export default function ManajemenAdminPage() {
       setLoading(true)
 
       const res = await apiFetch(
-        `/api/v1/admin/users?page=${page}&limit=${limit}`
+        `/api/v1/admin/users?page=${page}&per_page=${limit}&role=admin`
       )
 
       const users = res?.data?.data || []

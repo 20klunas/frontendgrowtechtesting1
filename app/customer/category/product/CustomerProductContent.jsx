@@ -146,6 +146,8 @@ export default function CustomerProductContent({
   initialPagination = null,
   initialSubcategory = null,
   initialMaintenanceMessage = "",
+  initialSort = "latest",
+  initialPage = 1,
 }) {
   const router = useRouter()
   const subcategoryId = initialSubcategoryId
@@ -160,12 +162,12 @@ export default function CustomerProductContent({
 
   const [addingId, setAddingId] = useState(null)
   const [checkoutLoadingId, setCheckoutLoadingId] = useState(null)
-  const [sort, setSort] = useState("latest")
+  const [sort, setSort] = useState(initialSort || "latest")
 
   const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null)
 
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(Math.max(1, Number(initialPage || 1)))
   const [pagination, setPagination] = useState(
     initialPagination || getDefaultPagination()
   )
@@ -211,8 +213,8 @@ export default function CustomerProductContent({
     setPagination(initialPagination || getDefaultPagination())
     setSubcategoryInfo(initialSubcategory || null)
     setCatalogMaintenance(initialMaintenanceMessage || "")
-    setSort("latest")
-    setCurrentPage(1)
+    setSort(initialSort || "latest")
+    setCurrentPage(Math.max(1, Number(initialPage || 1)))
     setLoading(!Array.isArray(initialProducts))
     skipFirstClientFetchRef.current = Array.isArray(initialProducts)
   }, [
@@ -221,6 +223,8 @@ export default function CustomerProductContent({
     initialPagination,
     initialSubcategory,
     initialMaintenanceMessage,
+    initialSort,
+    initialPage,
   ])
 
   const loadProducts = useCallback(
@@ -243,7 +247,7 @@ export default function CustomerProductContent({
           params.set("subcategory_id", String(subcategoryId))
         }
 
-        const json = await fetcher(`/api/v1/products?${params.toString()}`, {}, { force })
+        const json = await fetcher(`/api/v1/products?${params.toString()}`, {}, { force: true })
 
         if (requestId !== requestIdRef.current) return
 
@@ -282,6 +286,16 @@ export default function CustomerProductContent({
     loadProducts()
   }, [loadProducts, currentPage, sort, subcategoryId])
 
+
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (subcategoryId) params.set("subcategory_id", String(subcategoryId))
+    if (sort && sort !== "latest") params.set("sort", sort)
+    if (currentPage > 1) params.set("page", String(currentPage))
+    const next = `/customer/category/product${params.toString() ? `?${params.toString()}` : ""}`
+    router.replace(next, { scroll: false })
+  }, [router, subcategoryId, sort, currentPage])
+
   useEffect(() => {
     if (!subcategoryId) {
       setSubcategoryInfo(null)
@@ -302,7 +316,7 @@ export default function CustomerProductContent({
     const fetchSubcategoryInfo = async () => {
       try {
         setSubcategoryLoading(true)
-        const json = await fetcher(`/api/v1/subcategories/${subcategoryId}`)
+        const json = await fetcher(`/api/v1/subcategories/${subcategoryId}`, {}, { force: true })
         if (!active) return
         setSubcategoryInfo(json?.data || null)
       } catch (err) {
@@ -529,6 +543,26 @@ export default function CustomerProductContent({
     setAddingId(productId)
 
     try {
+      notifyCustomerCartChanged({
+        type: "add",
+        item: {
+          id: productId,
+          product_id: productId,
+          qty: 1,
+          product: {
+            id: productId,
+            name: product?.name || "Produk",
+            image_url: getProductImage(product, headerImage),
+          },
+          unit_price:
+            product?.tier_pricing?.[userTier] ||
+            product?.tier_pricing?.member ||
+            product?.price ||
+            0,
+        },
+        skipServerSync: false,
+      })
+
       await fetcher(
         "/api/v1/cart/items",
         {
@@ -539,7 +573,7 @@ export default function CustomerProductContent({
       )
 
       clearCheckoutBootstrapCache()
-      notifyCustomerCartChanged()
+      notifyCustomerCartChanged({ type: "refresh" })
     } catch (err) {
       console.error("addToCart:", err)
       alert(err.message || "Gagal menambahkan ke keranjang")
