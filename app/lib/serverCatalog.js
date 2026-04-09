@@ -1,5 +1,6 @@
 import { serverPublicFetch } from "./serverFetch"
-
+import { serverAuthFetch } from "./serverFetch"
+import { cookies } from "next/headers"
 const CATEGORY_REVALIDATE = 0
 const PRODUCT_REVALIDATE = 0
 const FEATURE_ACCESS_REVALIDATE = 300
@@ -55,10 +56,10 @@ export async function getCategoryPageServerData() {
 
   const [access, categories, subcategories] = await Promise.allSettled([
     fetchFeatureAccessSnapshot(),
-    serverPublicFetch("/api/v1/catalog/categories", {
+    serverAuthFetch("/api/v1/catalog/categories", {
       next: { revalidate: CATEGORY_REVALIDATE },
     }),
-    serverPublicFetch("/api/v1/catalog/subcategories", {
+    serverAuthFetch("/api/v1/catalog/subcategories", {
       next: { revalidate: CATEGORY_REVALIDATE },
     }),
   ])
