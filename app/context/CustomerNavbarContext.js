@@ -239,6 +239,13 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
         }
       }
 
+      if (actionType === "server-snapshot") {
+        if (Array.isArray(detail?.items)) {
+          applyCartData(detail.items)
+          return
+        }
+      }
+
       if (actionType === "update") {
         const itemId = Number(detail?.item_id || 0)
         const qty = Math.max(1, Number(detail?.qty) || 1)
@@ -274,7 +281,7 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
         applyCartData([])
       }
 
-      if (!detail?.skipServerSync) {
+      if (!detail?.skipServerSync && actionType !== "server-snapshot") {
         refreshCart()
       }
     }

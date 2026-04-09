@@ -8,13 +8,27 @@ import { authFetch } from "../../../../../lib/authFetch";
 import { clearCheckoutBootstrapCache, writeCheckoutBootstrapCache } from "../../../../../lib/clientBootstrap";
 import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess";
 import { normalizeCartPayload } from "./cartApi";
-import { notifyCustomerCartChanged } from "../../../../../lib/customerCartEvents";
+import { CUSTOMER_CART_REFRESH_EVENT, notifyCustomerCartChanged } from "../../../../../lib/customerCartEvents";
 function formatRupiah(value) {
   return `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
 }
 
 function formatImageSrc(src) {
   return src || "/placeholder.png";
+}
+
+
+function buildFallbackSummary(items = []) {
+  const subtotal = (Array.isArray(items) ? items : []).reduce(
+    (sum, item) => sum + (Number(item?.line_subtotal) || ((Number(item?.unit_price) || 0) * (Number(item?.qty) || 0))),
+    0
+  );
+
+  return {
+    subtotal,
+    discount_total: 0,
+    total: subtotal,
+  };
 }
 
 function buildConfettiPieces(count = 24) {
@@ -181,6 +195,16 @@ export default function CartClient({ initialItems, initialSummary }) {
     [showConfetti]
   );
 
+  const applyNormalizedCart = useCallback((payload) => {
+    const normalized = normalizeCartPayload({ data: payload || {} });
+    setItems(normalized.items);
+    setSummary(normalized.summary);
+    setPreviewSummary((current) => {
+      const hasVoucher = voucher.trim().length > 0;
+      return hasVoucher ? current : normalized.summary;
+    });
+  }, [voucher]);
+
   const markUnauthorizedIfNeeded = useCallback((error) => {
     if (String(error?.message || "").includes("Unauthorized")) {
       setUnauthorized(true);
@@ -211,6 +235,7 @@ export default function CartClient({ initialItems, initialSummary }) {
 
       setItems(normalized.items);
       setSummary(normalized.summary);
+      setPreviewSummary((current) => (voucher.trim() ? current : normalized.summary));
     } catch (error) {
       console.error("Fetch cart error:", error?.message || error);
 
@@ -269,6 +294,104 @@ export default function CartClient({ initialItems, initialSummary }) {
     },
     [summary, triggerConfetti, markUnauthorizedIfNeeded]
   );
+
+  useEffect(() => {
+    refreshCart();
+  }, [refreshCart]);
+
+  useEffect(() => {
+    const handleCartRefresh = (event) => {
+      const detail = event?.detail || {};
+      const actionType = String(detail?.type || "refresh").toLowerCase();
+
+      if (actionType === "server-snapshot" && Array.isArray(detail?.items)) {
+        applyNormalizedCart({
+          items: detail.items,
+          summary: detail.summary || buildFallbackSummary(detail.items),
+        });
+        return;
+      }
+
+      if (actionType === "add" && detail?.item) {
+        const incomingQty = Math.max(1, Number(detail.item.qty) || 1);
+        const incomingProductId = Number(detail.item.product_id || detail.item.id || 0);
+
+        if (incomingProductId > 0) {
+          const nextItems = [...items];
+          const existingIndex = nextItems.findIndex((row) => Number(row?.product_id || row?.product?.id || row?.id || 0) === incomingProductId);
+
+          if (existingIndex >= 0) {
+            const currentRow = nextItems[existingIndex];
+            const unitPrice = Number(currentRow?.unit_price || detail.item?.unit_price || 0);
+            const qty = Math.max(1, Number(currentRow?.qty || 1)) + incomingQty;
+            nextItems[existingIndex] = {
+              ...currentRow,
+              ...detail.item,
+              qty,
+              unit_price: unitPrice,
+              line_subtotal: unitPrice * qty,
+            };
+          } else {
+            const unitPrice = Number(detail.item?.unit_price || 0);
+            nextItems.unshift({
+              ...detail.item,
+              id: detail.item?.id || `temp-${incomingProductId}`,
+              product_id: incomingProductId,
+              qty: incomingQty,
+              unit_price: unitPrice,
+              line_subtotal: unitPrice * incomingQty,
+              stock_available: Number(detail.item?.stock_available || 99),
+            });
+          }
+
+          applyNormalizedCart({ items: nextItems, summary: buildFallbackSummary(nextItems) });
+        }
+      }
+
+      if (actionType === "update") {
+        const itemId = Number(detail?.item_id || 0);
+        const qty = Math.max(1, Number(detail?.qty) || 1);
+
+        if (itemId > 0) {
+          const nextItems = items.map((row) => (
+            Number(row?.id || 0) === itemId
+              ? {
+                  ...row,
+                  qty,
+                  line_subtotal: Number(row?.unit_price || 0) * qty,
+                }
+              : row
+          ));
+
+          applyNormalizedCart({ items: nextItems, summary: buildFallbackSummary(nextItems) });
+        }
+      }
+
+      if (actionType === "remove") {
+        const itemId = Number(detail?.item_id || 0);
+        if (itemId > 0) {
+          const nextItems = items.filter((row) => Number(row?.id || 0) !== itemId);
+          applyNormalizedCart({ items: nextItems, summary: buildFallbackSummary(nextItems) });
+        }
+      }
+
+      if (actionType === "reset") {
+        applyNormalizedCart({ items: [], summary: buildFallbackSummary([]) });
+      }
+
+      if (!detail?.skipServerSync) {
+        refreshCart();
+      }
+    };
+
+    window.addEventListener(CUSTOMER_CART_REFRESH_EVENT, handleCartRefresh);
+    window.addEventListener("cart-updated", handleCartRefresh);
+
+    return () => {
+      window.removeEventListener(CUSTOMER_CART_REFRESH_EVENT, handleCartRefresh);
+      window.removeEventListener("cart-updated", handleCartRefresh);
+    };
+  }, [items, refreshCart, applyNormalizedCart]);
 
   useEffect(() => {
     if (debounceRef.current) {
@@ -368,27 +491,47 @@ export default function CartClient({ initialItems, initialSummary }) {
   const updateQty = async (itemId, newQty) => {
     if (newQty < 1) return;
 
+    const previousItems = items;
+    const nextItems = items.map((row) => (
+      Number(row?.id || 0) === Number(itemId)
+        ? {
+            ...row,
+            qty: newQty,
+            line_subtotal: Number(row?.unit_price || 0) * newQty,
+          }
+        : row
+    ));
+
     setSyncing(true);
 
     try {
       setBusyItemId(itemId);
+      applyNormalizedCart({ items: nextItems, summary: buildFallbackSummary(nextItems) });
+      notifyCustomerCartChanged({
+        type: "update",
+        item_id: itemId,
+        qty: newQty,
+        skipServerSync: true,
+      });
 
       const json = await authFetch(`/api/v1/cart/items/${itemId}`, {
         method: "PATCH",
         body: JSON.stringify({ qty: newQty }),
       });
 
-      if (json?.success) {
-        await refreshCart();
+      if (json?.success && Array.isArray(json?.data?.items)) {
+        applyNormalizedCart({ items: json.data.items, summary: json.data.summary || buildFallbackSummary(json.data.items) });
         notifyCustomerCartChanged({
-          type: "update",
-          item_id: itemId,
-          qty: newQty,
+          type: "server-snapshot",
+          items: json.data.items,
+          summary: json.data.summary,
           skipServerSync: true,
         });
       }
     } catch (error) {
       console.error("Update qty error:", error?.message || error);
+      applyNormalizedCart({ items: previousItems, summary: buildFallbackSummary(previousItems) });
+      notifyCustomerCartChanged({ type: "refresh" });
 
       if (!markUnauthorizedIfNeeded(error)) {
         alert(error?.message || "Gagal update qty");
@@ -400,24 +543,36 @@ export default function CartClient({ initialItems, initialSummary }) {
   };
 
   const removeItem = async (itemId) => {
+    const previousItems = items;
+    const nextItems = items.filter((row) => Number(row?.id || 0) !== Number(itemId));
+
     setSyncing(true);
     try {
       setBusyItemId(itemId);
+      applyNormalizedCart({ items: nextItems, summary: buildFallbackSummary(nextItems) });
+      notifyCustomerCartChanged({
+        type: "remove",
+        item_id: itemId,
+        skipServerSync: true,
+      });
 
       const json = await authFetch(`/api/v1/cart/items/${itemId}`, {
         method: "DELETE",
       });
 
-      if (json?.success) {
-        await refreshCart();
+      if (json?.success && Array.isArray(json?.data?.items)) {
+        applyNormalizedCart({ items: json.data.items, summary: json.data.summary || buildFallbackSummary(json.data.items) });
         notifyCustomerCartChanged({
-          type: "remove",
-          item_id: itemId,
+          type: "server-snapshot",
+          items: json.data.items,
+          summary: json.data.summary,
           skipServerSync: true,
         });
       }
     } catch (error) {
       console.error("Remove item error:", error?.message || error);
+      applyNormalizedCart({ items: previousItems, summary: buildFallbackSummary(previousItems) });
+      notifyCustomerCartChanged({ type: "refresh" });
 
       if (!markUnauthorizedIfNeeded(error)) {
         alert(error?.message || "Gagal hapus item");

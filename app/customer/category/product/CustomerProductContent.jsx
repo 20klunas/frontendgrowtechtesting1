@@ -560,10 +560,10 @@ export default function CustomerProductContent({
             product?.price ||
             0,
         },
-        skipServerSync: false,
+        skipServerSync: true,
       })
 
-      await fetcher(
+      const response = await fetcher(
         "/api/v1/cart/items",
         {
           method: "POST",
@@ -573,7 +573,16 @@ export default function CustomerProductContent({
       )
 
       clearCheckoutBootstrapCache()
-      notifyCustomerCartChanged({ type: "refresh" })
+
+      if (Array.isArray(response?.data?.items)) {
+        notifyCustomerCartChanged({
+          type: "server-snapshot",
+          items: response.data.items,
+          skipServerSync: true,
+        })
+      } else {
+        notifyCustomerCartChanged({ type: "refresh" })
+      }
     } catch (err) {
       console.error("addToCart:", err)
       alert(err.message || "Gagal menambahkan ke keranjang")

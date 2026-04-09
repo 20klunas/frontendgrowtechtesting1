@@ -3,13 +3,14 @@ import { cookies } from "next/headers";
 import CartClient from "./CartClient";
 import { fetchCartPageData } from "./cartApi";
 
-export const dynamic = "auto";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function CartPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value ?? null;
 
-  const cartResult = await fetchCartPageData(token, { next: { revalidate: 30 } }); // cache 5 menit
+  const cartResult = await fetchCartPageData(token, { cache: "no-store" });
 
   if (!token || cartResult.unauthorized) {
     return (

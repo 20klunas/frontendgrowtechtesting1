@@ -45,6 +45,7 @@ export async function fetchCartPageData(token, init = {}) {
   try {
     const response = await fetch(`${API}/api/v1/cart`, {
       ...init,
+      cache: init.cache || "no-store",
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
