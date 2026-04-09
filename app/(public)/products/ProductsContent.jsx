@@ -9,33 +9,43 @@ function resolveMemberPricing(product) {
   const profitPricing = product?.tier_profit
   const finalPricing = product?.tier_final_pricing
 
-  let base = 0
-  if (pricing && typeof pricing === "object" && !Array.isArray(pricing)) {
-    base = Number(pricing.member || pricing.reseller || pricing.vip || product?.price || 0)
-  } else if (Array.isArray(pricing) && pricing.length > 0) {
-    const first = pricing[0] || {}
-    base = Number(first.member || first.reseller || first.vip || product?.price || 0)
-  } else {
-    base = Number(product?.price || 0)
-  }
+  const base = Number(
+    pricing?.member ??
+    pricing?.reseller ??
+    pricing?.vip ??
+    product?.display_price_breakdown?.base_price ??
+    product?.price ??
+    0
+  ) || 0
 
-  let profit = 0
-  if (profitPricing && typeof profitPricing === "object" && !Array.isArray(profitPricing)) {
-    profit = Number(profitPricing.member || 0)
-  } else if (Array.isArray(profitPricing) && profitPricing.length > 0) {
-    profit = Number((profitPricing[0] || {}).member || 0)
-  } else {
-    profit = Number(product?.display_price_breakdown?.profit || 0)
-  }
+  const profit = Number(
+    profitPricing?.member ??
+    product?.display_price_breakdown?.profit ??
+    0
+  ) || 0
 
-  const final = Number(finalPricing?.member || product?.display_price || base + profit || 0)
+  const final = Number(
+    finalPricing?.member ??
+    product?.display_price ??
+    (base + profit)
+  ) || 0
+
   return { base, profit, final }
 }
 
-export default function ProductsContent({
-  initialProducts = [],
-  initialSubcategoryId = null,
-}) {
+function resolveProductHref(product, subcategoryId) {
+  if (product?.id) {
+    return `/customer/category/product/detail?id=${encodeURIComponent(String(product.id))}`
+  }
+
+  if (subcategoryId) {
+    return `/products?subcategory_id=${encodeURIComponent(String(subcategoryId))}`
+  }
+
+  return "/customer/category"
+}
+
+export default function ProductsContent({ initialProducts = [], initialSubcategoryId = null }) {
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [sort, setSort] = useState("terbaru")
@@ -59,7 +69,7 @@ export default function ProductsContent({
     }
 
     if (sort === "terlaris") {
-      data.sort((a, b) => Number(b?.sold || 0) - Number(a?.sold || 0))
+      data.sort((a, b) => Number(b?.purchases_count ?? b?.sold ?? 0) - Number(a?.purchases_count ?? a?.sold ?? 0))
     }
 
     if (sort === "favorite") {
@@ -77,8 +87,8 @@ export default function ProductsContent({
     return data
   }, [initialProducts, search, sort])
 
-  const handleBuy = () => {
-    router.push("/login")
+  const handleOpenProduct = (product) => {
+    router.push(resolveProductHref(product, initialSubcategoryId))
   }
 
   return (
@@ -91,29 +101,18 @@ export default function ProductsContent({
         {initialSubcategoryId ? "Produk" : "Semua Produk"}
       </motion.h1>
 
-      <div
-        className="
-          mb-6 flex flex-col justify-between gap-3 rounded-xl border border-white/10
-          bg-white/5 p-4 backdrop-blur-xl md:flex-row
-        "
-      >
+      <div className="mb-6 flex flex-col justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl md:flex-row">
         <input
           placeholder="Cari produk..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="
-            w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2
-            text-sm outline-none focus:border-purple-500 md:w-64
-          "
+          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-purple-500 md:w-64"
         />
 
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="
-            w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2
-            text-sm outline-none md:w-40
-          "
+          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none md:w-40"
         >
           <option value="terbaru">Terbaru</option>
           <option value="termurah">Termurah</option>
@@ -124,12 +123,7 @@ export default function ProductsContent({
         </select>
       </div>
 
-      <div
-        className="
-          grid grid-cols-2 gap-5
-          sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5
-        "
-      >
+      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {filteredProducts.length === 0 ? (
           <EmptyState />
         ) : (
@@ -138,40 +132,27 @@ export default function ProductsContent({
 
             return (
               <motion.div
-                key={product.id}
+                key={product.id || `${product?.name || "product"}-${i}`}
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                whileHover={{
-                  scale: 1.05,
-                  rotateX: 4,
-                  rotateY: -4,
-                }}
-                className="
-                  group relative rounded-2xl border border-zinc-800 bg-gradient-to-b
-                  from-zinc-900 to-black p-5 shadow-lg transition duration-300
-                  hover:shadow-purple-500/30
-                "
+                whileHover={{ scale: 1.05, rotateX: 4, rotateY: -4 }}
+                className="group relative rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-black p-5 shadow-lg transition duration-300 hover:shadow-purple-500/30"
               >
-                <div
-                  className="
-                    absolute inset-0 opacity-0 blur-2xl transition group-hover:opacity-100
-                    bg-purple-500/10
-                  "
-                />
+                <div className="absolute inset-0 opacity-0 blur-2xl transition group-hover:opacity-100 bg-purple-500/10" />
 
                 <div className="relative flex h-full flex-col">
-                  <h3 className="mb-1 text-lg font-semibold">{product.name}</h3>
+                  <h3 className="mb-1 text-lg font-semibold">{product?.name}</h3>
 
                   <p className="line-clamp-2 text-sm text-zinc-400">
-                    {product.description}
+                    {product?.description}
                   </p>
 
-                  {product.duration_days && (
+                  {product?.duration_days ? (
                     <p className="mt-1 text-xs text-zinc-500">
                       Durasi: {product.duration_days} hari
                     </p>
-                  )}
+                  ) : null}
 
                   <div className="mt-4">
                     <p className="text-xs text-zinc-400">Harga mulai</p>
@@ -179,19 +160,17 @@ export default function ProductsContent({
                       Rp {memberPricing.final.toLocaleString("id-ID")}
                     </p>
                     {memberPricing.profit > 0 ? (
-                      <p className="text-xs text-green-400">+ profit {memberPricing.profit.toLocaleString("id-ID")}</p>
+                      <p className="text-xs text-green-400">
+                        + profit {memberPricing.profit.toLocaleString("id-ID")}
+                      </p>
                     ) : null}
                   </div>
 
                   <button
-                    onClick={() => handleBuy(product)}
-                    className="
-                      mt-auto w-full rounded-lg bg-gradient-to-r from-purple-600 to-purple-500
-                      py-2.5 text-sm font-semibold text-white shadow-md transition
-                      hover:from-purple-500 hover:to-purple-400 hover:shadow-purple-500/40
-                    "
+                    onClick={() => handleOpenProduct(product)}
+                    className="mt-auto w-full rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 py-2.5 text-sm font-semibold text-white shadow-md transition hover:from-purple-500 hover:to-purple-400 hover:shadow-purple-500/40"
                   >
-                    Beli Sekarang
+                    Lihat Detail
                   </button>
                 </div>
               </motion.div>
@@ -206,11 +185,7 @@ export default function ProductsContent({
 function EmptyState() {
   return (
     <div className="col-span-full py-20 text-center">
-      <div
-        className="
-          mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-white/5
-        "
-      >
+      <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-white/5">
         📦
       </div>
 

@@ -16,12 +16,35 @@ function resolvePricing(product) {
   return { base, profit, final };
 }
 
+function renderStars(rating) {
+  const safeRating = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+  return `${"★".repeat(safeRating)}${"☆".repeat(5 - safeRating)}`;
+}
+
+function resolveProductHref(product) {
+  const productId = product?.id;
+  if (productId) {
+    return `/customer/category/product/detail?id=${encodeURIComponent(String(productId))}`;
+  }
+
+  const subcategoryId = product?.subcategory_id ?? product?.subcategory?.id ?? null;
+  if (subcategoryId) {
+    return `/customer/category/product?subcategory_id=${encodeURIComponent(String(subcategoryId))}`;
+  }
+
+  return "/customer/category";
+}
+
 export default function ProductCardCustomer({ product }) {
   if (!product) {
     return <SkeletonVariant />;
   }
 
   const pricing = resolvePricing(product);
+  const href = resolveProductHref(product);
+  const ratingStars = renderStars(product?.rating);
+  const ratingCount = Number(product?.rating_count ?? 0);
+  const stock = Number(product?.available_stock ?? product?.stock ?? 0);
 
   return (
     <motion.div
@@ -31,65 +54,62 @@ export default function ProductCardCustomer({ product }) {
       whileHover={{ scale: 1.03 }}
       className="group rounded-2xl border border-purple-700 bg-black overflow-hidden relative"
     >
-      {/* Glow Hover */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 bg-purple-500/10 blur-2xl" />
 
-      {/* IMAGE */}
-      <div className="h-[160px] bg-white relative">
-        <Image
-          src={
-            product?.subcategory?.image_url ||
-            "/placeholder.png"
-          }
-          alt={product.name}
-          fill
-          className="object-cover"
-        />
-      </div>
+      <Link href={href} className="block">
+        <div className="h-[160px] bg-white relative">
+          <Image
+            src={product?.subcategory?.image_url || "/placeholder.png"}
+            alt={product?.name || "Produk"}
+            fill
+            className="object-cover"
+          />
+        </div>
+      </Link>
 
-      {/* INFO */}
       <div className="p-4 relative">
-        <h3 className="font-semibold mb-1 line-clamp-1">
-          {product.name}
-        </h3>
+        <Link href={href} className="block">
+          <h3 className="font-semibold mb-1 line-clamp-1 text-white">
+            {product?.name || "Produk"}
+          </h3>
+        </Link>
 
         <p className="text-xs text-gray-400 mb-1">
-          Stok Tersedia {product.stock ?? 0}
+          Stok Tersedia {Number.isFinite(stock) ? stock : 0}
         </p>
 
-        {/* RATING */}
-        <div className="flex items-center text-yellow-400 text-sm mb-2">
-          ★★★★★
-          <span className="ml-1">(247)</span>
+        <div className="flex items-center gap-2 text-yellow-400 text-sm mb-2">
+          <span>{ratingStars}</span>
+          <span className="text-xs text-gray-300">({ratingCount})</span>
         </div>
 
-        {/* PRICE + BADGE */}
         <div className="flex items-center justify-between mb-3">
           <span className="font-bold text-white">
-            Rp {pricing.final.toLocaleString("id-ID") || "-"}
+            Rp {pricing.final.toLocaleString("id-ID")}
             {pricing.profit > 0 ? (
-              <span className="ml-2 text-xs font-medium text-green-300">(+ {pricing.profit.toLocaleString("id-ID")})</span>
+              <span className="ml-2 text-xs font-medium text-green-300">
+                (+ {pricing.profit.toLocaleString("id-ID")})
+              </span>
             ) : null}
           </span>
 
           <span className="text-xs px-2 py-1 rounded bg-purple-800 text-purple-200">
-            {product.type || "Otomatis"}
+            {product?.type || "Otomatis"}
           </span>
         </div>
 
-        {/* ACTION */}
         <div className="flex gap-2">
           <Link
-            href="/login"
-            className="flex-1 text-center rounded-lg bg-purple-600 py-2 text-sm font-semibold hover:bg-purple-700 transition"
+            href={href}
+            className="flex-1 text-center rounded-lg bg-purple-600 py-2 text-sm font-semibold hover:bg-purple-700 transition text-white"
           >
-            Beli Sekarang
+            Lihat Detail
           </Link>
 
           <Link
-            href="/customer/category/product/detail/cart"
+            href={href}
             className="w-10 h-10 flex items-center justify-center rounded-lg border border-purple-600 hover:bg-purple-600/20 transition"
-            title="Masukkan ke Keranjang"
+            title="Buka detail produk"
           >
             🛒
           </Link>

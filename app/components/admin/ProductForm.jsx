@@ -24,29 +24,13 @@ const defaultForm = {
 }
 
 const tierFields = [
-  {
-    key: "member",
-    label: "Member",
-    priceName: "member_price",
-    profitName: "member_profit",
-  },
-  {
-    key: "reseller",
-    label: "Reseller",
-    priceName: "reseller_price",
-    profitName: "reseller_profit",
-  },
-  {
-    key: "vip",
-    label: "VIP",
-    priceName: "vip_price",
-    profitName: "vip_profit",
-  },
+  { key: "member", label: "Member", priceName: "member_price", profitName: "member_profit" },
+  { key: "reseller", label: "Reseller", priceName: "reseller_price", profitName: "reseller_profit" },
+  { key: "vip", label: "VIP", priceName: "vip_price", profitName: "vip_profit" },
 ]
 
 export default function ProductForm({ mode, id }) {
   const router = useRouter()
-
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -72,6 +56,7 @@ export default function ProductForm({ mode, id }) {
     if (!res.ok || !json?.success) {
       throw new Error(json?.error?.message || "Gagal mengambil kategori")
     }
+
     const rows = Array.isArray(json?.data) ? json.data : []
     setCategories(rows)
     return rows
@@ -89,6 +74,7 @@ export default function ProductForm({ mode, id }) {
       if (!res.ok || !json?.success) {
         throw new Error(json?.error?.message || "Gagal mengambil subkategori")
       }
+
       const rows = Array.isArray(json?.data) ? json.data : []
       setSubcategories(rows)
       return rows
@@ -130,7 +116,7 @@ export default function ProductForm({ mode, id }) {
 
           setForm({
             category_id: categoryId,
-            subcategory_id: String(product.subcategory_id || ""),
+            subcategory_id: product.subcategory_id ? String(product.subcategory_id) : "",
             name: product.name || "",
             type: product.type || "ACCOUNT_CREDENTIAL",
             duration_days: product.duration_days ?? 7,
@@ -160,7 +146,6 @@ export default function ProductForm({ mode, id }) {
     }
 
     init()
-
     return () => {
       mounted = false
     }
@@ -202,6 +187,13 @@ export default function ProductForm({ mode, id }) {
     return Number.isFinite(parsed) ? parsed : 0
   }
 
+  const toNullableId = (value) => {
+    const raw = String(value ?? "").trim()
+    if (!raw) return null
+    const parsed = Number(raw)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -210,8 +202,8 @@ export default function ProductForm({ mode, id }) {
 
       const payload = {
         category_id: Number(form.category_id),
-        subcategory_id: Number(form.subcategory_id),
-        name: form.name,
+        subcategory_id: toNullableId(form.subcategory_id),
+        name: form.name.trim(),
         type: form.type,
         duration_days: Number(form.duration_days || 0) || null,
         description: form.description,
@@ -229,10 +221,9 @@ export default function ProductForm({ mode, id }) {
         is_published: Boolean(form.is_published),
       }
 
-      const url =
-        mode === "edit"
-          ? `${API}/api/v1/admin/products/${id}`
-          : `${API}/api/v1/admin/products`
+      const url = mode === "edit"
+        ? `${API}/api/v1/admin/products/${id}`
+        : `${API}/api/v1/admin/products`
 
       const method = mode === "edit" ? "PATCH" : "POST"
 
@@ -268,143 +259,185 @@ export default function ProductForm({ mode, id }) {
         {mode === "edit" ? "Edit Produk" : "Tambah Produk"}
       </h1>
       <p className="mb-6 text-sm text-white/70">
-        Harga tier adalah harga jual yang sudah dipakai di checkout. Profit tier disimpan terpisah untuk kebutuhan margin dan laporan admin.
+        Harga tier adalah harga jual. Profit tier disimpan terpisah agar kalkulasi katalog, checkout, dan admin tetap konsisten.
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <select
-          name="category_id"
-          value={form.category_id}
-          onChange={handleChange}
-          className="input"
-          required
-        >
-          <option value="">Pilih Kategori</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Kategori">
+            <select
+              name="category_id"
+              value={form.category_id}
+              onChange={handleChange}
+              className="w-full rounded-xl border border-purple-500/40 bg-zinc-950 px-4 py-3 text-white outline-none"
+              required
+            >
+              <option value="">Pilih kategori</option>
+              {categories.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <select
-          name="subcategory_id"
-          value={form.subcategory_id}
-          onChange={handleChange}
-          className="input"
-          required
-          disabled={!form.category_id || subLoading}
-        >
-          <option value="">
-            {!form.category_id
-              ? "Pilih kategori terlebih dahulu"
-              : subLoading
-              ? "Memuat subkategori..."
-              : "Pilih Subkategori"}
-          </option>
-          {filteredSubcategories.map((subcategory) => (
-            <option key={subcategory.id} value={subcategory.id}>
-              {subcategory.name}
-            </option>
-          ))}
-        </select>
-
-        <input
-          name="name"
-          placeholder="Nama Produk"
-          value={form.name}
-          onChange={handleChange}
-          className="input"
-          required
-        />
-
-        <textarea
-          name="description"
-          placeholder="Deskripsi"
-          value={form.description}
-          onChange={handleChange}
-          className="input min-h-28"
-        />
-
-        <input
-          type="number"
-          name="duration_days"
-          placeholder="Durasi (hari)"
-          value={form.duration_days}
-          onChange={handleChange}
-          className="input"
-          min="1"
-        />
-
-        <div className="space-y-3 rounded-2xl border border-purple-700/30 bg-black/30 p-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Harga & Profit per Tier</h2>
-            <p className="mt-1 text-xs text-white/60">
-              Isi 3 tier sesuai kode yang aktif: member, reseller, dan vip.
+          <Field label="Subkategori">
+            <select
+              name="subcategory_id"
+              value={form.subcategory_id}
+              onChange={handleChange}
+              className="w-full rounded-xl border border-purple-500/40 bg-zinc-950 px-4 py-3 text-white outline-none"
+              disabled={!form.category_id || subLoading}
+            >
+              <option value="">Tanpa subkategori</option>
+              {filteredSubcategories.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-white/50">
+              Subkategori opsional. Kosongkan jika produk memang langsung berada di kategori utama.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {tierFields.map((tier) => (
-              <div key={tier.key} className="rounded-2xl border border-purple-700/30 bg-black/40 p-4">
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/80">
-                  {tier.label}
-                </h3>
-
-                <div className="mb-3 space-y-1">
-                  <label className="text-xs text-white/60">Harga Jual</label>
-                  <input
-                    type="number"
-                    min="0"
-                    name={tier.priceName}
-                    placeholder={`Harga ${tier.label}`}
-                    value={form[tier.priceName]}
-                    onChange={handleChange}
-                    className="input"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs text-white/60">Profit</label>
-                  <input
-                    type="number"
-                    min="0"
-                    name={tier.profitName}
-                    placeholder={`Profit ${tier.label}`}
-                    value={form[tier.profitName]}
-                    onChange={handleChange}
-                    className="input"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          </Field>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-white/80">
-          <input
-            type="checkbox"
-            name="is_active"
-            checked={form.is_active}
-            onChange={handleChange}
-          />
-          Produk aktif
-        </label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Nama produk">
+            <input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              className="w-full rounded-xl border border-purple-500/40 bg-zinc-950 px-4 py-3 text-white outline-none"
+              placeholder="Masukkan nama produk"
+              required
+            />
+          </Field>
 
-        <label className="flex items-center gap-2 text-sm text-white/80">
-          <input
-            type="checkbox"
-            name="is_published"
-            checked={form.is_published}
-            onChange={handleChange}
-          />
-          Produk dipublish
-        </label>
+          <Field label="Tipe produk">
+            <input
+              name="type"
+              value={form.type}
+              onChange={handleChange}
+              className="w-full rounded-xl border border-purple-500/40 bg-zinc-950 px-4 py-3 text-white outline-none"
+              placeholder="ACCOUNT_CREDENTIAL"
+              required
+            />
+          </Field>
+        </div>
 
-        <button disabled={submitting} className="btn-add w-full disabled:opacity-60">
-          {submitting ? "Menyimpan..." : "Simpan"}
-        </button>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Durasi (hari)">
+            <input
+              name="duration_days"
+              type="number"
+              min="1"
+              value={form.duration_days}
+              onChange={handleChange}
+              className="w-full rounded-xl border border-purple-500/40 bg-zinc-950 px-4 py-3 text-white outline-none"
+            />
+          </Field>
+
+          <Field label="Status">
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center gap-3 rounded-xl border border-purple-500/30 bg-zinc-950 px-4 py-3 text-sm text-white">
+                <input
+                  type="checkbox"
+                  name="is_active"
+                  checked={form.is_active}
+                  onChange={handleChange}
+                />
+                Aktif
+              </label>
+              <label className="flex items-center gap-3 rounded-xl border border-purple-500/30 bg-zinc-950 px-4 py-3 text-sm text-white">
+                <input
+                  type="checkbox"
+                  name="is_published"
+                  checked={form.is_published}
+                  onChange={handleChange}
+                />
+                Published
+              </label>
+            </div>
+          </Field>
+        </div>
+
+        <Field label="Deskripsi">
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            rows={5}
+            className="w-full rounded-xl border border-purple-500/40 bg-zinc-950 px-4 py-3 text-white outline-none"
+            placeholder="Masukkan deskripsi produk"
+          />
+        </Field>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {tierFields.map((tier) => (
+            <div
+              key={tier.key}
+              className="rounded-2xl border border-purple-500/30 bg-zinc-950 p-4"
+            >
+              <h3 className="mb-4 text-lg font-semibold text-white">{tier.label}</h3>
+
+              <Field label="Harga jual">
+                <input
+                  type="number"
+                  min="0"
+                  name={tier.priceName}
+                  value={form[tier.priceName]}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-purple-500/40 bg-black px-4 py-3 text-white outline-none"
+                  placeholder="0"
+                />
+              </Field>
+
+              <Field label="Profit">
+                <input
+                  type="number"
+                  min="0"
+                  name={tier.profitName}
+                  value={form[tier.profitName]}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-purple-500/40 bg-black px-4 py-3 text-white outline-none"
+                  placeholder="0"
+                />
+              </Field>
+
+              <p className="mt-3 text-xs text-white/50">
+                Final harga katalog = harga jual + profit.
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => router.push("/admin/produk")}
+            className="rounded-xl border border-white/15 px-5 py-3 text-sm font-medium text-white/80"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded-xl bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:opacity-60"
+          >
+            {submitting ? "Menyimpan..." : mode === "edit" ? "Simpan Perubahan" : "Tambah Produk"}
+          </button>
+        </div>
       </form>
     </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-white/80">{label}</span>
+      {children}
+    </label>
   )
 }

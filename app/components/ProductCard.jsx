@@ -13,7 +13,7 @@ export default function ProductCard({ subcategory }) {
 
   const handleViewProducts = () => {
     if (!subcategory?.id) return;
-    router.push(`/products?subcategory=${subcategory.id}`);
+    router.push(`/products?subcategory_id=${subcategory.id}`);
   };
 
   return (
@@ -24,10 +24,8 @@ export default function ProductCard({ subcategory }) {
       whileHover={{ scale: 1.03 }}
       className="group relative rounded-2xl overflow-hidden bg-gradient-to-b from-zinc-900 to-black border border-zinc-800 shadow-lg"
     >
-      {/* Glow Effect */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 bg-purple-500/10 blur-2xl" />
 
-      {/* IMAGE */}
       <div className="relative w-full h-48 overflow-hidden">
         <Image
           src={subcategory?.image_url || "/placeholder.png"}
@@ -36,11 +34,9 @@ export default function ProductCard({ subcategory }) {
           className="object-cover group-hover:scale-110 transition duration-700"
         />
 
-        {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
       </div>
 
-      {/* CONTENT */}
       <div className="relative p-5 space-y-3">
         <h3 className="text-lg font-semibold text-white line-clamp-1">
           {subcategory?.name}

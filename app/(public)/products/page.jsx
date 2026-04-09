@@ -2,11 +2,12 @@ import ProductsContent from "./ProductsContent"
 import { getPublicProductsServerData } from "../../lib/serverCatalog"
 
 export default async function Page({ searchParams }) {
-  const { subcategory } = await searchParams
+  const params = await searchParams
+  const rawSubcategoryId = params?.subcategory_id ?? params?.subcategory ?? null
 
   const subcategoryId =
-    subcategory && String(subcategory).trim() !== ""
-      ? String(subcategory).trim()
+    rawSubcategoryId && String(rawSubcategoryId).trim() !== ""
+      ? String(rawSubcategoryId).trim()
       : null
 
   const initialProducts = await getPublicProductsServerData({ subcategoryId })

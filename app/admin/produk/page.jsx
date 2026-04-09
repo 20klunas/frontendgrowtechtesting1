@@ -482,10 +482,10 @@ export default function ProdukPage() {
                         {/* AKSI */}
                         <td className="py-3 text-center space-x-2">
                           <button
-                            onClick={() => openEditModal(p)}
+                            onClick={() => router.push(`/admin/produk/${p.id}/edit`)}
                             className="btn-edit-sm"
                           >
-                            Edit
+                            Edit Lengkap
                           </button>
 
                           <button
@@ -615,10 +615,10 @@ export default function ProdukPage() {
 
                     <div className="flex justify-between gap-2">
                       <button
-                        onClick={() => openEditModal(p)}
+                        onClick={() => router.push(`/admin/produk/${p.id}/edit`)}
                         className="flex-1 text-xs py-2 rounded-lg bg-purple-600/20 text-purple-300"
                       >
-                        Edit
+                        Edit Lengkap
                       </button>
 
                       <button
