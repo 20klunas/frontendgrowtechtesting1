@@ -585,7 +585,19 @@ export default function CustomerProductContent({
       }
     } catch (err) {
       console.error("addToCart:", err)
-      notifyCustomerCartChanged({ type: "refresh" })
+
+      const serverItems = err?.data?.data?.items
+
+      if (Array.isArray(serverItems)) {
+        notifyCustomerCartChanged({
+          type: "server-snapshot",
+          items: serverItems,
+          skipServerSync: true,
+        })
+      } else {
+        notifyCustomerCartChanged({ type: "refresh" })
+      }
+
       alert(err.message || "Gagal menambahkan ke keranjang")
     } finally {
       actionLockRef.current = false
