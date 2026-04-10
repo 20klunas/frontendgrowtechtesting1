@@ -585,6 +585,7 @@ export default function CustomerProductContent({
       }
     } catch (err) {
       console.error("addToCart:", err)
+      notifyCustomerCartChanged({ type: "refresh" })
       alert(err.message || "Gagal menambahkan ke keranjang")
     } finally {
       actionLockRef.current = false
