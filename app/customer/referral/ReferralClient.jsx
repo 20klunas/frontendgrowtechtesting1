@@ -350,6 +350,23 @@ export default function ReferralPage() {
 
   }
 
+  function formatUsageLimit(value, unlimited) {
+
+    if (unlimited || Number(value || 0) === 0) return 'Unlimited'
+
+    return `${Number(value || 0)}x`
+
+  }
+
+  function formatUsageRemaining(value, unlimited) {
+
+    if (unlimited) return 'Unlimited'
+    if (value === null || value === undefined) return '-'
+
+    return `${Number(value || 0)}x`
+
+  }
+
   useEffect(()=>{
 
     if(!previewAmount) return
@@ -815,6 +832,44 @@ export default function ReferralPage() {
               <div className="bg-green-900/20 border border-green-800 rounded-xl p-3 text-xs text-green-400">
 
                 Diskon referral dapat diterapkan pada pesanan ini.
+
+              </div>
+
+            )}
+
+            {preview.usage && (
+
+              <div className="bg-purple-950/30 border border-purple-700 rounded-xl p-4 text-xs space-y-3">
+
+                <div className="font-semibold text-purple-300">
+                  Informasi Limit Referral
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                  <div className="rounded-lg border border-purple-800/70 p-3 space-y-1">
+                    <div className="text-gray-400">Batas penggunaan per user</div>
+                    <div className="text-white font-semibold">
+                      {formatUsageLimit(preview.usage.max_uses_per_user, preview.usage.is_unlimited_for_user)}
+                    </div>
+                    <div className="text-gray-400">Sudah digunakan: {Number(preview.usage.used_by_user || 0)}x</div>
+                    <div className="text-green-400">
+                      Sisa penggunaan: {formatUsageRemaining(preview.usage.remaining_uses, preview.usage.is_unlimited_for_user)}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-purple-800/70 p-3 space-y-1">
+                    <div className="text-gray-400">Batas total per kode referral</div>
+                    <div className="text-white font-semibold">
+                      {formatUsageLimit(preview.usage.max_uses_per_referrer, preview.usage.is_unlimited_for_referrer)}
+                    </div>
+                    <div className="text-gray-400">Sudah dipakai semua user: {Number(preview.usage.used_on_referrer_code || 0)}x</div>
+                    <div className="text-green-400">
+                      Sisa kuota kode: {formatUsageRemaining(preview.usage.remaining_uses_for_referrer, preview.usage.is_unlimited_for_referrer)}
+                    </div>
+                  </div>
+
+                </div>
 
               </div>
 

@@ -22,9 +22,9 @@ export default function ReferralSettingsPage() {
   const [discountType, setDiscountType] = useState('percent')
   const [discountValue, setDiscountValue] = useState('')
   const [discountMaxAmount, setDiscountMaxAmount] = useState('')
-  const [maxUsesPerUser, setMaxUsesPerUser] = useState('')
-  const [maxUsesPerReferrer, setMaxUsesPerReferrer] = useState('')
   const [minWithdrawal, setMinWithdrawal] = useState('')
+  const [maxUsesPerUser, setMaxUsesPerUser] = useState('0')
+  const [maxUsesPerReferrer, setMaxUsesPerReferrer] = useState('0')
 
   const [toast, setToast] = useState(null)
 
@@ -49,9 +49,13 @@ export default function ReferralSettingsPage() {
     return new Intl.NumberFormat('id-ID').format(number)
   }
 
-
   const unformatRupiah = (value) => {
     return value.replace(/\./g, '')
+  }
+
+  const sanitizeNumberString = (value) => {
+    const cleaned = String(value ?? '').replace(/\D/g, '')
+    return cleaned === '' ? '0' : cleaned
   }
 
   const fetchSettings = async (token) => {
@@ -80,9 +84,9 @@ export default function ReferralSettingsPage() {
         setDiscountType(data.discount_type || 'percent')
         setDiscountValue(String(data.discount_value ?? ''))
         setDiscountMaxAmount(formatRupiah(String(data.discount_max_amount ?? '')))
+        setMinWithdrawal(formatRupiah(String(data.min_withdrawal ?? '')))
         setMaxUsesPerUser(String(data.max_uses_per_user ?? '0'))
         setMaxUsesPerReferrer(String(data.max_uses_per_referrer ?? '0'))
-        setMinWithdrawal(formatRupiah(String(data.min_withdrawal ?? '')))
       }
     } catch (err) {
       console.error(err)
@@ -107,12 +111,12 @@ export default function ReferralSettingsPage() {
         },
         body: JSON.stringify({
           commission_type: commissionType,
-          commission_value: Number(commissionValue || 0),
+          commission_value: Number(commissionValue),
           discount_type: discountType,
-          discount_value: Number(discountValue || 0),
+          discount_value: Number(discountValue),
           discount_max_amount: Number(unformatRupiah(discountMaxAmount || '0')),
-          max_uses_per_user: Number(maxUsesPerUser || 0),
-          max_uses_per_referrer: Number(maxUsesPerReferrer || 0),
+          max_uses_per_user: Number(sanitizeNumberString(maxUsesPerUser)),
+          max_uses_per_referrer: Number(sanitizeNumberString(maxUsesPerReferrer)),
         }),
       })
 
@@ -128,7 +132,7 @@ export default function ReferralSettingsPage() {
         fetchSettings(token)
         showToast('Komisi, diskon, dan limit referral berhasil diperbarui')
       } else {
-        showToast('Gagal menyimpan komisi', 'error')
+        showToast('Gagal menyimpan pengaturan referral', 'error')
       }
     } catch (err) {
       console.error(err)
@@ -193,7 +197,7 @@ export default function ReferralSettingsPage() {
         <ReferralTabs />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-          {[1, 2, 3].map((i) => (
+          {[1, 2].map((i) => (
             <div
               key={i}
               className="rounded-2xl border border-purple-600/60 bg-black p-6 animate-pulse"
@@ -236,19 +240,16 @@ export default function ReferralSettingsPage() {
           <ReferralTabs />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-            {/* Komisi */}
             <motion.div
               className="modal-card rounded-2xl p-6 md:p-8 transition-all"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-
               <h2 className="text-xl font-semibold mb-4 modal-title">
                 Persentase Komisi Referral
               </h2>
 
               <div className="flex flex-wrap gap-4 mb-4 modal-text">
-
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -266,7 +267,6 @@ export default function ReferralSettingsPage() {
                   />
                   Rupiah (Rp)
                 </label>
-
               </div>
 
               <input
@@ -289,7 +289,6 @@ export default function ReferralSettingsPage() {
               </p>
 
               <div className="p-4 rounded-lg border border-purple-700/40 text-sm modal-text mb-5">
-
                 <b>Contoh Perhitungan</b>
 
                 <div className="mt-1">
@@ -301,7 +300,6 @@ export default function ReferralSettingsPage() {
                       : `Rp ${Number(commissionValue || 0).toLocaleString('id-ID')}`}
                   </span>
                 </div>
-
               </div>
 
               <button
@@ -311,7 +309,6 @@ export default function ReferralSettingsPage() {
               >
                 {savingCommission ? 'Menyimpan...' : 'Simpan Perubahan'}
               </button>
-
             </motion.div>
 
             <motion.div
@@ -363,6 +360,40 @@ export default function ReferralSettingsPage() {
                 />
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm modal-text mb-2">
+                    Limit penggunaan per user
+                  </label>
+                  <input
+                    type="text"
+                    value={maxUsesPerUser}
+                    onChange={(e) => setMaxUsesPerUser(sanitizeNumberString(e.target.value))}
+                    className="input-primary w-full"
+                    placeholder="0 = unlimited"
+                  />
+                  <p className="text-xs modal-text mt-2 opacity-80">
+                    0 berarti user bisa memakai referral tanpa batas.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm modal-text mb-2">
+                    Limit total per kode referral
+                  </label>
+                  <input
+                    type="text"
+                    value={maxUsesPerReferrer}
+                    onChange={(e) => setMaxUsesPerReferrer(sanitizeNumberString(e.target.value))}
+                    className="input-primary w-full"
+                    placeholder="0 = unlimited"
+                  />
+                  <p className="text-xs modal-text mt-2 opacity-80">
+                    0 berarti satu kode referral bisa dipakai tanpa batas total.
+                  </p>
+                </div>
+              </div>
+
               <p className="modal-text text-sm mb-4">
                 Contoh pembelian Rp 100.000 akan mendapat diskon{' '}
                 <span className="font-semibold ml-1">
@@ -382,6 +413,18 @@ export default function ReferralSettingsPage() {
                 <div className="mt-1">
                   Nilai ini dipakai untuk diskon user yang menggunakan kode referral.
                 </div>
+                <div className="mt-2">
+                  Limit per user saat ini:
+                  <span className="font-semibold ml-1">
+                    {Number(maxUsesPerUser || 0) > 0 ? `${Number(maxUsesPerUser)}x` : 'Unlimited'}
+                  </span>
+                </div>
+                <div className="mt-1">
+                  Limit total per kode saat ini:
+                  <span className="font-semibold ml-1">
+                    {Number(maxUsesPerReferrer || 0) > 0 ? `${Number(maxUsesPerReferrer)}x` : 'Unlimited'}
+                  </span>
+                </div>
               </div>
 
               <button
@@ -389,7 +432,7 @@ export default function ReferralSettingsPage() {
                 disabled={savingCommission}
                 className="btn-primary w-full"
               >
-                {savingCommission ? 'Menyimpan...' : 'Simpan Komisi & Diskon'}
+                {savingCommission ? 'Menyimpan...' : 'Simpan Komisi, Diskon, & Limit'}
               </button>
             </motion.div>
 
@@ -398,78 +441,12 @@ export default function ReferralSettingsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <h2 className="text-xl font-semibold mb-4 modal-title">
-                Batas Penggunaan Referral
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm modal-text mb-2">
-                    Maksimal penggunaan referral per user
-                  </label>
-                  <input
-                    type="text"
-                    value={maxUsesPerUser}
-                    onChange={(e) => setMaxUsesPerUser(e.target.value.replace(/\D/g, ''))}
-                    className="input-primary w-full"
-                    placeholder="0 = tanpa batas"
-                  />
-                  <p className="modal-text text-xs mt-2">
-                    0 = unlimited. Contoh: isi 3 jika setiap user hanya boleh memakai diskon referral 3 kali.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm modal-text mb-2">
-                    Maksimal total penggunaan per pemilik kode referral
-                  </label>
-                  <input
-                    type="text"
-                    value={maxUsesPerReferrer}
-                    onChange={(e) => setMaxUsesPerReferrer(e.target.value.replace(/\D/g, ''))}
-                    className="input-primary w-full"
-                    placeholder="0 = tanpa batas"
-                  />
-                  <p className="modal-text text-xs mt-2">
-                    0 = unlimited. Jika limit tercapai, kode referral tersebut tidak bisa dipakai lagi oleh siapapun.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-lg border border-purple-700/40 text-sm modal-text my-5">
-                <b>Catatan</b>
-                <div className="mt-1">Batas ini berlaku untuk transaksi product yang sudah valid/paid.</div>
-              </div>
-
-              <button
-                onClick={handleSaveCommission}
-                disabled={savingCommission}
-                className="btn-primary w-full"
-              >
-                {savingCommission ? 'Menyimpan...' : 'Simpan Batas Referral'}
-              </button>
-            </motion.div>
-
-            {/* Minimum WD */}
-            <motion.div
-              className="modal-card rounded-2xl p-6 md:p-8 transition-all"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-
               <h2 className="text-xl font-semibold mb-4 modal-title">
                 Minimum Saldo Withdrawal
               </h2>
 
               <div className="flex w-full mb-4">
-
-                <span className="
-                  flex items-center
-                  px-4
-                  border border-purple-700
-                  rounded-l-lg
-                  modal-text
-                ">
+                <span className="flex items-center px-4 border border-purple-700 rounded-l-lg modal-text">
                   Rp
                 </span>
 
@@ -481,7 +458,6 @@ export default function ReferralSettingsPage() {
                   }
                   className="input-primary flex-1 rounded-l-none"
                 />
-
               </div>
 
               <p className="modal-text text-sm mb-4">
@@ -490,7 +466,6 @@ export default function ReferralSettingsPage() {
               </p>
 
               <div className="p-4 border border-purple-700/40 rounded-lg text-sm modal-text mb-5">
-
                 <b>Informasi</b>
 
                 <div className="mt-1">
@@ -499,7 +474,6 @@ export default function ReferralSettingsPage() {
                     Rp {Number(unformatRupiah(minWithdrawal || '0')).toLocaleString('id-ID')}
                   </span>
                 </div>
-
               </div>
 
               <button
@@ -509,11 +483,10 @@ export default function ReferralSettingsPage() {
               >
                 {savingWithdrawal ? 'Menyimpan...' : 'Simpan Perubahan'}
               </button>
-
             </motion.div>
           </div>
         </div>
       </div>
-    </PermissionGate>  
+    </PermissionGate>
   )
 }
