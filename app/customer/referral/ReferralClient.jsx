@@ -858,7 +858,7 @@ export default function ReferralPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-purple-800/70 p-3 space-y-1">
+                  {/* <div className="rounded-lg border border-purple-800/70 p-3 space-y-1">
                     <div className="text-gray-400">Batas total per kode referral</div>
                     <div className="text-white font-semibold">
                       {formatUsageLimit(preview.usage.max_uses_per_referrer, preview.usage.is_unlimited_for_referrer)}
@@ -867,7 +867,7 @@ export default function ReferralPage() {
                     <div className="text-green-400">
                       Sisa kuota kode: {formatUsageRemaining(preview.usage.remaining_uses_for_referrer, preview.usage.is_unlimited_for_referrer)}
                     </div>
-                  </div>
+                  </div> */}
 
                 </div>
 
@@ -877,7 +877,7 @@ export default function ReferralPage() {
 
             {/* MINIMUM ORDER INDICATOR */}
 
-            {preview.settings?.min_order_amount && (
+            {/* {preview.settings?.min_order_amount && (
 
               <div className="text-xs text-gray-400">
 
@@ -888,7 +888,7 @@ export default function ReferralPage() {
 
               </div>
 
-            )}
+            )} */}
 
           </div>
 
