@@ -21,7 +21,7 @@ export default function BannerSection() {
   const [draggedItem, setDraggedItem] = useState(null)
 
   const SUPABASE_PUBLIC_BASE =
-    'https://jleoptqwzrkqtklhmpdc.supabase.co/storage/v1/object/public/banners'
+    'https://ajyzgqrpqghtvuwykevk.supabase.co/storage/v1/object/public/banners'
 
   const getBannerImageUrl = (image_path) => {
     if (!image_path) return ''

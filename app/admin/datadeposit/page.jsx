@@ -188,7 +188,12 @@ export default function DataDepositPage() {
       const res = await fetch(`${API}/api/v1/admin/wallet/adjust`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...adjustForm, user_id: Number(adjustForm.user_id), amount: Number(adjustForm.amount) })
+        body: JSON.stringify({
+          ...adjustForm,
+          direction: adjustForm.direction.toUpperCase(),
+          user_id: Number(adjustForm.user_id),
+          amount: Number(adjustForm.amount)
+        })
       })
       const result = await res.json()
       if (result.success) {

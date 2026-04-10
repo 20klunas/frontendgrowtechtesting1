@@ -88,9 +88,7 @@ export default function ReferralPage() {
   const minWithdraw = Number(walletBalance?.min_withdrawal || 0)
   const withdrawAmountNumber = Number(withdrawAmount || 0)
   const availableWithdraw = Number(walletBalance?.available || 0)
-  const canWithdraw = Boolean(walletBalance?.can_withdraw)
   const withdrawBlockedByMinimum = minWithdraw > 0 && availableWithdraw < minWithdraw
-  const withdrawRemainingToMinimum = withdrawBlockedByMinimum ? Math.max(0, minWithdraw - availableWithdraw) : 0
   const withdrawInvalidAmount = withdrawAmount !== "" && minWithdraw > 0 && withdrawAmountNumber < minWithdraw
   
 
@@ -878,7 +876,7 @@ export default function ReferralPage() {
 
           <button
             onClick={handleWithdraw}
-            disabled={withdrawLoading || !canWithdraw || withdrawBlockedByMinimum || withdrawInvalidAmount}
+            disabled={withdrawLoading || withdrawBlockedByMinimum || withdrawInvalidAmount}
             className="bg-purple-700 px-4 rounded-xl hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
 
@@ -891,11 +889,11 @@ export default function ReferralPage() {
         </div>
 
         {withdrawBlockedByMinimum && (
-          <p className="mt-3 text-xs text-amber-300">Saldo referral belum memenuhi minimal withdraw. Kurang Rp {withdrawRemainingToMinimum.toLocaleString()} lagi untuk bisa mengajukan penarikan.</p>
+          <p className="mt-3 text-xs text-amber-300">Saldo referral belum memenuhi minimal withdraw. Silakan tunggu sampai saldo komisi mencapai nominal minimum.</p>
         )}
 
         {!withdrawBlockedByMinimum && withdrawInvalidAmount && (
-          <p className="mt-3 text-xs text-amber-300">Nominal yang diajukan masih di bawah minimum withdraw.</p>
+          <p className="mt-3 text-xs text-amber-300">Nominal yang diajukan masih di bawah minimum withdraw yang diatur admin.</p>
         )}
 
         {withdrawMessage && (
