@@ -220,10 +220,10 @@ export default function ProductDetailClient({ productId = null, initialProduct =
 
       <div className="mb-6 rounded-2xl border border-purple-800 bg-gradient-to-b from-purple-900/40 to-black p-6">
         <p className="mb-1 text-sm text-gray-300">Harga {user?.tier || "Member"}</p>
-        <p className="text-4xl font-bold">{formatPrice(pricing.final)}</p>
-        {pricing.profit > 0 ? (
+        <p className="text-4xl font-bold">{formatPrice(pricing.base)}</p>
+        {/* {pricing.profit > 0 ? (
           <p className="mt-2 text-sm text-green-400">+ profit {formatPrice(pricing.profit).replace("Rp ", "")}</p>
-        ) : null}
+        ) : null} */}
       </div>
 
       <div className="mb-6 rounded-2xl border border-purple-800 bg-black p-6">
