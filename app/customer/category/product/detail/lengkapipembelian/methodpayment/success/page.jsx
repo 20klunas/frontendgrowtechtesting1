@@ -532,7 +532,7 @@ function SuccessContent() {
             ) : (
 
               <div className="text-yellow-400 text-sm text-center py-4">
-                Klik <span className="font-semibold">"One Time View"</span> untuk melihat kode
+                <span className="font-semibold">"One Time View"</span> selesai.
               </div>
 
             )}
