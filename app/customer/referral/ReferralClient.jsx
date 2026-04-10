@@ -845,7 +845,7 @@ export default function ReferralPage() {
                   Informasi Limit Referral
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
 
                   <div className="rounded-lg border border-purple-800/70 p-3 space-y-1">
                     <div className="text-gray-400">Batas penggunaan per user</div>
