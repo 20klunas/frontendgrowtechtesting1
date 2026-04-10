@@ -22,6 +22,8 @@ export default function ReferralSettingsPage() {
   const [discountType, setDiscountType] = useState('percent')
   const [discountValue, setDiscountValue] = useState('')
   const [discountMaxAmount, setDiscountMaxAmount] = useState('')
+  const [maxUsesPerUser, setMaxUsesPerUser] = useState('')
+  const [maxUsesPerReferrer, setMaxUsesPerReferrer] = useState('')
   const [minWithdrawal, setMinWithdrawal] = useState('')
 
   const [toast, setToast] = useState(null)
@@ -78,6 +80,8 @@ export default function ReferralSettingsPage() {
         setDiscountType(data.discount_type || 'percent')
         setDiscountValue(String(data.discount_value ?? ''))
         setDiscountMaxAmount(formatRupiah(String(data.discount_max_amount ?? '')))
+        setMaxUsesPerUser(String(data.max_uses_per_user ?? '0'))
+        setMaxUsesPerReferrer(String(data.max_uses_per_referrer ?? '0'))
         setMinWithdrawal(formatRupiah(String(data.min_withdrawal ?? '')))
       }
     } catch (err) {
@@ -103,10 +107,12 @@ export default function ReferralSettingsPage() {
         },
         body: JSON.stringify({
           commission_type: commissionType,
-          commission_value: Number(commissionValue),
+          commission_value: Number(commissionValue || 0),
           discount_type: discountType,
-          discount_value: Number(discountValue),
+          discount_value: Number(discountValue || 0),
           discount_max_amount: Number(unformatRupiah(discountMaxAmount || '0')),
+          max_uses_per_user: Number(maxUsesPerUser || 0),
+          max_uses_per_referrer: Number(maxUsesPerReferrer || 0),
         }),
       })
 
@@ -120,7 +126,7 @@ export default function ReferralSettingsPage() {
 
       if (json.success) {
         fetchSettings(token)
-        showToast('Komisi & diskon referral berhasil diperbarui')
+        showToast('Komisi, diskon, dan limit referral berhasil diperbarui')
       } else {
         showToast('Gagal menyimpan komisi', 'error')
       }
@@ -187,7 +193,7 @@ export default function ReferralSettingsPage() {
         <ReferralTabs />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-          {[1, 2].map((i) => (
+          {[1, 2, 3].map((i) => (
             <div
               key={i}
               className="rounded-2xl border border-purple-600/60 bg-black p-6 animate-pulse"
@@ -384,6 +390,63 @@ export default function ReferralSettingsPage() {
                 className="btn-primary w-full"
               >
                 {savingCommission ? 'Menyimpan...' : 'Simpan Komisi & Diskon'}
+              </button>
+            </motion.div>
+
+            <motion.div
+              className="modal-card rounded-2xl p-6 md:p-8 transition-all"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <h2 className="text-xl font-semibold mb-4 modal-title">
+                Batas Penggunaan Referral
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm modal-text mb-2">
+                    Maksimal penggunaan referral per user
+                  </label>
+                  <input
+                    type="text"
+                    value={maxUsesPerUser}
+                    onChange={(e) => setMaxUsesPerUser(e.target.value.replace(/\D/g, ''))}
+                    className="input-primary w-full"
+                    placeholder="0 = tanpa batas"
+                  />
+                  <p className="modal-text text-xs mt-2">
+                    0 = unlimited. Contoh: isi 3 jika setiap user hanya boleh memakai diskon referral 3 kali.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm modal-text mb-2">
+                    Maksimal total penggunaan per pemilik kode referral
+                  </label>
+                  <input
+                    type="text"
+                    value={maxUsesPerReferrer}
+                    onChange={(e) => setMaxUsesPerReferrer(e.target.value.replace(/\D/g, ''))}
+                    className="input-primary w-full"
+                    placeholder="0 = tanpa batas"
+                  />
+                  <p className="modal-text text-xs mt-2">
+                    0 = unlimited. Jika limit tercapai, kode referral tersebut tidak bisa dipakai lagi oleh siapapun.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg border border-purple-700/40 text-sm modal-text my-5">
+                <b>Catatan</b>
+                <div className="mt-1">Batas ini berlaku untuk transaksi product yang sudah valid/paid.</div>
+              </div>
+
+              <button
+                onClick={handleSaveCommission}
+                disabled={savingCommission}
+                className="btn-primary w-full"
+              >
+                {savingCommission ? 'Menyimpan...' : 'Simpan Batas Referral'}
               </button>
             </motion.div>
 
