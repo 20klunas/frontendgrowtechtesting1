@@ -205,10 +205,14 @@ export default function ReferralPage() {
 
       setAttachLoading(true)
 
+      const normalizedCode = String(attachCode || "").trim().toUpperCase()
+
+      if (!normalizedCode) return
+
       const json = await authFetch(`/api/v1/referral/attach`, {
         method: "POST",
         body: JSON.stringify({
-          code: attachCode
+          code: normalizedCode
         }),
       })
 
@@ -599,6 +603,8 @@ export default function ReferralPage() {
 
             <li>Ketika mereka membeli produk, kamu mendapatkan komisi.</li>
 
+            <li>Referral hanya berlaku untuk transaksi produk, bukan top up wallet.</li>
+
             <li>Kamu bisa menarik komisi kamu kapan saja.</li>
 
           </ul>
@@ -618,7 +624,7 @@ export default function ReferralPage() {
 
           <input
             value={attachCode}
-            onChange={(e)=>setAttachCode(e.target.value)}
+            onChange={(e)=>setAttachCode(e.target.value.toUpperCase())}
             className="flex-1 rounded-xl bg-purple-900/40 border border-purple-700 px-4 py-2"
           />
 
@@ -839,6 +845,7 @@ export default function ReferralPage() {
 
           Pratinjau ini menghitung potensi diskon rujukan berdasarkan jumlah pembelian Anda.
           Diskon akhir akan diterapkan secara otomatis saat pembayaran jika semua persyaratan rujukan terpenuhi.
+          Referral discount hanya berlaku untuk transaksi product, bukan wallet top up.
 
         </div>
       </Card>
