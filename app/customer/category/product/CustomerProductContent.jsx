@@ -566,19 +566,21 @@ export default function CustomerProductContent({
     } catch (err) {
       console.error("addToCart:", err)
 
-      const serverItems = err?.data?.data?.items
+      const serverItems = err?.data?.error?.details?.items
+      const serverSummary = err?.data?.error?.details?.summary
 
       if (Array.isArray(serverItems)) {
         notifyCustomerCartChanged({
           type: "server-snapshot",
           items: serverItems,
+          summary: serverSummary,
           skipServerSync: true,
         })
       } else {
         notifyCustomerCartChanged({ type: "refresh" })
       }
 
-      alert(err.message || "Gagal menambahkan ke keranjang")
+      alert(err?.data?.error?.message || err.message || "Gagal menambahkan ke keranjang")
     } finally {
       actionLockRef.current = false
       setAddingId(null)

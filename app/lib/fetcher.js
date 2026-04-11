@@ -192,9 +192,15 @@ export async function fetcher(url, options = {}, config = {}) {
       }
 
       if (!res.ok) {
-        const error = new Error(data?.message || `HTTP ${res.status}`)
+        const apiMessage =
+          data?.error?.message ||
+          data?.message ||
+          `HTTP ${res.status}`
+
+        const error = new Error(apiMessage)
         error.status = res.status
         error.data = data
+        error.details = data?.error?.details ?? null
         throw error
       }
 

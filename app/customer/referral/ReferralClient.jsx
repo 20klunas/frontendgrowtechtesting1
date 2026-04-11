@@ -90,7 +90,7 @@ export default function ReferralPage() {
   const availableWithdraw = Number(walletBalance?.available || 0)
   const withdrawBlockedByMinimum = minWithdraw > 0 && availableWithdraw < minWithdraw
   const withdrawInvalidAmount = withdrawAmount !== "" && minWithdraw > 0 && withdrawAmountNumber < minWithdraw
-  
+  const [autoAttached, setAutoAttached] = useState(false)
 
   /* ================= INIT ================= */
 
@@ -325,6 +325,27 @@ export default function ReferralPage() {
 
   }
 
+  async function handleAttachAuto(code) {
+    try {
+      const json = await authFetch(`/api/v1/referral/attach`, {
+        method: "POST",
+        body: JSON.stringify({ code })
+      })
+
+      setAttachMessage({
+        type: "success",
+        text: "Referral berhasil digunakan 🎉"
+      })
+
+      fetchDashboard()
+    } catch (err) {
+      setAttachMessage({
+        type: "error",
+        text: err.message
+      })
+    }
+  }
+
   /* ================= COPY ================= */
 
   function copy(text) {
@@ -380,14 +401,23 @@ export default function ReferralPage() {
   },[previewAmount])
 
   useEffect(() => {
-
     const ref = searchParams.get("ref")
 
-    if (ref) {
-      setAttachCode(ref.toUpperCase())
-    }
+    // jangan attach kalau sudah punya referrer
+    if (ref && !autoAttached && !dashboard?.relation?.referrer) {
+      const code = ref.toUpperCase()
+      setAttachCode(code)
 
-  }, [searchParams])
+      handleAttachAuto(code)
+      setAutoAttached(true)
+    }
+  }, [searchParams, autoAttached, dashboard])
+
+  useEffect(() => {
+    if (autoAttached && typeof window !== 'undefined') {
+      window.history.replaceState({}, document.title, "/customer/referral")
+    }
+  }, [autoAttached])
 
   if (loading) {
 
@@ -416,7 +446,7 @@ export default function ReferralPage() {
 
   const referralLink = `${typeof window !== 'undefined'
     ? window.location.origin
-    : ''}/register?ref=${referralCode}`
+    : ''}/customer/referral?ref=${referralCode}`
 
 
   return (
@@ -961,6 +991,16 @@ export default function ReferralPage() {
         {withdrawMessage && (
           <p className={`mt-3 text-xs ${withdrawMessage.type === "success" ? "text-emerald-300" : "text-red-300"}`}>
             {withdrawMessage.text}
+          </p>
+        )}
+
+        {attachMessage && (
+          <p className={`mt-2 text-xs ${
+            attachMessage.type === "success"
+              ? "text-green-400"
+              : "text-red-400"
+          }`}>
+            {attachMessage.text}
           </p>
         )}
       </Card>

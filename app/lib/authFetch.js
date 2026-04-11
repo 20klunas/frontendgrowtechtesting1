@@ -236,7 +236,13 @@ export async function authFetch(url, options = {}) {
       }
 
       if (!res.ok) {
-        throw new Error(data?.error?.message || data?.message || `HTTP ${res.status}`)
+        const error = new Error(
+          data?.error?.message || data?.message || `HTTP ${res.status}`
+        )
+        error.status = res.status
+        error.data = data
+        error.details = data?.error?.details ?? null
+        throw error
       }
 
       if (canUseMemoryCache) {

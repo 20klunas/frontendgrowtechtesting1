@@ -148,8 +148,21 @@ export default function ProductDetailClient({ productId = null, initialProduct =
 
       router.push("/customer/category/product/detail/cart");
     } catch (error) {
-      notifyCustomerCartChanged({ type: "refresh" });
-      alert(error?.message || "Gagal menambahkan ke keranjang");
+      const serverItems = error?.data?.error?.details?.items;
+      const serverSummary = error?.data?.error?.details?.summary;
+
+      if (Array.isArray(serverItems)) {
+        notifyCustomerCartChanged({
+          type: "server-snapshot",
+          items: serverItems,
+          summary: serverSummary,
+          skipServerSync: true,
+        });
+      } else {
+        notifyCustomerCartChanged({ type: "refresh" });
+      }
+
+      alert(error?.data?.error?.message || error?.message || "Gagal menambahkan ke keranjang");
     } finally {
       setAdding(false);
     }
