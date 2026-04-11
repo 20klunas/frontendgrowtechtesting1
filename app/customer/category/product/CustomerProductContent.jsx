@@ -462,6 +462,12 @@ export default function CustomerProductContent({
       return next
     })
 
+    notifyFavoriteChanged({
+      delta: isFav ? -1 : 1,
+      productId,
+      skipServerSync: false,
+    })
+
     try {
       setFavoriteLoadingId(productId)
 
@@ -484,7 +490,7 @@ export default function CustomerProductContent({
         )
       }
 
-      notifyFavoriteChanged()
+      notifyFavoriteChanged({ skipServerSync: false })
     } catch (err) {
       console.error("toggleFavorite error:", err)
 
@@ -492,6 +498,12 @@ export default function CustomerProductContent({
         if (isFav) next.add(productId)
         else next.delete(productId)
         return next
+      })
+
+      notifyFavoriteChanged({
+        delta: isFav ? 1 : -1,
+        productId,
+        skipServerSync: true,
       })
 
       alert(err.message || "Gagal memperbarui favorite")

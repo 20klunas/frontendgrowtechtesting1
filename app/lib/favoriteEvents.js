@@ -1,3 +1,3 @@
-export function notifyFavoriteChanged() {
-  window.dispatchEvent(new Event("favorite:changed"))
+export function notifyFavoriteChanged(detail = {}) {
+  window.dispatchEvent(new CustomEvent("favorite:changed", { detail }))
 }

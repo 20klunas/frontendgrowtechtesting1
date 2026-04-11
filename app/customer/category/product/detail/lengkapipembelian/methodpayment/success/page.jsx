@@ -70,6 +70,8 @@ function SuccessContent() {
   const [hover, setHover] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [existingRating, setExistingRating] = useState(null);
+  const [editingRating, setEditingRating] = useState(false);
 
   const primaryProductName = useMemo(() => {
     return revealedData?.product_name || delivery?.primary_product_name || paymentInfo?.items?.[0]?.product_name || paymentInfo?.items?.[0]?.product?.name || order?.item_details?.[0]?.product || order?.product?.name || null;
@@ -110,9 +112,23 @@ function SuccessContent() {
       const bootstrapJson = await authFetch(`/api/v1/bootstrap/orders/${orderId}/success`);
 
       if (bootstrapJson?.success) {
-        setDelivery(bootstrapJson?.data?.delivery || null);
-        setOrder(bootstrapJson?.data?.order?.order ?? bootstrapJson?.data?.order ?? null);
-        setPaymentInfo(bootstrapJson?.data?.payment || null);
+        const nextDelivery = bootstrapJson?.data?.delivery || null;
+        const nextOrder = bootstrapJson?.data?.order?.order ?? bootstrapJson?.data?.order ?? null;
+        const nextPayment = bootstrapJson?.data?.payment || null;
+
+        setDelivery(nextDelivery);
+        setOrder(nextOrder);
+        setPaymentInfo(nextPayment);
+
+        const nextProductId =
+          nextOrder?.product_id ||
+          nextPayment?.items?.[0]?.product_id ||
+          nextPayment?.items?.[0]?.product?.id ||
+          null;
+
+        if (nextProductId) {
+          await fetchExistingRating(nextProductId);
+        }
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -321,6 +337,30 @@ function SuccessContent() {
     return null;
   }, [order, paymentInfo]);
 
+
+  const fetchExistingRating = async (productId) => {
+    if (!productId) return;
+
+    try {
+      const json = await authFetch(`/api/v1/favorites?per_page=100&scope=all`);
+      const rows = Array.isArray(json?.data?.data) ? json.data.data : [];
+      const found = rows.find((item) => Number(item?.product_id) === Number(productId));
+      const value = Number(found?.rating || 0);
+
+      if (value > 0) {
+        setExistingRating(value);
+        setRating(value);
+        setRatingSubmitted(true);
+        setEditingRating(false);
+      } else {
+        setExistingRating(null);
+        setRatingSubmitted(false);
+      }
+    } catch (err) {
+      console.error("loadExistingRating error:", err);
+    }
+  };
+
   const invoiceNumber = useMemo(() => {
     return (
       paymentInfo?.invoice_number ||
@@ -345,8 +385,10 @@ function SuccessContent() {
       });
 
       if (res?.success) {
-        showToast("Terima kasih atas rating kamu ⭐");
+        showToast(existingRating ? "Rating berhasil diperbarui ⭐" : "Terima kasih atas rating kamu ⭐");
+        setExistingRating(rating);
         setRatingSubmitted(true);
+        setEditingRating(false);
       } else {
         showToast(res?.error?.message || "Gagal memberi rating", "error");
       }
@@ -402,43 +444,61 @@ function SuccessContent() {
         </div>
 
         {/* RATING SECTION */}
-        {!ratingSubmitted && rateProductId && (
+        {rateProductId && (
           <div className="mt-8 rounded-2xl border border-yellow-500/40 p-6 bg-yellow-500/5">
             <h2 className="text-lg font-semibold mb-4 text-center">
-              Beri Rating Produk
+              {existingRating && !editingRating ? "Rating Produk Kamu" : "Beri Rating Produk"}
             </h2>
 
-            <div className="flex justify-center gap-2 mb-4">
-              {[1, 2, 3, 4, 5].map((star) => (
+            {existingRating && !editingRating ? (
+              <div className="text-center">
+                <div className="mb-3 text-3xl text-yellow-400">{"★".repeat(existingRating)}<span className="text-gray-600">{"★".repeat(5 - existingRating)}</span></div>
+                <p className="mb-4 text-sm text-gray-300">Kamu sudah pernah memberi rating untuk produk ini. Saat repeat order, kamu boleh mengubah rating yang sudah ada.</p>
                 <button
-                  key={star}
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHover(star)}
-                  onMouseLeave={() => setHover(0)}
-                  className="text-3xl transition"
+                  onClick={() => {
+                    setEditingRating(true);
+                    setRating(existingRating);
+                  }}
+                  className="px-6 py-2 rounded-xl bg-yellow-500 text-black font-semibold"
                 >
-                  <span
-                    className={
-                      star <= (hover || rating)
-                        ? "text-yellow-400"
-                        : "text-gray-600"
-                    }
-                  >
-                    ★
-                  </span>
+                  Ubah Rating
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-center gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setRating(star)}
+                      onMouseEnter={() => setHover(star)}
+                      onMouseLeave={() => setHover(0)}
+                      className="text-3xl transition"
+                    >
+                      <span
+                        className={
+                          star <= (hover || rating)
+                            ? "text-yellow-400"
+                            : "text-gray-600"
+                        }
+                      >
+                        ★
+                      </span>
+                    </button>
+                  ))}
+                </div>
 
-            <div className="text-center">
-              <button
-                onClick={handleSubmitRating}
-                disabled={rating === 0 || submittingRating}
-                className="px-6 py-2 rounded-xl bg-yellow-500 text-black font-semibold disabled:opacity-50"
-              >
-                {submittingRating ? "Mengirim..." : "Kirim Rating"}
-              </button>
-            </div>
+                <div className="text-center">
+                  <button
+                    onClick={handleSubmitRating}
+                    disabled={rating === 0 || submittingRating}
+                    className="px-6 py-2 rounded-xl bg-yellow-500 text-black font-semibold disabled:opacity-50"
+                  >
+                    {submittingRating ? "Mengirim..." : existingRating ? "Simpan Perubahan Rating" : "Kirim Rating"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 

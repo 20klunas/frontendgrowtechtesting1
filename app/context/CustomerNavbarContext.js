@@ -138,7 +138,7 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
         return favoriteCount
       }
 
-      if (favoriteInflightRef.current) {
+      if (favoriteInflightRef.current && !force) {
         return favoriteInflightRef.current
       }
 
@@ -286,8 +286,17 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
       }
     }
 
-    const handleFavoriteRefresh = () => {
-      fetchFavoriteCount({ force: true }).catch(() => {})
+    const handleFavoriteRefresh = (event) => {
+      const delta = Number(event?.detail?.delta || 0)
+
+      if (delta !== 0) {
+        favoriteFetchedAtRef.current = Date.now()
+        setFavoriteCount((prev) => Math.max(0, Number(prev || 0) + delta))
+      }
+
+      if (!event?.detail?.skipServerSync) {
+        fetchFavoriteCount({ force: true }).catch(() => {})
+      }
     }
 
     const handleVisible = () => {
