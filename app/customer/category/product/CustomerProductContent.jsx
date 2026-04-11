@@ -543,26 +543,6 @@ export default function CustomerProductContent({
     setAddingId(productId)
 
     try {
-      notifyCustomerCartChanged({
-        type: "add",
-        item: {
-          id: productId,
-          product_id: productId,
-          qty: 1,
-          product: {
-            id: productId,
-            name: product?.name || "Produk",
-            image_url: getProductImage(product, headerImage),
-          },
-          unit_price:
-            product?.tier_pricing?.[userTier] ||
-            product?.tier_pricing?.member ||
-            product?.price ||
-            0,
-        },
-        skipServerSync: true,
-      })
-
       const response = await fetcher(
         "/api/v1/cart/items",
         {

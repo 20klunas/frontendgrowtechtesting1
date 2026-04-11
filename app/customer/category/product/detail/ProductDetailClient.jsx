@@ -125,28 +125,6 @@ export default function ProductDetailClient({ productId = null, initialProduct =
     setAdding(true);
 
     try {
-      notifyCustomerCartChanged({
-        type: "add",
-        item: {
-          id: product.id,
-          product_id: product.id,
-          qty: 1,
-          product_name: product.name,
-          product_slug: product.slug,
-          product: {
-            id: product.id,
-            name: product.name,
-            slug: product.slug,
-            subcategory: product.subcategory || null,
-          },
-          unit_price:
-            product?.tier_pricing?.member ||
-            product?.price ||
-            0,
-        },
-        skipServerSync: true,
-      });
-
       const response = await fetcher(
         "/api/v1/cart/items",
         {
