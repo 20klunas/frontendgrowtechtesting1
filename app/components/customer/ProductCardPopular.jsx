@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Star } from "lucide-react";
 
 function resolveProductHref(product) {
   const productId = product?.id;
@@ -34,9 +35,27 @@ function resolveProductPricing(product) {
   return { final, base, profit };
 }
 
-function renderStars(rating) {
-  const safeRating = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
-  return `${"★".repeat(safeRating)}${"☆".repeat(5 - safeRating)}`;
+function renderStars(rating = 0) {
+  const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
+
+  return Array.from({ length: 5 }).map((_, i) => {
+    const fillPercent = Math.min(Math.max(safeRating - i, 0), 1) * 100;
+
+    return (
+      <div key={i} className="relative w-4 h-4">
+        {/* background */}
+        <Star className="absolute text-white/30 w-4 h-4" />
+
+        {/* filled */}
+        <div
+          className="absolute overflow-hidden"
+          style={{ width: `${fillPercent}%` }}
+        >
+          <Star className="text-yellow-400 fill-yellow-400 w-4 h-4 drop-shadow-[0_0_2px_rgba(250,204,21,0.8)]" />
+        </div>
+      </div>
+    );
+  });
 }
 
 export default function ProductCardPopular({ product }) {
@@ -47,7 +66,6 @@ export default function ProductCardPopular({ product }) {
   const pricing = resolveProductPricing(product);
   const stock = Number(product?.available_stock ?? 0);
   const productName = product?.name || "Produk";
-  const ratingStars = renderStars(product?.rating);
 
   return (
     <Link
@@ -72,7 +90,17 @@ export default function ProductCardPopular({ product }) {
           Stok {Number.isFinite(stock) ? stock : 0}
         </p>
 
-        <div className="text-yellow-400 text-sm mb-2">{ratingStars}</div>
+        <div className="flex items-center gap-1 mb-2">
+          {renderStars(product?.rating)}
+
+          <span className="text-xs text-gray-400 ml-1">
+            {Number(product?.rating || 0).toFixed(1)}
+          </span>
+
+          <span className="text-xs text-gray-500">
+            ({product?.rating_count || 0})
+          </span>
+        </div>
 
         <p className="font-bold text-green-400">
           Rp {pricing.final.toLocaleString("id-ID")}

@@ -140,6 +140,29 @@ function getBadgeLabel(product) {
   return "Otomatis"
 }
 
+function renderStars(rating = 0) {
+  const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
+
+  return Array.from({ length: 5 }).map((_, i) => {
+    const fillPercent = Math.min(Math.max(safeRating - i, 0), 1) * 100;
+
+    return (
+      <div key={i} className="relative w-4 h-4">
+        {/* background */}
+        <Star className="absolute text-white/30 w-4 h-4" />
+
+        {/* partial fill */}
+        <div
+          className="absolute overflow-hidden"
+          style={{ width: `${fillPercent}%` }}
+        >
+          <Star className="text-yellow-400 fill-yellow-400 w-4 h-4 drop-shadow-[0_0_2px_rgba(250,204,21,0.8)]" />
+        </div>
+      </div>
+    );
+  });
+}
+
 export default function CustomerProductContent({
   initialSubcategoryId = null,
   initialProducts = null,
@@ -752,22 +775,17 @@ export default function CustomerProductContent({
                   </p>
 
                   <div className="mt-1 flex items-center gap-1.5 text-sm text-yellow-400">
-                    <div className="flex items-center gap-0.5">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={cn(
-                            "h-4 w-4",
-                            i < Math.round(ratingValue)
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-white/30"
-                          )}
-                        />
-                      ))}
+                    <div className="flex items-center gap-1">
+                      {renderStars(ratingValue)}
+
+                      <span className="text-xs text-white/70 ml-1">
+                        {ratingValue.toFixed(1)}
+                      </span>
+
+                      <span className="text-xs text-yellow-400">
+                        ({ratingCount})
+                      </span>
                     </div>
-                    <span className="font-semibold">
-                      ({Number.isFinite(ratingCount) && ratingCount > 0 ? ratingCount : 0})
-                    </span>
                     <span className="sr-only">Rating {ratingValue.toFixed(1)}</span>
                   </div>
 

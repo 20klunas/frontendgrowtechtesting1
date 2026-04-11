@@ -7,7 +7,7 @@ import { User, Mail, MapPin, Pencil, Filter, ReceiptText } from "lucide-react";
 import { useAuth } from "../../../app/hooks/useAuth";
 import { apiFetch } from "../../../app/lib/utils";
 
-const STATUS_OPTIONS = ["", "created", "pending", "paid", "fulfilled", "cancelled", "failed", "expired", "refunded"];
+const STATUS_OPTIONS = ["", "pending", "paid", "fulfilled", "cancelled", "failed", "expired", "refunded"];
 
 function formatRupiah(value) {
   return new Intl.NumberFormat("id-ID", {
@@ -30,6 +30,16 @@ function formatDateTime(value) {
   });
 }
 
+function getDisplayStatus(status) {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized === "created") return "cancelled";
+  return normalized;
+}
+
+function getDisplayStatusLabel(status) {
+  return getDisplayStatus(status).toUpperCase() || "-";
+}
+
 function getStatusClasses(status) {
   const map = {
     paid: "bg-green-500/15 text-green-400 border-green-500/30",
@@ -42,7 +52,7 @@ function getStatusClasses(status) {
     refunded: "bg-blue-500/15 text-blue-400 border-blue-500/30",
   };
 
-  return map[String(status || "").toLowerCase()] || "bg-zinc-800 text-gray-200 border-zinc-700";
+  return map[getDisplayStatus(status)] || "bg-zinc-800 text-gray-200 border-zinc-700";
 }
 
 function normalizeOrderItems(order) {
@@ -510,7 +520,7 @@ export default function ProfilePage() {
               >
                 {STATUS_OPTIONS.map((status) => (
                   <option key={status || "all"} value={status}>
-                    {status ? status.toUpperCase() : "Semua Status"}
+                    {status ? getDisplayStatusLabel(status) : "Semua Status"}
                   </option>
                 ))}
               </select>
@@ -597,7 +607,7 @@ export default function ProfilePage() {
                           <div className="flex items-center gap-2 text-sm text-gray-300">
                             <span>Status pembayaran:</span>
                             <span className={`inline-flex px-2.5 py-1 rounded-full border text-xs font-semibold ${getStatusClasses(order.status)}`}>
-                              {String(order.status || "-").toUpperCase()}
+                              {getDisplayStatusLabel(order.display_status || order.status)}
                             </span>
                           </div>
                         </div>

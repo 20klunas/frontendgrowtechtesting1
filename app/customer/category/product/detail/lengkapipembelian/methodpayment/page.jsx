@@ -21,6 +21,25 @@ export default function PaymentPageWrapper() {
   )
 }
 
+function formatRupiah(value) {
+  return `Rp ${Number(value || 0).toLocaleString("id-ID")}`
+}
+
+function calculateGatewayFee(baseTotal, gateway) {
+  if (!gateway) return 0
+
+  const feeType = String(gateway?.fee_type || gateway?.feeType || "fixed").toLowerCase()
+  const feeValue = Number(gateway?.fee_value ?? gateway?.feeValue ?? 0)
+  const amount = Number(baseTotal || 0)
+
+  if (amount <= 0 || feeValue <= 0) return 0
+  if (feeType === "percent") {
+    return Math.round((amount * feeValue) / 100)
+  }
+
+  return feeValue
+}
+
 function PaymentPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -106,6 +125,10 @@ function PaymentPage() {
         (row) => String(row?.code || "").toLowerCase() !== "wallet"
       )
       setSelectedGateway(firstGateway?.code || "wallet")
+      setLoading(false)
+    }).catch(() => {
+      if (!active) return
+      setLoading(false)
     })
 
     return () => {
@@ -117,6 +140,21 @@ function PaymentPage() {
     () => gateways.filter((row) => String(row?.code || "").toLowerCase() !== "wallet"),
     [gateways]
   )
+
+  const selectedGatewayMeta = useMemo(() => {
+    if (String(selectedGateway || "").toLowerCase() === "wallet") return null
+    return visibleGateways.find((row) => String(row?.code || "") === String(selectedGateway || "")) || null
+  }, [selectedGateway, visibleGateways])
+
+  const gatewayFee = useMemo(() => {
+    if (String(selectedGateway || "").toLowerCase() === "wallet") return 0
+    return calculateGatewayFee(total, selectedGatewayMeta)
+  }, [selectedGateway, selectedGatewayMeta, total])
+
+  const totalPayable = useMemo(() => {
+    if (String(selectedGateway || "").toLowerCase() === "wallet") return total
+    return Number(total || 0) + Number(gatewayFee || 0)
+  }, [selectedGateway, total, gatewayFee])
 
   const insufficientWallet = walletBalance < total
   const checkoutItems = checkout?.items || checkout?.order?.items || []
@@ -231,6 +269,7 @@ function PaymentPage() {
               icon={<CreditCard />}
               title={gateway.name}
               desc={gateway.description || "Pembayaran online"}
+              fee={calculateGatewayFee(total, gateway)}
             />
           ))}
 
@@ -241,6 +280,7 @@ function PaymentPage() {
             title="Wallet"
             desc={`Saldo tersedia Rp ${walletBalance.toLocaleString("id-ID")}`}
             warning={insufficientWallet}
+            fee={0}
           />
         </div>
 
@@ -269,13 +309,13 @@ function PaymentPage() {
           </button>
         </div>
 
-        <OrderDetail subtotal={subtotal} discount={discount} total={total} />
+        <OrderDetail subtotal={subtotal} discount={discount} total={total} gatewayFee={gatewayFee} totalPayable={totalPayable} selectedGateway={selectedGateway} />
       </div>
     </main>
   )
 }
 
-function PaymentOption({ active, icon, title, desc, warning, onClick }) {
+function PaymentOption({ active, icon, title, desc, warning, fee = 0, onClick }) {
   return (
     <div
       onClick={onClick}
@@ -291,8 +331,11 @@ function PaymentOption({ active, icon, title, desc, warning, onClick }) {
 
       {icon}
 
-      <div>
-        <p className="font-semibold">{title}</p>
+      <div className="flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <p className="font-semibold">{title}</p>
+          {fee > 0 ? <span className="text-xs text-yellow-300">Fee {formatRupiah(fee)}</span> : null}
+        </div>
         <p className={`text-sm ${warning ? "text-red-400" : "text-gray-400"}`}>
           {warning ? "Saldo tidak cukup" : desc}
         </p>
@@ -301,16 +344,20 @@ function PaymentOption({ active, icon, title, desc, warning, onClick }) {
   )
 }
 
-function OrderDetail({ subtotal, discount, total }) {
+function OrderDetail({ subtotal, discount, total, gatewayFee = 0, totalPayable = 0, selectedGateway }) {
   return (
     <div className="border border-purple-500/40 rounded-3xl p-6">
       <h2 className="text-2xl font-bold mb-4">Detail Pesanan</h2>
-      <Row label="Sub Total" value={`Rp ${subtotal.toLocaleString("id-ID")}`} />
-      <Row label="Diskon" value={`Rp ${discount.toLocaleString("id-ID")}`} />
+      <Row label="Sub Total" value={formatRupiah(subtotal)} />
+      <Row label="Diskon" value={formatRupiah(discount)} />
+      <Row label="Total Produk" value={formatRupiah(total)} />
+      {String(selectedGateway || "").toLowerCase() !== "wallet" ? (
+        <Row label="Fee Admin" value={formatRupiah(gatewayFee)} />
+      ) : null}
 
       <div className="flex justify-between text-xl font-bold text-green-400 mt-4">
         <span>Total Bayar</span>
-        <span>Rp {total.toLocaleString("id-ID")}</span>
+        <span>{formatRupiah(totalPayable)}</span>
       </div>
     </div>
   )
