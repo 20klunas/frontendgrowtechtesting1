@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess"
-import { getCheckoutBootstrap, clearCheckoutBootstrapCache } from "../../../../../lib/clientBootstrap"
+import { getCheckoutBootstrap, readCheckoutBootstrapCache } from "../../../../../lib/clientBootstrap"
 
 function resolveProductImage(item) {
   return (
@@ -26,15 +26,28 @@ export default function StepTwo() {
   const { loading: accessLoading, allowed, message } = useCheckoutAccess()
   const router = useRouter()
   useEffect(() => {
-    clearCheckoutBootstrapCache(); 
-  }, []);
-
-  useEffect(() => {
     let active = true;
 
-    // ambil cache dulu (instant)
-    const cached = getCheckoutBootstrap();
-    cached.then((json) => {
+    const cached = readCheckoutBootstrapCache();
+    const cachedCheckout = cached?.checkout || null;
+    const cachedWallet = cached?.wallet || null;
+    const hasDirectOrderCheckout = Boolean(cachedCheckout?.order?.id);
+
+    if (cachedCheckout) {
+      setCheckout(cachedCheckout);
+      setWalletBalance(
+        Number(cachedWallet?.wallet?.balance ?? cachedWallet?.balance ?? 0)
+      );
+      setLoading(false);
+    }
+
+    if (hasDirectOrderCheckout) {
+      return () => {
+        active = false;
+      };
+    }
+
+    getCheckoutBootstrap({ force: !cachedCheckout }).then((json) => {
       if (!active) return;
 
       const checkoutData = json?.data?.checkout || null;
@@ -45,19 +58,9 @@ export default function StepTwo() {
         Number(walletData?.wallet?.balance ?? walletData?.balance ?? 0)
       );
       setLoading(false);
-    });
-
-    // background refresh
-    getCheckoutBootstrap({ force: true }).then((json) => {
+    }).catch(() => {
       if (!active) return;
-
-      const checkoutData = json?.data?.checkout || null;
-      const walletData = json?.data?.wallet || null;
-
-      setCheckout(checkoutData);
-      setWalletBalance(
-        Number(walletData?.wallet?.balance ?? walletData?.balance ?? 0)
-      );
+      setLoading(false);
     });
 
     return () => {
@@ -74,7 +77,7 @@ export default function StepTwo() {
   const item = useMemo(() => items?.[0] || null, [items])
   const qty = Number(item?.qty ?? 1)
   const product = item?.product || null
-  const unitPrice = Number(item?.unit_price ?? 0)
+  const unitPrice = Number(item?.unit_price ?? item?.product?.display_price_breakdown?.base_price ?? item?.product?.display_price ?? item?.product?.price ?? 0)
   const productImage = resolveProductImage(item)
 
   const subtotal = Number(checkout?.summary?.subtotal ?? 0)

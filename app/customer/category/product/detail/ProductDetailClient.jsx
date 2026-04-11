@@ -34,32 +34,16 @@ function getProductImage(product) {
 function getTieredPrice(product, tier) {
   const normalizedTier = String(tier || "member").toLowerCase();
   const tierPricing = product?.tier_pricing || {};
-  const tierProfit = product?.tier_profit || {};
-  const tierFinalPricing = product?.tier_final_pricing || {};
 
-  const base = Number(
+  const price = Number(
     tierPricing?.[normalizedTier] ??
       tierPricing?.member ??
-      product?.display_price_breakdown?.base_price ??
+      product?.display_price ??
       product?.price ??
       0
   ) || 0;
 
-  const profit = Number(
-    tierProfit?.[normalizedTier] ??
-      tierProfit?.member ??
-      product?.display_price_breakdown?.profit ??
-      0
-  ) || 0;
-
-  const final = Number(
-    tierFinalPricing?.[normalizedTier] ??
-      tierFinalPricing?.member ??
-      product?.display_price ??
-      base + profit
-  ) || 0;
-
-  return { base, profit, final };
+  return { price };
 }
 
 export default function ProductDetailClient({ productId = null, initialProduct = null }) {
@@ -211,7 +195,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
 
       <div className="mb-6 rounded-2xl border border-purple-800 bg-gradient-to-b from-purple-900/40 to-black p-6">
         <p className="mb-1 text-sm text-gray-300">Harga {user?.tier || "Member"}</p>
-        <p className="text-4xl font-bold">{formatPrice(pricing.base)}</p>
+        <p className="text-4xl font-bold">{formatPrice(pricing.price)}</p>
         {/* {pricing.profit > 0 ? (
           <p className="mt-2 text-sm text-green-400">+ profit {formatPrice(pricing.profit).replace("Rp ", "")}</p>
         ) : null} */}

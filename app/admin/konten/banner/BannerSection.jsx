@@ -81,7 +81,12 @@ export default function BannerSection() {
         }),
       })
 
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const err = await res.json()
+        console.error("UPDATE ERROR:", err)
+        alert(err.message || "Gagal menyimpan banner")
+        return
+      }
 
       setBanners((prev) =>
         prev.map((b) =>
@@ -192,13 +197,14 @@ export default function BannerSection() {
     const method = editing ? 'PATCH' : 'POST'
 
     const payload = {
+      image_path: form.image_path,
       sort_order: form.sort_order,
       is_active: form.is_active,
     }
 
-    if (!editing || newImageUploaded) {
-      payload.image_path = form.image_path
-    }
+    // if (!editing || newImageUploaded) {
+    //   payload.image_path = form.image_path
+    // }
 
     try {
       const res = await fetch(url, {
@@ -210,7 +216,27 @@ export default function BannerSection() {
         body: JSON.stringify(payload),
       })
 
-      if (!res.ok) throw new Error()
+      const json = await res.json()
+
+      if (!res.ok || json.success === false) {
+        console.error("ERROR:", json)
+        alert(json.message || json.error?.message || "Gagal menyimpan banner")
+        return
+      }
+
+      // kalau upload gambar baru → hit endpoint image
+      if (editing && newImageUploaded) {
+        await fetch(`${API}/api/v1/admin/banners/${editing.id}/image`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${Cookies.get('token')}`,
+          },
+          body: JSON.stringify({
+            image_path: form.image_path,
+          }),
+        })
+      }
 
       setModalOpen(false)
       setEditing(null)

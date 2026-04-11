@@ -24,15 +24,17 @@ function resolveProductImage(product) {
 }
 
 function resolveProductPricing(product) {
-  const finalPricing = product?.tier_final_pricing;
-  const basePricing = product?.tier_pricing;
-  const profitPricing = product?.tier_profit;
+  const basePricing = product?.tier_pricing || {};
 
-  const final = Number(finalPricing?.member ?? basePricing?.member ?? product?.display_price ?? product?.price ?? 0) || 0;
-  const base = Number(basePricing?.member ?? product?.display_price_breakdown?.base_price ?? product?.price ?? 0) || 0;
-  const profit = Number(profitPricing?.member ?? product?.display_price_breakdown?.profit ?? 0) || 0;
+  const final = Number(
+    basePricing?.member ??
+      product?.display_price_breakdown?.base_price ??
+      product?.display_price ??
+      product?.price ??
+      0
+  ) || 0;
 
-  return { final, base, profit };
+  return { final };
 }
 
 function renderStars(rating = 0) {
@@ -43,10 +45,7 @@ function renderStars(rating = 0) {
 
     return (
       <div key={i} className="relative w-4 h-4">
-        {/* background */}
         <Star className="absolute text-white/30 w-4 h-4" />
-
-        {/* filled */}
         <div
           className="absolute overflow-hidden"
           style={{ width: `${fillPercent}%` }}
@@ -104,9 +103,6 @@ export default function ProductCardPopular({ product }) {
 
         <p className="font-bold text-green-400">
           Rp {pricing.final.toLocaleString("id-ID")}
-          {pricing.profit > 0 ? (
-            <span className="ml-2 text-sm font-medium text-green-300">(+ {pricing.profit.toLocaleString("id-ID")})</span>
-          ) : null}
         </p>
       </div>
     </Link>

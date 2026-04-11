@@ -6,14 +6,15 @@ import { motion } from "framer-motion";
 
 function resolvePricing(product) {
   const pricing = Array.isArray(product?.tier_pricing) ? product?.tier_pricing[0] : (product?.tier_pricing || {});
-  const profitPricing = Array.isArray(product?.tier_profit) ? product?.tier_profit[0] : (product?.tier_profit || {});
-  const finalPricing = product?.tier_final_pricing || {};
+  const final = Number(
+    pricing?.member ??
+      product?.display_price_breakdown?.base_price ??
+      product?.display_price ??
+      product?.price ??
+      0
+  ) || 0;
 
-  const base = Number(pricing?.member ?? product?.display_price_breakdown?.base_price ?? product?.price ?? 0) || 0;
-  const profit = Number(profitPricing?.member ?? product?.display_price_breakdown?.profit ?? 0) || 0;
-  const final = Number(finalPricing?.member ?? product?.display_price ?? base + profit) || 0;
-
-  return { base, profit, final };
+  return { final };
 }
 
 function renderStars(rating) {
@@ -86,11 +87,6 @@ export default function ProductCardCustomer({ product }) {
         <div className="flex items-center justify-between mb-3">
           <span className="font-bold text-white">
             Rp {pricing.final.toLocaleString("id-ID")}
-            {pricing.profit > 0 ? (
-              <span className="ml-2 text-xs font-medium text-green-300">
-                (+ {pricing.profit.toLocaleString("id-ID")})
-              </span>
-            ) : null}
           </span>
 
           <span className="text-xs px-2 py-1 rounded bg-purple-800 text-purple-200">

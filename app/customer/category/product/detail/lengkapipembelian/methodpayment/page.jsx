@@ -92,10 +92,11 @@ function PaymentPage() {
     let active = true
 
     const cached = readCheckoutBootstrapCache()
+    const cachedCheckout = cached?.checkout || null
+    const hasDirectOrderCheckout = Boolean(cachedCheckout?.order?.id)
 
-    // 1. SYNC RENDER (NO FLICKER)
     if (cached) {
-      setCheckout(cached.checkout)
+      setCheckout(cachedCheckout)
       setWalletBalance(
         Number(cached.wallet?.wallet?.balance ?? cached.wallet?.balance ?? 0)
       )
@@ -109,8 +110,13 @@ function PaymentPage() {
       setLoading(false)
     }
 
-    // 2. BACKGROUND REFRESH
-    getCheckoutBootstrap({ force: true }).then((res) => {
+    if (hasDirectOrderCheckout) {
+      return () => {
+        active = false
+      }
+    }
+
+    getCheckoutBootstrap({ force: !cachedCheckout }).then((res) => {
       if (!active) return
 
       const data = res?.data || {}

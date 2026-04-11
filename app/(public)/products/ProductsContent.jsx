@@ -5,32 +5,19 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 
 function resolveMemberPricing(product) {
-  const pricing = product?.tier_pricing
-  const profitPricing = product?.tier_profit
-  const finalPricing = product?.tier_final_pricing
+  const pricing = product?.tier_pricing || {}
 
-  const base = Number(
+  const final = Number(
     pricing?.member ??
     pricing?.reseller ??
     pricing?.vip ??
     product?.display_price_breakdown?.base_price ??
+    product?.display_price ??
     product?.price ??
     0
   ) || 0
 
-  const profit = Number(
-    profitPricing?.member ??
-    product?.display_price_breakdown?.profit ??
-    0
-  ) || 0
-
-  const final = Number(
-    finalPricing?.member ??
-    product?.display_price ??
-    (base + profit)
-  ) || 0
-
-  return { base, profit, final }
+  return { final }
 }
 
 function resolveProductHref(product, subcategoryId) {
@@ -159,11 +146,6 @@ export default function ProductsContent({ initialProducts = [], initialSubcatego
                     <p className="text-xl font-bold text-purple-400">
                       Rp {memberPricing.final.toLocaleString("id-ID")}
                     </p>
-                    {memberPricing.profit > 0 ? (
-                      <p className="text-xs text-green-400">
-                        + profit {memberPricing.profit.toLocaleString("id-ID")}
-                      </p>
-                    ) : null}
                   </div>
 
                   <button
