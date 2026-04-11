@@ -184,26 +184,56 @@ export default function DataDepositPage() {
 
   const handleAdjust = async (e) => {
     e.preventDefault()
+
     try {
+      const payload = {
+        ...adjustForm,
+        direction: String(adjustForm.direction || '').toLowerCase(),
+        user_id: Number(adjustForm.user_id),
+        amount: Number(adjustForm.amount),
+        note: adjustForm.note?.trim() || null,
+      }
+
       const res = await fetch(`${API}/api/v1/admin/wallet/adjust`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          ...adjustForm,
-          direction: adjustForm.direction.toUpperCase(),
-          user_id: Number(adjustForm.user_id),
-          amount: Number(adjustForm.amount)
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
       })
-      const result = await res.json()
-      if (result.success) {
+
+      const result = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        const message =
+          result?.message 
+          result?.errors?.direction?.[0] 
+
+          result?.errors?.amount?.[0] 
+          result?.errors?.user_id?.[0] 
+
+          'Gagal adjust balance'
+
+        alert(message)
+        console.error('Adjust balance error:', result)
+        return
+      }
+
+      if (result?.success) {
         alert('Adjust balance berhasil')
         setAdjustForm({ user_id: '', direction: 'credit', amount: '', note: '' })
         setAdjustUserSearch('')
         fetchLedger()
+        return
       }
+
+      alert(result?.message || 'Adjust balance gagal')
+      console.error('Adjust balance failed:', result)
     } catch (err) {
       console.error(err)
+      alert('Terjadi kesalahan saat adjust balance')
     }
   }
 
