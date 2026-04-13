@@ -1,6 +1,8 @@
 import Cookies from "js-cookie"
 import { handleMaintenance } from "./maintenanceHandler"
 import { buildApiUrl } from "./apiUrl"
+import { getDeviceFingerprint } from "./deviceFingerprint"
+import { getTrustedDeviceCredential } from "./trustedDevicePreference"
 
 const pendingRequests = new Map()
 const responseCache = new Map()
@@ -92,14 +94,31 @@ function getCacheTTL(url) {
   return DEFAULT_TTL
 }
 
-function buildHeaders(options = {}, token) {
+async function buildHeaders(options = {}, token) {
   const isFormData =
     typeof FormData !== "undefined" && options.body instanceof FormData
+
+  const trustedHeaders = {}
+
+  try {
+    const fingerprint = await getDeviceFingerprint()
+    if (fingerprint) {
+      trustedHeaders["X-Device-Fingerprint"] = fingerprint
+    }
+  } catch {}
+
+  try {
+    const credential = getTrustedDeviceCredential()
+    if (credential) {
+      trustedHeaders["X-Trusted-Device"] = credential
+    }
+  } catch {}
 
   return {
     Authorization: `Bearer ${token}`,
     Accept: "application/json",
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...trustedHeaders,
     ...(options.headers || {}),
   }
 }
@@ -202,7 +221,7 @@ export async function authFetch(url, options = {}) {
       const res = await fetch(fullUrl, {
         ...options,
         method,
-        headers: buildHeaders(options, token),
+        headers: await buildHeaders(options, token),
         cache: cacheMode,
         credentials: "include",
         signal: controller.signal,

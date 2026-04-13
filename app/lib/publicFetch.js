@@ -1,5 +1,7 @@
 import { handleMaintenance } from "./maintenanceHandler"
 import { buildApiUrl } from "./apiUrl"
+import { getDeviceFingerprint } from "./deviceFingerprint"
+import { getTrustedDeviceCredential } from "./trustedDevicePreference"
 
 const pendingRequests = new Map()
 const responseCache = new Map()
@@ -63,13 +65,36 @@ function getCacheTTL(url) {
   return DEFAULT_TTL
 }
 
-function buildHeaders(options = {}) {
+async function buildTrustedDeviceHeaders() {
+  const headers = {}
+
+  try {
+    const fingerprint = await getDeviceFingerprint()
+    if (fingerprint) {
+      headers["X-Device-Fingerprint"] = fingerprint
+    }
+  } catch {}
+
+  try {
+    const credential = getTrustedDeviceCredential()
+    if (credential) {
+      headers["X-Trusted-Device"] = credential
+    }
+  } catch {}
+
+  return headers
+}
+
+async function buildHeaders(options = {}) {
   const isFormData =
     typeof FormData !== "undefined" && options.body instanceof FormData
+
+  const trustedHeaders = await buildTrustedDeviceHeaders()
 
   return {
     Accept: "application/json",
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...trustedHeaders,
     ...(options.headers || {}),
   }
 }
@@ -112,7 +137,7 @@ export async function publicFetch(url, options = {}) {
       const res = await fetch(fullUrl, {
         ...options,
         method,
-        headers: buildHeaders(options),
+        headers: await buildHeaders(options),
         cache: cacheMode,
         credentials: "include",
         signal: controller.signal,

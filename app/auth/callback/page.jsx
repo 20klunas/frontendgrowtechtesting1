@@ -8,6 +8,7 @@ import { persistAuthSession, resolvePostLoginPath } from "../../lib/authSession"
 import {
   clearTrustedDevicePreference,
   getTrustedDevicePreference,
+  saveTrustedDeviceCredential,
 } from "../../lib/trustedDevicePreference"
 
 function OAuthCallbackHandler() {
@@ -43,6 +44,13 @@ function OAuthCallbackHandler() {
           method: "POST",
           body: JSON.stringify({ code, remember }),
         })
+
+        if (json?.data?.trusted_device_credential) {
+          saveTrustedDeviceCredential(
+            json.data.trusted_device_credential,
+            json?.data?.trusted_device_expires_at || null
+          )
+        }
 
         if (json?.data?.requires_2fa) {
           clearTrustedDevicePreference()

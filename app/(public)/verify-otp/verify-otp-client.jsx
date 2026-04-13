@@ -7,6 +7,10 @@ import { useAuth } from "../../hooks/useAuth";
 import { useAppTransition } from "../../hooks/useAppTransition";
 import { publicFetch } from "../../lib/publicFetch";
 import {
+  clearTrustedDeviceCredential,
+  saveTrustedDeviceCredential,
+} from "../../lib/trustedDevicePreference";
+import {
   persistAuthSession,
   resolvePostLoginPath,
 } from "../../lib/authSession";
@@ -47,6 +51,15 @@ export default function VerifyOtpClient() {
 
       if (!authUser) {
         throw new Error("Data user tidak ditemukan setelah verifikasi OTP");
+      }
+
+      if (json?.data?.trusted_device_credential) {
+        saveTrustedDeviceCredential(
+          json.data.trusted_device_credential,
+          json?.data?.trusted_device_expires_at || null
+        );
+      } else {
+        clearTrustedDeviceCredential();
       }
 
       const targetPath = resolvePostLoginPath(authUser);

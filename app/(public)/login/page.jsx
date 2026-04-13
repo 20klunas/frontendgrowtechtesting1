@@ -16,6 +16,11 @@ import {
   getTrustedDevicePreference,
   setTrustedDevicePreference,
 } from "../../lib/trustedDevicePreference";
+import {
+  getTrustedDevicePreference,
+  saveTrustedDeviceCredential,
+  setTrustedDevicePreference,
+} from "../../lib/trustedDevicePreference";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -83,6 +88,13 @@ export default function LoginPage() {
         method: "POST",
         body: JSON.stringify({ email, password, remember: rememberDevice }),
       });
+
+      if (json?.data?.trusted_device_credential) {
+        saveTrustedDeviceCredential(
+          json.data.trusted_device_credential,
+          json?.data?.trusted_device_expires_at || null
+        )
+      }
 
       if (json?.data?.requires_2fa) {
         router.push(`/verify-otp?challenge_id=${json.data.challenge_id}`);
