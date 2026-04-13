@@ -18,6 +18,14 @@ function parseRupiah(value) {
   return cleaned === '' ? null : Number(cleaned)
 }
 
+function normalizeVoucherCode(value) {
+  return String(value || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 export default function VoucherModal({ open, onClose, onSaved, selected }) {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
@@ -103,8 +111,10 @@ export default function VoucherModal({ open, onClose, onSaved, selected }) {
       const method = selected ? 'PATCH' : 'POST'
       const url = selected ? `${API}/api/v1/admin/vouchers/${selected.id}` : `${API}/api/v1/admin/vouchers`
 
+      const normalizedCode = normalizeVoucherCode(form.code)
+
       const payload = {
-        code: form.code || null,
+        code: normalizedCode || null,
         type: form.type,
         value: form.type === 'fixed' ? parseRupiah(form.value) : Number(form.value || 0),
         quota: form.quota === '' ? null : Number(form.quota),
@@ -172,11 +182,12 @@ export default function VoucherModal({ open, onClose, onSaved, selected }) {
                   <label className="text-xs text-gray-400">Kode Voucher</label>
                   <input
                     className="premium-input"
-                    placeholder="Contoh: PROMO2025"
+                    placeholder="Contoh: GTC-VOUCHER1212"
                     value={form.code}
-                    onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                    onChange={(e) => setForm({ ...form, code: normalizeVoucherCode(e.target.value) })}
                     required={!selected}
                   />
+                  <p className="text-[11px] text-gray-400 mt-1">Format: huruf besar, angka, dan tanda hubung (-).</p>
                 </div>
 
                 <div>
@@ -239,88 +250,71 @@ export default function VoucherModal({ open, onClose, onSaved, selected }) {
                   {TIERS.map((tier) => (
                     <TierToggle
                       key={`allowed-${tier}`}
+                      label={tier}
                       active={form.rules.allowed_tiers.includes(tier)}
                       onClick={() => toggleTier('allowed_tiers', tier)}
-                      label={tier}
                     />
                   ))}
                 </div>
-              </div>
 
-              <div className="rounded-2xl border border-purple-700/40 bg-black/30 p-4 space-y-4">
                 <div>
                   <h3 className="font-semibold">Tier User - Excluded</h3>
-                  <p className="text-xs text-gray-400">Tier yang dipilih di sini akan diblok dari voucher ini.</p>
+                  <p className="text-xs text-gray-400">Tier yang dipilih di sini tidak bisa memakai voucher.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {TIERS.map((tier) => (
                     <TierToggle
                       key={`excluded-${tier}`}
+                      label={tier}
                       active={form.rules.excluded_tiers.includes(tier)}
                       onClick={() => toggleTier('excluded_tiers', tier)}
-                      label={tier}
                       variant="danger"
                     />
                   ))}
                 </div>
-                <div className="text-xs text-purple-300">Ringkasan: {tierSummary}</div>
+
+                <div className="text-xs text-purple-200 bg-purple-500/10 border border-purple-500/20 rounded-xl p-3">
+                  {tierSummary}
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
-                <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-800 transition">
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5">
                   Batal
                 </button>
-                <button disabled={loading} className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all disabled:opacity-50">
-                  {loading ? 'Menyimpan...' : 'Simpan'}
+                <button type="submit" disabled={loading} className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-60">
+                  {loading ? 'Menyimpan...' : selected ? 'Simpan Perubahan' : 'Tambah Voucher'}
                 </button>
               </div>
             </form>
           </motion.div>
         </motion.div>
       )}
-
-      <style jsx>{`
-        .premium-input {
-          width: 100%;
-          margin-top: 4px;
-          padding: 10px 14px;
-          border-radius: 12px;
-          background: rgba(88, 28, 135, 0.25);
-          border: 1px solid rgba(168, 85, 247, 0.3);
-          color: white;
-          font-size: 14px;
-          transition: all 0.25s ease;
-        }
-        .premium-input:focus {
-          outline: none;
-          border-color: rgba(168, 85, 247, 0.7);
-          box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.4);
-          transform: translateY(-1px);
-        }
-      `}</style>
     </AnimatePresence>
   )
 }
 
-function TierToggle({ active, onClick, label, variant = 'default' }) {
+function TierToggle({ label, active, onClick, variant = 'default' }) {
   const activeClass = variant === 'danger'
-    ? 'bg-red-600/20 border-red-500 text-red-300'
-    : 'bg-purple-600/20 border-purple-500 text-purple-200'
+    ? 'bg-red-500/20 border-red-400 text-red-200'
+    : 'bg-purple-500/20 border-purple-400 text-purple-200'
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-2 text-sm transition ${active ? activeClass : 'border-white/15 text-gray-300 hover:bg-white/5'}`}
+      className={`px-3 py-2 rounded-xl border text-sm capitalize transition ${active ? activeClass : 'border-white/10 text-gray-300 hover:bg-white/5'}`}
     >
-      {label.toUpperCase()}
+      {label}
     </button>
   )
 }
 
 function formatForInput(value) {
+  if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  const pad = (num) => String(num).padStart(2, '0')
+
+  const pad = (n) => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
