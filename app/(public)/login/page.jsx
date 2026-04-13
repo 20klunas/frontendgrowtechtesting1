@@ -14,10 +14,6 @@ import {
 } from "../../lib/authSession";
 import {
   getTrustedDevicePreference,
-  setTrustedDevicePreference,
-} from "../../lib/trustedDevicePreference";
-import {
-  getTrustedDevicePreference,
   saveTrustedDeviceCredential,
   setTrustedDevicePreference,
 } from "../../lib/trustedDevicePreference";
