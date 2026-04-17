@@ -10,7 +10,7 @@ import PermissionGate from '../../components/admin/PermissionGate'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 const DEFAULT_SUBCATEGORY_IMAGE = '/logogrowtech.png'
-const DEFAULT_SUBCATEGORY_IMAGE_PATH = 'defaults/logogrowtech.png'
+const DEFAULT_SUBCATEGORY_IMAGE_PATH = '/logogrowtech.png'
 
 const emptyForm = {
   category_id: '',
