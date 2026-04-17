@@ -28,7 +28,7 @@ export default function ProductCard({ subcategory }) {
 
       <div className="relative w-full h-48 overflow-hidden">
         <Image
-          src={subcategory?.image_url || "/placeholder.png"}
+          src={subcategory?.image_url || "/logogrowtech.png"}
           alt={subcategory?.name || "Subcategory"}
           fill
           className="object-cover group-hover:scale-110 transition duration-700"

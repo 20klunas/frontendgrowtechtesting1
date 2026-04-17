@@ -19,7 +19,7 @@ function resolveProductImage(product) {
   return (
     product?.subcategory?.image_url ||
     product?.image_url ||
-    "/placeholder.png"
+    "/logogrowtech.png"
   );
 }
 

@@ -60,7 +60,7 @@ export default function ProductCardCustomer({ product }) {
       <Link href={href} className="block">
         <div className="h-[160px] bg-white relative">
           <Image
-            src={product?.subcategory?.image_url || "/placeholder.png"}
+            src={product?.subcategory?.image_url || "/logogrowtech.png"}
             alt={product?.name || "Produk"}
             fill
             className="object-cover"
