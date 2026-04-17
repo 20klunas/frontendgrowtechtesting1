@@ -111,7 +111,7 @@ export default function CustomerCategoryContent({
   useEffect(() => {
     let active = true
 
-    // ✅ kalau sudah ada initial data → jangan fetch lagi
+    //  kalau sudah ada initial data → jangan fetch lagi
     if (selectedCategory === null && hasInitialSubcategories) {
       return
     }
