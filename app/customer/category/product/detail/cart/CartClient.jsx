@@ -10,6 +10,7 @@ import Toast from "../../../../../components/ui/Toast";
 import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess";
 import { normalizeCartPayload } from "./cartApi";
 import { CUSTOMER_CART_REFRESH_EVENT, notifyCustomerCartChanged } from "../../../../../lib/customerCartEvents";
+import { useCustomerNavbar } from "../../../../../context/CustomerNavbarContext";
 function formatRupiah(value) {
   return `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
 }
@@ -194,6 +195,10 @@ export default function CartClient({ initialItems, initialSummary }) {
   const [toastMessage, setToastMessage] = useState("");
 
   const { loading: accessLoading, allowed, message } = useCheckoutAccess();
+  useEffect(() => {
+    refreshNavbarCart({ force: true }).catch(() => {})
+  }, [refreshNavbarCart])
+
   const showToast = useCallback((message) => {
     setToastMessage(message);
     window.clearTimeout(window.__gtCartToastTimer);

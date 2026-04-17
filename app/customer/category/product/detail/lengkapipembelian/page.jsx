@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess"
 import { getCheckoutBootstrap, readCheckoutBootstrapCache } from "../../../../../lib/clientBootstrap"
+import { useCustomerNavbar } from "../../../../../context/CustomerNavbarContext"
 
 function resolveProductImage(item) {
   return (
@@ -25,7 +26,9 @@ export default function StepTwo() {
   const [loading, setLoading] = useState(true)
   const { loading: accessLoading, allowed, message } = useCheckoutAccess()
   const router = useRouter()
+  const { refreshCart: refreshNavbarCart } = useCustomerNavbar()
   useEffect(() => {
+    refreshNavbarCart({ force: true }).catch(() => {})
     let active = true;
 
     const cached = readCheckoutBootstrapCache();

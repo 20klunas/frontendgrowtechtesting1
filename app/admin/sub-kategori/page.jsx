@@ -9,6 +9,8 @@ import { X } from 'lucide-react'
 import PermissionGate from '../../components/admin/PermissionGate'
 
 const API = process.env.NEXT_PUBLIC_API_URL
+const DEFAULT_SUBCATEGORY_IMAGE = '/logogrowtech.png'
+const DEFAULT_SUBCATEGORY_IMAGE_PATH = 'defaults/logogrowtech.png'
 
 const emptyForm = {
   category_id: '',
@@ -231,8 +233,8 @@ export default function SubKategoriPage() {
         slug: form.slug,
         provider: form.provider || null,
         description: form.description || null,
-        image_url: form.image_url || null,
-        image_path: form.image_path || null,
+        image_url: form.image_url || DEFAULT_SUBCATEGORY_IMAGE,
+        image_path: form.image_path || DEFAULT_SUBCATEGORY_IMAGE_PATH,
         is_active: !!form.is_active,
         sort_order: Number(form.sort_order) || 1,
       }
@@ -303,7 +305,7 @@ export default function SubKategoriPage() {
   const openEdit = (item) => {
     setMode('edit')
     setSelected(item)
-    setPreview(item?.image_url || null)
+    setPreview(item?.image_url || DEFAULT_SUBCATEGORY_IMAGE)
     setForm({
       category_id: item.category_id || '',
       name: item.name || '',
@@ -385,7 +387,7 @@ export default function SubKategoriPage() {
                         {item.image_url ? (
                           <NextImage src={item.image_url} width={44} height={44} alt={item.name} className="rounded-lg object-cover" />
                         ) : (
-                          <span className="text-white/30">-</span>
+                          <NextImage src={DEFAULT_SUBCATEGORY_IMAGE} width={44} height={44} alt="Default subkategori" className="rounded-lg object-cover" />
                         )}
                       </td>
                       <td className="py-4 pr-3 text-white">{item.name}</td>
@@ -554,6 +556,8 @@ export default function SubKategoriPage() {
                     <p className="text-xs text-purple-300 mt-1">Uploading... {progress}%</p>
                   </div>
                 )}
+
+                <div className="text-xs text-gray-500">Jika gambar tidak diupload, otomatis memakai default logo GrowTech.</div>
 
                 {preview && (
                   <div className="flex items-center gap-3 border border-purple-900/30 rounded-lg p-3">

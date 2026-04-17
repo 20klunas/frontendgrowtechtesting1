@@ -12,6 +12,7 @@ import {
 import { authFetch } from "../../../../../../lib/authFetch"
 import { clearCheckoutBootstrapCache, getCheckoutBootstrap, readCheckoutBootstrapCache } from "../../../../../../lib/clientBootstrap"
 import { notifyCustomerCartChanged } from "../../../../../../lib/customerCartEvents"
+import { useCustomerNavbar } from "../../../../../../context/CustomerNavbarContext"
 
 export default function PaymentPageWrapper() {
   return (
@@ -42,6 +43,7 @@ function calculateGatewayFee(baseTotal, gateway) {
 
 function PaymentPage() {
   const router = useRouter()
+  const { refreshCart: refreshNavbarCart } = useCustomerNavbar()
   const searchParams = useSearchParams()
 
   const [checkout, setCheckout] = useState(null)
@@ -89,6 +91,7 @@ function PaymentPage() {
   }, [searchParams, router])
 
   useEffect(() => {
+    refreshNavbarCart({ force: true }).catch(() => {})
     let active = true
 
     const cached = readCheckoutBootstrapCache()
@@ -164,6 +167,12 @@ function PaymentPage() {
 
   const insufficientWallet = walletBalance < total
   const checkoutItems = checkout?.items || checkout?.order?.items || []
+
+  const syncCartAfterPaymentInit = () => {
+    notifyCustomerCartChanged({ action: "reset", skipServerSync: true })
+    window.dispatchEvent(new Event("cart-updated"))
+    refreshNavbarCart({ force: true }).catch(() => {})
+  }
 
   const handleCreatePayment = async () => {
     if (!checkout || processing) return
