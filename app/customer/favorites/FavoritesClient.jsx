@@ -199,7 +199,7 @@ export default function FavoritesClient({
               <div key={fav.id} className="rounded-2xl border border-purple-700 bg-black">
                 <div className="relative h-[160px] bg-white">
                   <Image
-                    src={product?.subcategory?.image_url || "/placeholder.png"}
+                    src={product?.subcategory?.image_url || "/logogrowtech.png"}
                     fill
                     alt={product?.name || "Product"}
                     className="object-cover"

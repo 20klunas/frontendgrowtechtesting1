@@ -16,7 +16,7 @@ function resolveProductImage(item) {
     item?.product?.thumbnail ||
     item?.product?.subcategory?.image_url ||
     item?.product?.subcategory?.image ||
-    "/placeholder.png"
+    "/logogrowtech.png"
   )
 }
 

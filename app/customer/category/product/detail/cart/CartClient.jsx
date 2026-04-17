@@ -16,7 +16,7 @@ function formatRupiah(value) {
 }
 
 function formatImageSrc(src) {
-  return src || "/placeholder.png";
+  return src || "/logogrowtech.png";
 }
 
 

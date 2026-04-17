@@ -129,7 +129,7 @@ function getProductImage(product, fallback) {
     product?.subcategory?.image_url ||
     product?.subcategory?.image ||
     fallback ||
-    "/placeholder.png"
+    "/logogrowtech.png"
   )
 }
 
@@ -222,7 +222,7 @@ export default function CustomerProductContent({
     resolvedSubcategory?.image ||
     visibleProducts?.[0]?.subcategory?.image_url ||
     visibleProducts?.[0]?.subcategory?.image ||
-    "/placeholder.png"
+    "/logogrowtech.png"
 
   const headerCategoryName = resolvedCategory?.name || "Kategori"
   const headerSubcategoryName = resolvedSubcategory?.name || "Produk"
