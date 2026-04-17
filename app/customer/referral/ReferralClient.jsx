@@ -354,7 +354,7 @@ export default function ReferralPage() {
 
     setAttachMessage({
       type: "success",
-      text: "Copied!"
+      text: "Berhasil disalin"
     })
 
   }
@@ -446,7 +446,7 @@ export default function ReferralPage() {
 
   const referralLink = `${typeof window !== 'undefined'
     ? window.location.origin
-    : ''}/customer/referral?ref=${referralCode}`
+    : ''}/register?ref=${referralCode}`
 
 
   return (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { clearCheckoutBootstrapCache } from '../../lib/clientBootstrap'
 import Cookies from "js-cookie"
 import PermissionGate from '../../components/admin/PermissionGate'
 
@@ -172,6 +173,7 @@ export default function DataDepositPage() {
       })
       const result = await res.json()
       if (result.success) {
+        clearCheckoutBootstrapCache()
         alert('Manual topup berhasil')
         setManualTopup({ user_id: '', amount: '', reason: 'RESCUE_PAID_NOT_POSTED', reference: '', detail: '' })
         setUserSearch('')
@@ -208,12 +210,10 @@ export default function DataDepositPage() {
 
       if (!res.ok) {
         const message =
-          result?.message 
-          result?.errors?.direction?.[0] 
-
-          result?.errors?.amount?.[0] 
-          result?.errors?.user_id?.[0] 
-
+          result?.message ||
+          result?.errors?.direction?.[0] ||
+          result?.errors?.amount?.[0] ||
+          result?.errors?.user_id?.[0] ||
           'Gagal adjust balance'
 
         alert(message)
@@ -222,6 +222,7 @@ export default function DataDepositPage() {
       }
 
       if (result?.success) {
+        clearCheckoutBootstrapCache()
         alert('Adjust balance berhasil')
         setAdjustForm({ user_id: '', direction: 'credit', amount: '', note: '' })
         setAdjustUserSearch('')

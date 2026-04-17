@@ -144,7 +144,7 @@ export default function RegisterClient() {
             </div>
 
             <div>
-              <label className="text-sm text-purple-300">Konfirmasi</label>
+              <label className="text-sm text-purple-300">Konfirmasi Password</label>
               <input
                 type="password"
                 name="password_confirmation"

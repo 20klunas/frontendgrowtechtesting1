@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import Toast from "../../../../components/ui/Toast";
 import { useRouter } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
 import { fetcher } from "../../../../lib/fetcher";
@@ -52,6 +53,14 @@ export default function ProductDetailClient({ productId = null, initialProduct =
 
   const [adding, setAdding] = useState(false);
   const [buying, setBuying] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    window.clearTimeout(window.__gtToastTimer);
+    window.__gtToastTimer = window.setTimeout(() => setToastMessage(""), 2200);
+  };
 
   const product = initialProduct;
   const userTier = user?.tier?.toLowerCase() || "member";
@@ -60,6 +69,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
   const imageSrc = getProductImage(product);
   const stockValue = Number(product?.available_stock ?? 0);
   const isOutOfStock = stockValue <= 0;
+  const maxQty = Math.max(1, Math.min(99, stockValue || 1));
 
   const ensureAuthenticated = () => {
     if (user) return true;
@@ -82,7 +92,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
           method: "POST",
           body: JSON.stringify({
             product_id: product.id,
-            qty: 1,
+            qty: quantity,
             voucher_code: null,
           }),
         },
@@ -94,9 +104,10 @@ export default function ProductDetailClient({ productId = null, initialProduct =
       }
 
       writeCheckoutBootstrapCache({ checkout: checkout?.data || null });
+      showToast(`${product?.name || "Produk"} siap dibeli (${quantity} item)`);
       router.push(CHECKOUT_PAGE_PATH);
     } catch (error) {
-      alert(error?.message || "Gagal checkout");
+      showToast(error?.message || "Gagal checkout");
     } finally {
       setBuying(false);
     }
@@ -113,7 +124,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
         "/api/v1/cart/items",
         {
           method: "POST",
-          body: JSON.stringify({ product_id: product.id, qty: 1 }),
+          body: JSON.stringify({ product_id: product.id, qty: quantity }),
         },
         { auth: true }
       );
@@ -130,6 +141,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
         notifyCustomerCartChanged({ type: "refresh" });
       }
 
+      showToast(`${product?.name || "Produk"} telah ditambahkan ke keranjang (${quantity} item)`);
       router.push("/customer/category/product/detail/cart");
     } catch (error) {
       const serverItems = error?.data?.error?.details?.items;
@@ -146,7 +158,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
         notifyCustomerCartChanged({ type: "refresh" });
       }
 
-      alert(error?.data?.error?.message || error?.message || "Gagal menambahkan ke keranjang");
+      showToast(error?.data?.error?.message || error?.message || "Gagal menambahkan ke keranjang");
     } finally {
       setAdding(false);
     }
@@ -202,6 +214,42 @@ export default function ProductDetailClient({ productId = null, initialProduct =
       </div>
 
       <div className="mb-6 rounded-2xl border border-purple-800 bg-black p-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm text-gray-300">Jumlah pembelian</p>
+            <p className="text-xs text-gray-500">Pilih langsung jumlah item sebelum masuk cart atau checkout.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+              className="h-9 w-9 rounded-lg bg-purple-700/40 text-lg hover:bg-purple-600 disabled:opacity-40"
+              disabled={adding || buying || quantity <= 1}
+            >
+              −
+            </button>
+            <input
+              type="number"
+              min={1}
+              max={maxQty}
+              value={quantity}
+              onChange={(e) => {
+                const next = Number(e.target.value || 1);
+                setQuantity(Math.max(1, Math.min(maxQty, next || 1)));
+              }}
+              className="w-20 rounded-lg border border-purple-700 bg-black px-3 py-2 text-center"
+            />
+            <button
+              type="button"
+              onClick={() => setQuantity((prev) => Math.min(maxQty, prev + 1))}
+              className="h-9 w-9 rounded-lg bg-purple-700/40 text-lg hover:bg-purple-600 disabled:opacity-40"
+              disabled={adding || buying || quantity >= maxQty}
+            >
+              +
+            </button>
+          </div>
+        </div>
+
         <div className="mb-2 flex items-center justify-between text-sm">
           <span>Stok Tersedia</span>
           <span>{stockValue}</span>
@@ -241,6 +289,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
           {adding ? "Menambahkan..." : "Masukkan Ke Keranjang"}
         </button>
       </div>
+      {toastMessage ? <Toast message={toastMessage} /> : null}
     </section>
   );
 }

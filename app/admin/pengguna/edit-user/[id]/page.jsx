@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
 import { useParams } from "next/navigation"
@@ -13,6 +13,8 @@ export default function EditUserPage() {
 
   const [form, setForm] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
     if (!id) return
@@ -41,21 +43,29 @@ export default function EditUserPage() {
     fetchUser()
   }, [id, API])
 
+
+  const isSocialAccount = useMemo(() => {
+    const provider = String(form?.provider || "").trim().toLowerCase()
+    return provider.length > 0 && provider !== "manual" && provider !== "email"
+  }, [form])
+
   function handleChange(e) {
     const { name, value } = e.target
+    if (name === "email" && isSocialAccount) return
     setForm(prev => ({ ...prev, [name]: value }))
   }
 
   async function handleUpdate() {
     try {
+      setSubmitting(true)
+      setErrorMessage("")
+
       const token = Cookies.get("token")
       if (!token) throw new Error("Token tidak ditemukan")
 
       const payload = { ...form }
-
-      if (payload.role === "admin") {
-        delete payload.tier
-      }
+      if (payload.role === "admin") delete payload.tier
+      if (isSocialAccount) delete payload.email
 
       const res = await fetch(`${API}/api/v1/admin/users/${id}`, {
         method: "PATCH",
@@ -64,18 +74,27 @@ export default function EditUserPage() {
           "Accept": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(form)
+        body: JSON.stringify(payload)
       })
 
+      const result = await res.json().catch(() => ({}))
+
       if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text)
+        const message =
+          result?.message ||
+          result?.errors?.email?.[0] ||
+          result?.errors?.role?.[0] ||
+          result?.errors?.name?.[0] ||
+          "Gagal update user"
+        setErrorMessage(message)
+        throw new Error(message)
       }
 
       router.push("/admin/pengguna")
     } catch (err) {
-      alert("Gagal update user")
       console.error("UPDATE USER ERROR:", err)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -102,13 +121,19 @@ export default function EditUserPage() {
 
           <div className="text-sm">
             <p className="text-white font-semibold">{form.name}</p>
-            <p className="text-gray-400 text-xs">{form.email}</p>
+            <p className="text-gray-400 text-xs">{form.email}{form?.provider ? ` • ${String(form.provider).toUpperCase()}` : ""}</p>
           </div>
         </div>
       </div>
 
       {/* CARD */}
       <div className="rounded-2xl border border-purple-700/60 bg-black backdrop-blur p-8 shadow-[0_0_25px_rgba(168,85,247,0.25)]">
+
+        {errorMessage ? (
+          <div className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {errorMessage}
+          </div>
+        ) : null}
 
         {/* ACCOUNT INFO */}
         <div className="mb-8">
@@ -125,7 +150,11 @@ export default function EditUserPage() {
                 name="email"
                 value={form.email || ""}
                 onChange={handleChange}
+                disabled={isSocialAccount}
               />
+              {isSocialAccount ? (
+                <p className="mt-1 text-xs text-amber-300">Email akun social login tidak dapat diubah dari manajemen user.</p>
+              ) : null}
             </div>
 
             <div>
@@ -242,9 +271,10 @@ export default function EditUserPage() {
 
           <button
             onClick={handleUpdate}
-            className="px-7 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition shadow-[0_0_15px_rgba(168,85,247,0.6)]"
+            disabled={submitting}
+            className="px-7 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition shadow-[0_0_15px_rgba(168,85,247,0.6)] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Simpan Perubahan
+            {submitting ? "Menyimpan..." : "Simpan Perubahan"}
           </button>
 
         </div>

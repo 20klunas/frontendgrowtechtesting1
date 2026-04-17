@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authFetch } from "../../../../../lib/authFetch";
 import { clearCheckoutBootstrapCache, writeCheckoutBootstrapCache } from "../../../../../lib/clientBootstrap";
+import Toast from "../../../../../components/ui/Toast";
 import useCheckoutAccess from "../../../../../hooks/useCheckoutAccess";
 import { normalizeCartPayload } from "./cartApi";
 import { CUSTOMER_CART_REFRESH_EVENT, notifyCustomerCartChanged } from "../../../../../lib/customerCartEvents";
@@ -48,6 +49,7 @@ const CartItemRow = memo(function CartItemRow({
   onIncrease,
   onDecrease,
   onRemove,
+  onInputQty,
 }) {
   const product = item.product;
   const unitPrice = item.unit_price || 0;
@@ -95,7 +97,15 @@ const CartItemRow = memo(function CartItemRow({
             −
           </button>
 
-          <span className="text-sm w-6 text-center">{qty}</span>
+          <input
+            type="number"
+            min={1}
+            max={Math.max(1, stock)}
+            value={qty}
+            onChange={(e) => onInputQty?.(e.target.value)}
+            disabled={busy}
+            className="w-16 rounded bg-transparent border border-purple-700 px-2 py-1 text-center text-sm"
+          />
 
           <button
             onClick={onIncrease}
@@ -149,6 +159,7 @@ function UnauthorizedState() {
       >
         Login Sekarang
       </Link>
+      {toastMessage ? <Toast message={toastMessage} /> : null}
     </main>
   );
 }
@@ -180,8 +191,15 @@ export default function CartClient({ initialItems, initialSummary }) {
   const [voucher, setVoucher] = useState("");
   const [voucherValid, setVoucherValid] = useState(null);
   const [busyItemId, setBusyItemId] = useState(null);
+  const [toastMessage, setToastMessage] = useState("");
 
   const { loading: accessLoading, allowed, message } = useCheckoutAccess();
+  const showToast = useCallback((message) => {
+    setToastMessage(message);
+    window.clearTimeout(window.__gtCartToastTimer);
+    window.__gtCartToastTimer = window.setTimeout(() => setToastMessage(""), 2200);
+  }, []);
+
 
   const debounceRef = useRef(null);
   const previewRequestIdRef = useRef(0);
@@ -520,6 +538,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       });
 
       if (json?.success && Array.isArray(json?.data?.items)) {
+        showToast("Item berhasil dihapus dari keranjang");
         applyNormalizedCart({ items: json.data.items, summary: json.data.summary || buildFallbackSummary(json.data.items) });
         notifyCustomerCartChanged({
           type: "server-snapshot",
@@ -534,7 +553,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       notifyCustomerCartChanged({ type: "refresh" });
 
       if (!markUnauthorizedIfNeeded(error)) {
-        alert(error?.message || "Gagal update qty");
+        showToast(error?.message || "Gagal update qty");
       }
     } finally {
       setBusyItemId(null);
@@ -561,6 +580,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       });
 
       if (json?.success && Array.isArray(json?.data?.items)) {
+        showToast("Jumlah item di keranjang berhasil diperbarui");
         applyNormalizedCart({ items: json.data.items, summary: json.data.summary || buildFallbackSummary(json.data.items) });
         notifyCustomerCartChanged({
           type: "server-snapshot",
@@ -575,7 +595,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       notifyCustomerCartChanged({ type: "refresh" });
 
       if (!markUnauthorizedIfNeeded(error)) {
-        alert(error?.message || "Gagal hapus item");
+        showToast(error?.message || "Gagal hapus item");
       }
     } finally {
       setBusyItemId(null);
@@ -632,6 +652,7 @@ export default function CartClient({ initialItems, initialSummary }) {
                 onDecrease={() => updateQty(item.id, (item.qty || 1) - 1)}
                 onIncrease={() => updateQty(item.id, (item.qty || 1) + 1)}
                 onRemove={() => removeItem(item.id)}
+                onInputQty={(value) => updateQty(item.id, Number(value || 1))}
               />
             ))
           )}
@@ -842,6 +863,7 @@ export default function CartClient({ initialItems, initialSummary }) {
           }
         }
       `}</style>
+      {toastMessage ? <Toast message={toastMessage} /> : null}
     </main>
   );
 }

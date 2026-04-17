@@ -116,7 +116,7 @@ function PaymentPage() {
       }
     }
 
-    getCheckoutBootstrap({ force: !cachedCheckout }).then((res) => {
+    getCheckoutBootstrap({ force: true }).then((res) => {
       if (!active) return
 
       const data = res?.data || {}
@@ -176,8 +176,17 @@ function PaymentPage() {
     setProcessing(true)
 
     try {
-      const orderId = checkout?.order?.id
-      if (!orderId) throw new Error("Order tidak valid")
+      let orderId = checkout?.order?.id
+      if (!orderId) {
+        clearCheckoutBootstrapCache()
+        const refreshed = await getCheckoutBootstrap({ force: true })
+        const refreshedCheckout = refreshed?.data?.checkout || null
+        if (refreshedCheckout) {
+          setCheckout(refreshedCheckout)
+        }
+        orderId = refreshedCheckout?.order?.id
+      }
+      if (!orderId) throw new Error("Order tidak valid. Silakan ulangi checkout dari halaman keranjang atau beli sekarang.")
 
       const json = await authFetch(`/api/v1/orders/${orderId}/payments`, {
         method: "POST",
