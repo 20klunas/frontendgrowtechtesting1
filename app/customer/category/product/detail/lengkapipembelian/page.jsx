@@ -34,7 +34,6 @@ export default function StepTwo() {
     const cached = readCheckoutBootstrapCache();
     const cachedCheckout = cached?.checkout || null;
     const cachedWallet = cached?.wallet || null;
-    const hasDirectOrderCheckout = Boolean(cachedCheckout?.order?.id);
 
     if (cachedCheckout) {
       setCheckout(cachedCheckout);
@@ -44,13 +43,7 @@ export default function StepTwo() {
       setLoading(false);
     }
 
-    if (hasDirectOrderCheckout) {
-      return () => {
-        active = false;
-      };
-    }
-
-    getCheckoutBootstrap({ force: !cachedCheckout }).then((json) => {
+    getCheckoutBootstrap({ force: true }).then((json) => {
       if (!active) return;
 
       const checkoutData = json?.data?.checkout || null;

@@ -18,6 +18,7 @@ import { useAuth } from "../../../hooks/useAuth"
 import useCatalogAccess from "../../../hooks/useCatalogAccess"
 import { notifyFavoriteChanged } from "../../../lib/favoriteEvents"
 import { clearCheckoutBootstrapCache, writeCheckoutBootstrapCache } from "../../../lib/clientBootstrap"
+import Toast from "../../../components/ui/Toast"
 
 const ITEMS_PER_PAGE = 6
 const FAVORITE_IDS_TTL = 2 * 60 * 1000
@@ -189,6 +190,7 @@ export default function CustomerProductContent({
 
   const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null)
+  const [toastMessage, setToastMessage] = useState("")
 
   const [currentPage, setCurrentPage] = useState(Math.max(1, Number(initialPage || 1)))
   const [pagination, setPagination] = useState(
@@ -438,6 +440,12 @@ export default function CustomerProductContent({
     }
   }, [userTier])
 
+  const showToast = (message) => {
+    setToastMessage(message)
+    window.clearTimeout(window.__gtCatalogToastTimer)
+    window.__gtCatalogToastTimer = window.setTimeout(() => setToastMessage(""), 2200)
+  }
+
   const updateFavoriteState = (updater) => {
     setFavoriteIds((prev) => {
       const next = updater(new Set(prev))
@@ -491,6 +499,10 @@ export default function CustomerProductContent({
       }
 
       notifyFavoriteChanged({ skipServerSync: false })
+      const productName = products.find((item) => Number(item?.id) === Number(productId))?.name || "Produk"
+      showToast(isFav
+        ? `${productName} telah dihapus dari produk favorit`
+        : `${productName} telah ditambahkan ke produk favorit`)
     } catch (err) {
       console.error("toggleFavorite error:", err)
 
@@ -506,7 +518,7 @@ export default function CustomerProductContent({
         skipServerSync: true,
       })
 
-      alert(err.message || "Gagal memperbarui favorite")
+      showToast(err.message || "Gagal memperbarui favorite")
     } finally {
       setFavoriteLoadingId(null)
     }
@@ -623,7 +635,9 @@ export default function CustomerProductContent({
   }
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 pb-12 pt-6 text-white sm:px-6 lg:px-8">
+    <>
+      {toastMessage ? <Toast message={toastMessage} /> : null}
+      <section className="mx-auto w-full max-w-7xl px-4 pb-12 pt-6 text-white sm:px-6 lg:px-8">
       <div className="mb-8 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <motion.div
           initial={{ opacity: 0, y: 14 }}
@@ -869,5 +883,6 @@ export default function CustomerProductContent({
         </div>
       )}
     </section>
+    </>
   )
 }

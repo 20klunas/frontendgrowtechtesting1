@@ -348,14 +348,20 @@ export default function ReferralPage() {
 
   /* ================= COPY ================= */
 
-  function copy(text) {
+  async function copy(text, successText = "Berhasil disalin") {
 
-    navigator.clipboard.writeText(text)
-
-    setAttachMessage({
-      type: "success",
-      text: "Berhasil disalin"
-    })
+    try {
+      await navigator.clipboard.writeText(text)
+      setAttachMessage({
+        type: "success",
+        text: successText
+      })
+    } catch (err) {
+      setAttachMessage({
+        type: "error",
+        text: err?.message || "Gagal menyalin"
+      })
+    }
 
   }
 
@@ -555,7 +561,7 @@ export default function ReferralPage() {
             />
 
             <button
-              onClick={() => copy(referralCode)}
+              onClick={() => copy(referralCode, "Kode referral berhasil disalin") }
               className="
               flex items-center justify-center gap-2
               px-4 py-2
@@ -599,7 +605,7 @@ export default function ReferralPage() {
             />
 
             <button
-              onClick={()=>copy(referralLink)}
+              onClick={()=>copy(referralLink, "Link referral berhasil disalin")}
               className="
               flex items-center justify-center gap-2
               border border-purple-700

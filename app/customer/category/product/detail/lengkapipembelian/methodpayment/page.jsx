@@ -96,7 +96,6 @@ function PaymentPage() {
 
     const cached = readCheckoutBootstrapCache()
     const cachedCheckout = cached?.checkout || null
-    const hasDirectOrderCheckout = Boolean(cachedCheckout?.order?.id)
 
     if (cached) {
       setCheckout(cachedCheckout)
@@ -111,12 +110,6 @@ function PaymentPage() {
       setSelectedGateway(firstGateway?.code || "wallet")
 
       setLoading(false)
-    }
-
-    if (hasDirectOrderCheckout) {
-      return () => {
-        active = false
-      }
     }
 
     getCheckoutBootstrap({ force: true }).then((res) => {
