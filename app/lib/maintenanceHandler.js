@@ -77,14 +77,22 @@ export function handleMaintenance(res, data) {
     typeof window !== "undefined" &&
     isRedirectMaintenanceKey(meta.key)
   ) {
-    const pathname = window.location.pathname;
+    const pathname = window.location.pathname || "";
+    const target = buildMaintenanceRedirectUrl(meta);
 
-    // 🔥 WHITELIST AUTH ROUTES
-    if (meta.key === "public_access" && AUTH_ROUTES.includes(pathname)) {
-      return; // jangan redirect
+    if (pathname.startsWith("/maintenance")) {
+      throw err;
     }
 
-    window.location.replace(buildMaintenanceRedirectUrl(meta));
+    // auth tetap boleh dibuka saat public maintenance
+    if (meta.key === "public_access" && AUTH_ROUTES.includes(pathname)) {
+      throw err;
+    }
+
+    const current = `${pathname}${window.location.search || ""}`;
+    if (current !== target) {
+      window.location.replace(target);
+    }
   }
 
   throw err;

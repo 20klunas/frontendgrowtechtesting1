@@ -37,7 +37,7 @@ export const getWebsiteSettingsServer = cache(async () => {
   try {
     const res = await fetch(buildApiUrl('/api/v1/content/settings?group=website'), {
       headers: { Accept: 'application/json' },
-      next: { revalidate: 300 },
+      cache: 'no-store',
       signal: controller.signal,
     })
 

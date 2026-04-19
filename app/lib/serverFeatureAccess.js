@@ -2,12 +2,9 @@ import { DEFAULT_MAINTENANCE_STATE, normalizeFeatureAccess } from "./featureAcce
 import { serverFetchJson } from "./serverApi"
 
 export async function getServerFeatureAccess(options = {}) {
-  const { revalidate = 30 } = options
-
   try {
     const payload = await serverFetchJson("/api/v1/content/feature-access", {
-      cache: "force-cache",
-      revalidate,
+      cache: "no-store",
     })
 
     return normalizeFeatureAccess(payload?.data || {})

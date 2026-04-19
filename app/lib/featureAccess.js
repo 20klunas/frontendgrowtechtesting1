@@ -9,6 +9,8 @@ export const DEFAULT_MAINTENANCE_STATE = {
   topupMessage: "",
   userAuthDisabled: false,
   userAuthMessage: "",
+  userAreaDisabled: false,
+  userAreaMessage: "",
 }
 
 function normalizeFeatureNode(node, fallbackMessage) {
@@ -25,6 +27,10 @@ export function normalizeFeatureAccess(payload = {}) {
   const publicAccess = normalizeFeatureNode(
     payload?.public_access,
     "Halaman publik sedang maintenance."
+  )
+  const userArea = normalizeFeatureNode(
+    payload?.user_area_access,
+    "Area user sedang maintenance."
   )
   const catalog = normalizeFeatureNode(
     payload?.catalog_access,
@@ -54,5 +60,7 @@ export function normalizeFeatureAccess(payload = {}) {
     topupMessage: topup.message,
     userAuthDisabled: userAuth.disabled,
     userAuthMessage: userAuth.message,
+    userAreaDisabled: userArea.disabled,
+    userAreaMessage: userArea.message,
   }
 }

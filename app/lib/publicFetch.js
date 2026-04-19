@@ -22,11 +22,16 @@ function resolveCacheMode(url, explicitCache, method = "GET") {
     return "no-store"
   }
 
+  if (
+    /\/api\/v1\/content\/settings\b/.test(path) ||
+    /\/api\/v1\/content\/feature-access\b/.test(path)
+  ) {
+    return "no-store"
+  }
+
   const cacheablePatterns = [
     /\/api\/v1\/products\b/,
     /\/api\/v1\/catalog\/products\b/,
-    /\/api\/v1\/content\/settings\b/,
-    /\/api\/v1\/content\/feature-access\b/,
     /\/api\/v1\/content\/banners?\b/,
     /\/api\/v1\/content\/popups?\b/,
     /\/api\/v1\/content\/faqs?\b/,
@@ -47,6 +52,13 @@ function shouldUseMemoryCache(url, method = "GET") {
   const safeMethod = normalizeMethod(method)
 
   if (safeMethod !== "GET") return false
+
+  if (
+    /\/api\/v1\/content\/settings\b/.test(path) ||
+    /\/api\/v1\/content\/feature-access\b/.test(path)
+  ) {
+    return false
+  }
 
   return [
     /\/api\/v1\/products\b/,

@@ -86,12 +86,14 @@ export function MaintenanceProvider({ children, initialState = null }) {
     if (initialState) {
       applyState(initialState)
       setLoading(false)
+      hydrate({ force: true })
       return
     }
 
     if (accessCache) {
       applyState(accessCache)
       setLoading(false)
+      hydrate({ force: true })
       return
     }
 
