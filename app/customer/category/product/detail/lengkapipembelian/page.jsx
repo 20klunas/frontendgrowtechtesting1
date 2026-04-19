@@ -148,14 +148,14 @@ export default function StepTwo() {
         <p className="text-sm text-gray-400 mb-4">Produk Yang Dipilih</p>
 
         <div className="flex items-center gap-4">
-          <div className="relative h-16 w-16 rounded-xl overflow-hidden border border-purple-700">
+          {/* <div className="relative h-16 w-16 rounded-xl overflow-hidden border border-purple-700">
             <Image
               src={productImage}
               fill
               alt={product?.name || "Produk"}
               className="object-cover"
             />
-          </div>
+          </div> */}
 
           <div className="flex-1">
             <p className="font-medium">{product?.name}</p>

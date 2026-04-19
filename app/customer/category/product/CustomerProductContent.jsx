@@ -212,6 +212,7 @@ export default function CustomerProductContent({
   const skipFirstClientFetchRef = useRef(Array.isArray(initialProducts))
   const detailPrefetchedIdsRef = useRef(new Set())
   const actionLockRef = useRef(false)
+  const [submittingQty, setSubmittingQty] = useState(false)
 
   const resolvedSubcategory =
     subcategoryInfo || visibleProducts?.[0]?.subcategory || null
@@ -530,7 +531,14 @@ export default function CustomerProductContent({
     return false
   }
 
-  const buyNow = async (productId) => {
+  const [qtyModal, setQtyModal] = useState({
+    open: false,
+    product: null,
+    type: null, // "cart" | "buy"
+    qty: 1,
+  })
+
+  const buyNow = async (productId, qty = 1) => {
     if (actionLockRef.current) return
 
     const product = products.find((item) => item.id === productId)
@@ -538,6 +546,13 @@ export default function CustomerProductContent({
       alert("Stok habis")
       return
     }
+
+    const safeQty = Math.min(
+      Math.max(1, Number(qty) || 1),
+      product.available_stock || 1
+    )
+
+    if (!Number.isFinite(safeQty)) return
 
     if (!ensureAuthenticated()) return
 
@@ -553,7 +568,7 @@ export default function CustomerProductContent({
           method: "POST",
           body: JSON.stringify({
             product_id: productId,
-            qty: 1,
+            qty: safeQty,
             voucher_code: null,
           }),
         },
@@ -575,7 +590,7 @@ export default function CustomerProductContent({
     }
   }
 
-  const addToCart = async (productId) => {
+  const addToCart = async (productId, qty = 1) => {
     if (actionLockRef.current) return
 
     const product = products.find((item) => item.id === productId)
@@ -583,6 +598,12 @@ export default function CustomerProductContent({
       alert("Stok habis")
       return
     }
+    const safeQty = Math.min(
+      Math.max(1, Number(qty) || 1),
+      product.available_stock || 1
+    )
+
+    if (!Number.isFinite(safeQty)) return
 
     if (!ensureAuthenticated()) return
 
@@ -594,7 +615,10 @@ export default function CustomerProductContent({
         "/api/v1/cart/items",
         {
           method: "POST",
-          body: JSON.stringify({ product_id: productId, qty: 1 }),
+          body: JSON.stringify({
+            product_id: productId,
+            qty: safeQty
+          })
         },
         { auth: true }
       )
@@ -633,6 +657,27 @@ export default function CustomerProductContent({
     } finally {
       actionLockRef.current = false
       setAddingId(null)
+    }
+  }
+
+  const handleSubmitQty = async () => {
+    if (submittingQty) return
+
+    setSubmittingQty(true)
+
+    try {
+      const { product, qty, type } = qtyModal
+      if (!product) return
+
+      setQtyModal((prev) => ({ ...prev, open: false }))
+
+      if (type === "cart") {
+        await addToCart(product.id, qty)
+      } else {
+        await buyNow(product.id, qty)
+      }
+    } finally {
+      setSubmittingQty(false)
     }
   }
 
@@ -834,7 +879,15 @@ export default function CustomerProductContent({
 
                   <div className="mt-3 flex items-center gap-3">
                     <button
-                      onClick={() => buyNow(product.id)}
+                      // onClick={() => buyNow(product.id)}
+                      onClick={() => {
+                        setQtyModal({
+                          open: true,
+                          product,
+                          type: "buy",
+                          qty: 1,
+                        })
+                      }}
                       disabled={isBuying || isAdding || isOutOfStock}
                       className="flex-1 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 py-3 text-sm font-bold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -842,7 +895,15 @@ export default function CustomerProductContent({
                     </button>
 
                     <button
-                      onClick={() => addToCart(product.id)}
+                      // onClick={() => addToCart(product.id)}
+                      onClick={() => {
+                        setQtyModal({
+                          open: true,
+                          product,
+                          type: "cart",
+                          qty: 1,
+                        })
+                      }}
                       disabled={isAdding || isBuying || isOutOfStock}
                       aria-label="Tambah ke keranjang"
                       className="inline-flex h-[50px] w-[50px] items-center justify-center rounded-xl border border-fuchsia-600/70 bg-transparent text-white transition hover:bg-fuchsia-600/10 disabled:cursor-not-allowed disabled:opacity-60"
@@ -885,6 +946,106 @@ export default function CustomerProductContent({
         </div>
       )}
     </section>
+    {qtyModal.open && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+        onClick={() =>
+          setQtyModal((prev) => ({ ...prev, open: false }))
+        }
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="bg-[#0f0f0f] border border-fuchsia-700 rounded-2xl p-6 w-[320px] text-white"
+        >
+          
+          <h2 className="text-lg font-bold mb-4">
+            Pilih Jumlah
+          </h2>
+
+          <p className="text-sm mb-2">
+            {qtyModal.product?.name}
+          </p>
+          <p className="text-xs text-gray-400">
+            Stock: {qtyModal.product?.available_stock}
+          </p>
+
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <button
+              onClick={() =>
+                setQtyModal((prev) => ({
+                  ...prev,
+                  qty: Math.max(1, prev.qty - 1)
+                }))
+              }
+              className="px-3 py-1 bg-purple-700 rounded"
+            >
+              −
+            </button>
+
+            <input
+              autoFocus
+              type="number"
+              min={1}
+              max={qtyModal.product?.available_stock || 1}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSubmitQty()
+              }}
+              value={qtyModal.qty}
+              onChange={(e) => {
+                const value = Math.max(
+                  1,
+                  Math.min(
+                    Number(e.target.value) || 1,
+                    qtyModal.product?.available_stock || 1
+                  )
+                )
+
+                setQtyModal((prev) => ({
+                  ...prev,
+                  qty: value,
+                }))
+              }}
+              className="w-16 text-center bg-transparent border border-purple-700 rounded"
+            />
+
+            <button
+              onClick={() =>
+                setQtyModal((prev) => ({
+                  ...prev,
+                  qty: Math.min(
+                    prev.qty + 1,
+                    prev.product?.available_stock || 1
+                  )
+                }))
+              }
+              className="px-3 py-1 bg-purple-700 rounded"
+            >
+              +
+            </button>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setQtyModal((prev) => ({
+                ...prev,
+                open: false,
+              }))}
+              className="flex-1 border border-gray-600 rounded py-2"
+            >
+              Batal
+            </button>
+
+            <button
+              onClick={handleSubmitQty}
+              disabled={submittingQty}
+              className="flex-1 bg-fuchsia-600 rounded py-2 disabled:opacity-50"
+            >
+              {submittingQty ? "Memproses..." : "Lanjut"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   )
 }

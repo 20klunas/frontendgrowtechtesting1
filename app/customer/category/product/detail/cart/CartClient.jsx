@@ -57,6 +57,11 @@ const CartItemRow = memo(function CartItemRow({
   const qty = item.qty || 1;
   const stock = item.stock_available ?? 0;
   const lineSubtotal = item.line_subtotal || unitPrice * qty;
+  const [localQty, setLocalQty] = useState(qty)
+
+  useEffect(() => {
+    setLocalQty(qty)
+  }, [qty])
 
   return (
     <div className="rounded-2xl border border-purple-700 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 transition-all duration-300 hover:border-purple-500 hover:shadow-[0_0_25px_rgba(168,85,247,0.25)] hover:scale-[1.01]">
@@ -102,10 +107,24 @@ const CartItemRow = memo(function CartItemRow({
             type="number"
             min={1}
             max={Math.max(1, stock)}
-            value={qty}
-            onChange={(e) => onInputQty?.(e.target.value)}
+            value={localQty}
+            onChange={(e) => setLocalQty(e.target.value)}
+            onBlur={() => {
+              const parsed = Math.max(1, Math.min(stock, Number(localQty) || 1))
+              if (parsed !== qty) {
+                onInputQty?.(parsed)
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const parsed = Math.max(1, Math.min(stock, Number(localQty) || 1))
+                if (parsed !== qty) {
+                  onInputQty?.(parsed)
+                }
+              }
+            }}
             disabled={busy}
-            className="w-16 rounded bg-transparent border border-purple-700 px-2 py-1 text-center text-sm"
+            className="w-20 rounded bg-transparent border border-purple-700 px-2 py-1 text-center text-sm"
           />
 
           <button
@@ -689,13 +708,13 @@ export default function CartClient({ initialItems, initialSummary }) {
 
             {voucher.trim() && voucherValid === true && (
               <p className="text-green-400 text-xs mt-2 animate-fade-in">
-                ✔ Voucher valid (preview)
+                Voucher valid (preview)
               </p>
             )}
 
             {voucher.trim() && voucherValid === false && (
               <p className="text-red-400 text-xs mt-2 animate-fade-in">
-                ✖ Voucher tidak valid
+                Voucher tidak valid
               </p>
             )}
           </div>
