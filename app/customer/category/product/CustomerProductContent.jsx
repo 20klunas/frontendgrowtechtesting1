@@ -610,6 +610,8 @@ export default function CustomerProductContent({
       } else {
         notifyCustomerCartChanged({ type: "refresh" })
       }
+      const productName = product?.name || "Produk"
+      showToast(`${productName} berhasil ditambahkan ke keranjang`)
     } catch (err) {
       console.error("addToCart:", err)
 

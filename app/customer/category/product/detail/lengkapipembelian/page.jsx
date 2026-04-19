@@ -9,13 +9,16 @@ import { getCheckoutBootstrap, readCheckoutBootstrapCache } from "../../../../..
 import { useCustomerNavbar } from "../../../../../context/CustomerNavbarContext"
 
 function resolveProductImage(item) {
+  const product = item?.product || {}
+
   return (
-    item?.product?.image_url ||
-    item?.product?.image ||
-    item?.product?.thumbnail_url ||
-    item?.product?.thumbnail ||
-    item?.product?.subcategory?.image_url ||
-    item?.product?.subcategory?.image ||
+    product?.image_url ||
+    product?.image ||
+    product?.thumbnail_url ||
+    product?.thumbnail ||
+    product?.subcategory?.image_url ||
+    product?.subcategory?.image ||
+    item?.image_url || 
     "/logogrowtech.png"
   )
 }
