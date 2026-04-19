@@ -32,6 +32,12 @@ export function mapWallet(payload) {
   return payload?.data?.wallet ?? null
 }
 
+export function mapTopupRows(payload) {
+  if (Array.isArray(payload?.data)) return payload.data
+  if (Array.isArray(payload?.data?.data)) return payload.data.data
+  return []
+}
+
 async function safeJson(response) {
   try {
     return await response.json()
@@ -165,4 +171,27 @@ export async function initTopUp(token, { amount, gatewayCode }, init = {}) {
   }
 
   return data?.data ?? {}
+}
+
+
+export async function fetchWalletTopupHistory(token, init = {}) {
+  if (!API_BASE_URL || !token) return []
+
+  try {
+    const response = await fetch(buildApiUrl('/api/v1/wallet/topups'), {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(init.headers || {}),
+      },
+      cache: 'no-store',
+    })
+
+    const data = await safeJson(response)
+    if (!response.ok || !data?.success) return []
+    return mapTopupRows(data)
+  } catch {
+    return []
+  }
 }

@@ -4,10 +4,11 @@ import { Suspense, useEffect, useRef, useState, useMemo } from "react";
 import { CheckCircle, Eye, Lock, FileText, Download, Copy } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { authFetch } from "../../../../../../../lib/authFetch";
+import { authFetch, invalidateAuthFetchCache } from "../../../../../../../lib/authFetch";
 import { clearCheckoutBootstrapCache, readCheckoutBootstrapCache } from "../../../../../../../lib/clientBootstrap";
 import { notifyCustomerCartChanged } from "../../../../../../../lib/customerCartEvents";
 import confetti from "canvas-confetti";
+import { invalidateFetcherCache } from "../../../../../../../lib/fetcher";
 
 const DEFAULT_VIEW_DURATION = 30; // detik one-time view
 
@@ -31,8 +32,11 @@ function SuccessContent() {
     hasFetched.current = true;
     clearCheckoutBootstrapCache();
     notifyCustomerCartChanged();
+    invalidateAuthFetchCache([/\/api\/v1\/products\b/, /\/api\/v1\/catalog\//, /\/api\/v1\/categories\b/, /\/api\/v1\/subcategories\b/, /\/api\/v1\/bootstrap\/customer-home\b/]);
+    invalidateFetcherCache(["/api/v1/products", "/api/v1/catalog", "/api/v1/categories", "/api/v1/subcategories", "/api/v1/bootstrap/customer-home"]);
 
     fetchAll();
+    router.refresh();
     triggerConfetti();
   }, [orderId]);
   const timerRef = useRef(null);

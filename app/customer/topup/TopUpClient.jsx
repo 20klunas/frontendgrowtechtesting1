@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import useTopUpAccess from "../../hooks/useTopUpAccess";
 import {
   fetchAvailableGateways,
-  fetchWalletLedger,
+  fetchWalletTopupHistory,
   fetchWalletSummary,
   initTopUp,
 } from "./topupApi";
@@ -131,7 +131,7 @@ export default function TopUpClient({
 
     const [walletResult, historyResult] = await Promise.allSettled([
       fetchWalletSummary(initialToken),
-      fetchWalletLedger(initialToken),
+      fetchWalletTopupHistory(initialToken),
     ]);
 
     if (walletResult.status === "fulfilled" && walletResult.value) {
@@ -440,16 +440,18 @@ export default function TopUpClient({
                   <tr key={row.id ?? `${row.created_at}-${index}`} className="border-b border-purple-800/40">
                     <td className="py-3">{index + 1}</td>
                     <td>{formatRupiah(row.amount || 0)}</td>
-                    <td>{row.type || "-"}</td>
-                    <td>{formatDateTime(row.created_at)}</td>
+                    <td>{row.gateway_code || row.gateway || row.method || "-"}</td>
+                    <td>{formatDateTime(row.paid_at || row.created_at)}</td>
                     <td
                       className={
-                        row.direction === "CREDIT"
+                        String(row.status || "").toLowerCase() === "paid" || String(row.status || "").toLowerCase() === "success"
                           ? "text-green-400"
+                          : String(row.status || "").toLowerCase() === "pending"
+                          ? "text-yellow-400"
                           : "text-red-400"
                       }
                     >
-                      {row.direction || "-"}
+                      {row.status || "-"}
                     </td>
                   </tr>
                 ))

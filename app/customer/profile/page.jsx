@@ -525,19 +525,31 @@ export default function ProfilePage() {
                 ))}
               </select>
 
-              <input
+              <div className="space-y-1">
+                <label className="text-xs text-purple-300">Dari tanggal</label>
+                <input
                 type="date"
-                className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white"
+                lang="id-ID"
+                title="Dari tanggal"
+                placeholder="hh/bb/tttt"
+                className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white w-full"
                 value={historyFilters.date_from}
                 onChange={(e) => setHistoryFilters((prev) => ({ ...prev, date_from: e.target.value }))}
               />
+              </div>
 
-              <input
+              <div className="space-y-1">
+                <label className="text-xs text-purple-300">Sampai tanggal</label>
+                <input
                 type="date"
-                className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white"
+                lang="id-ID"
+                title="Sampai tanggal"
+                placeholder="hh/bb/tttt"
+                className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white w-full"
                 value={historyFilters.date_to}
                 onChange={(e) => setHistoryFilters((prev) => ({ ...prev, date_to: e.target.value }))}
               />
+              </div>
 
               <input
                 className="rounded-xl bg-black border border-purple-700/50 px-4 py-3 text-white placeholder:text-gray-500"

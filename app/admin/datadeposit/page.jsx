@@ -76,7 +76,7 @@ export default function DataDepositPage() {
     { value: "OTHER", label: "Lainnya" },
   ]
 
-  const [manualTopup, setManualTopup] = useState({ user_id: '', amount: '', reason: 'RESCUE_PAID_NOT_POSTED', reference: '', detail: '' })
+  const [manualTopup, setManualTopup] = useState({ user_id: '', amount: '', reason: 'Rescue topup (paid tapi saldo belum masuk)', reference: '', detail: '' })
   const [adjustForm, setAdjustForm] = useState({ user_id: '', direction: 'credit', amount: '', note: '' })
 
   const buildNote = (reason, reference, detail) => {
@@ -188,7 +188,7 @@ export default function DataDepositPage() {
       if (result.success) {
         clearCheckoutBootstrapCache()
         alert('Manual topup berhasil')
-        setManualTopup({ user_id: '', amount: '', reason: 'RESCUE_PAID_NOT_POSTED', reference: '', detail: '' })
+        setManualTopup({ user_id: '', amount: '', reason: 'Rescue topup (paid tapi saldo belum masuk)', reference: '', detail: '' })
         setUserSearch('')
         fetchLedger()
       }
@@ -326,9 +326,17 @@ export default function DataDepositPage() {
             <UserSearchSelect label="User" value={manualTopup.user_id} search={userSearch} onSearchChange={setUserSearch} users={users} onChange={(value) => setManualTopup({ ...manualTopup, user_id: value })} />
             {selectedManualUser ? <div className="text-sm text-gray-300">User terpilih: <span className="font-semibold text-white">{selectedManualUser.email}</span></div> : null}
             <input className="input w-full" type="number" placeholder="Amount" value={manualTopup.amount} onChange={(e) => setManualTopup({ ...manualTopup, amount: e.target.value })} required />
-            <select className="input w-full" value={manualTopup.reason} onChange={(e) => setManualTopup({ ...manualTopup, reason: e.target.value })}>
-              {REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-            </select>
+            <input
+              className="input w-full"
+              type="text"
+              placeholder="Alasan / Rescue topup"
+              value={manualTopup.reason}
+              onChange={(e) => setManualTopup({ ...manualTopup, reason: e.target.value })}
+              list="manual-topup-reason-suggestions"
+            />
+            <datalist id="manual-topup-reason-suggestions">
+              {REASONS.map((r) => <option key={r.value} value={r.label} />)}
+            </datalist>
             <input className="input w-full" placeholder="Reference (optional) contoh: topup_id=4 / order_id=TOPUP-123" value={manualTopup.reference} onChange={(e) => setManualTopup({ ...manualTopup, reference: e.target.value })} />
             <textarea className="input w-full" placeholder="Detail tambahan" rows={3} value={manualTopup.detail} onChange={(e) => setManualTopup({ ...manualTopup, detail: e.target.value })} />
             <div className="text-sm bg-gray-50 p-3 rounded"><div className="font-semibold text-black">Preview note:</div><div className="font-mono text-gray-700">{buildNote(manualTopup.reason, manualTopup.reference, manualTopup.detail) || '-'}</div></div>

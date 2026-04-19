@@ -2,7 +2,7 @@ import { cookies } from "next/headers"
 import TopUpClient from "./TopUpClient"
 import {
   fetchAvailableGateways,
-  fetchWalletLedger,
+  fetchWalletTopupHistory,
   fetchWalletSummary,
 } from "./topupApi"
 
@@ -15,7 +15,7 @@ export default async function TopUpPage() {
   const [gatewaysResult, walletResult, historyResult] = await Promise.allSettled([
     fetchAvailableGateways({ revalidate: 300 }),
     fetchWalletSummary(token),
-    fetchWalletLedger(token),
+    fetchWalletTopupHistory(token),
   ])
 
   const initialGateways =

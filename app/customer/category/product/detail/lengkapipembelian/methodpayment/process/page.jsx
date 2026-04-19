@@ -2,10 +2,11 @@
 
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { authFetch } from "../../../../../../../lib/authFetch";
+import { authFetch, invalidateAuthFetchCache } from "../../../../../../../lib/authFetch";
 import { clearCheckoutBootstrapCache } from "../../../../../../../lib/clientBootstrap";
 import { notifyCustomerCartChanged } from "../../../../../../../lib/customerCartEvents";
 import { Lock, CheckCircle, XCircle } from "lucide-react";
+import { invalidateFetcherCache } from "../../../../../../../lib/fetcher";
 
 function ProcessContent() {
   const router = useRouter();
@@ -48,6 +49,7 @@ function ProcessContent() {
         clearCheckoutBootstrapCache();
         notifyCustomerCartChanged();
 
+        router.refresh();
         router.replace(
           `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
         );
@@ -61,6 +63,7 @@ function ProcessContent() {
 
         redirectedRef.current = true;
 
+        router.refresh();
         router.replace(
           `/customer/category/product/detail/lengkapipembelian/methodpayment/failed?order=${orderId}`
         );
