@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -30,45 +30,60 @@ export default function StepTwo() {
   const { loading: accessLoading, allowed, message } = useCheckoutAccess()
   const router = useRouter()
   const { refreshCart: refreshNavbarCart } = useCustomerNavbar()
+  const syncCheckoutBootstrap = useCallback(async ({ force = true, showLoader = false } = {}) => {
+    if (showLoader) setLoading(true)
+
+    try {
+      const json = await getCheckoutBootstrap({ force })
+      const checkoutData = json?.data?.checkout || null
+      const walletData = json?.data?.wallet || null
+
+      setCheckout(checkoutData)
+      setWalletBalance(Number(walletData?.wallet?.balance ?? walletData?.balance ?? 0))
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     refreshNavbarCart({ force: true }).catch(() => {})
-    let active = true;
+    let active = true
 
-    const cached = readCheckoutBootstrapCache();
-    const cachedCheckout = cached?.checkout || null;
-    const cachedWallet = cached?.wallet || null;
+    const cached = readCheckoutBootstrapCache()
+    const cachedCheckout = cached?.checkout || null
+    const cachedWallet = cached?.wallet || null
 
     if (cachedCheckout) {
-      setCheckout(cachedCheckout);
-      setWalletBalance(
-        Number(cachedWallet?.wallet?.balance ?? cachedWallet?.balance ?? 0)
-      );
-      setLoading(false);
+      setCheckout(cachedCheckout)
+      setWalletBalance(Number(cachedWallet?.wallet?.balance ?? cachedWallet?.balance ?? 0))
+      setLoading(false)
     }
 
-    getCheckoutBootstrap({ force: true }).then((json) => {
-      if (!active) return;
+    syncCheckoutBootstrap({ force: true, showLoader: !cachedCheckout }).catch(() => {
+      if (!active) return
+      setLoading(false)
+    })
 
-      const checkoutData = json?.data?.checkout || null;
-      const walletData = json?.data?.wallet || null;
+    const resync = () => {
+      if (document.visibilityState !== 'visible') return
+      syncCheckoutBootstrap({ force: true, showLoader: false }).catch(() => {})
+      refreshNavbarCart({ force: true }).catch(() => {})
+    }
 
-      setCheckout(checkoutData);
-      setWalletBalance(
-        Number(walletData?.wallet?.balance ?? walletData?.balance ?? 0)
-      );
-      setLoading(false);
-    }).catch(() => {
-      if (!active) return;
-      setLoading(false);
-    });
+    const intervalId = window.setInterval(resync, 5000)
+    window.addEventListener('focus', resync)
+    document.addEventListener('visibilitychange', resync)
 
     return () => {
-      active = false;
-    };
-  }, []);
+      active = false
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', resync)
+      document.removeEventListener('visibilitychange', resync)
+    }
+  }, [refreshNavbarCart, syncCheckoutBootstrap])
 
   const handleGoPayment = async () => {
-    await getCheckoutBootstrap({ force: true }) // preload
+    await syncCheckoutBootstrap({ force: true, showLoader: false })
     router.push("/customer/category/product/detail/lengkapipembelian/methodpayment")
   }
 

@@ -381,7 +381,7 @@ export default function ProductForm({ mode, id }) {
             >
               <h3 className="mb-4 text-lg font-semibold text-white">{tier.label}</h3>
 
-              <Field label="Harga jual">
+              <Field label="Harga final">
                 <input
                   type="number"
                   min="0"
@@ -406,7 +406,7 @@ export default function ProductForm({ mode, id }) {
               </Field>
 
               <p className="mt-3 text-xs text-white/50">
-                Final harga katalog = harga jual + profit.
+                Harga final merupakan harga jual yang sudah termasuk profit. Profit dipakai untuk laporan internal/admin.
               </p>
             </div>
           ))}

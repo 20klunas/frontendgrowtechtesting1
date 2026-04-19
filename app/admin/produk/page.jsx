@@ -309,14 +309,10 @@ export default function ProdukPage() {
     return Number(String(value || "").replace(/\D/g, ""));
   };
 
-  const formatPriceWithProfit = (price, profit) => {
+  const formatPriceWithProfit = (price) => {
     const safePrice = Number(price || 0);
-    const safeProfit = Number(profit || 0);
-
     if (safePrice <= 0) return "-";
-    if (safeProfit <= 0) return `Rp ${formatRupiah(safePrice)}`;
-
-    return `Rp ${formatRupiah(safePrice)} (+${formatRupiah(safeProfit)})`;
+    return `Rp ${formatRupiah(safePrice)}`;
   };
 
   useEffect(() => {
@@ -825,7 +821,7 @@ export default function ProdukPage() {
 
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="modal-title text-sm font-semibold">
-                        Harga & Profit Paket
+                        Harga Final & Profit Paket
                       </h3>
 
                       <span className="modal-text text-xs">
@@ -848,7 +844,7 @@ export default function ProdukPage() {
                           </label>
 
                           <div className="space-y-1">
-                            <label className="modal-text text-[11px]">Harga</label>
+                            <label className="modal-text text-[11px]">Harga Final</label>
                             <div className="relative">
                               <span className="absolute left-3 top-2 text-gray-500 text-sm">Rp</span>
                               <input
@@ -898,7 +894,7 @@ export default function ProdukPage() {
                 <div className="flex justify-between items-center px-6 py-4 border-t border-purple-800/30">
 
                   <p className="modal-text text-xs">
-                    Pastikan harga dan profit sesuai dengan paket produk
+                    Harga final sudah termasuk profit. Profit tetap diisi untuk kebutuhan laporan internal/admin
                   </p>
 
                   <div className="flex gap-3">

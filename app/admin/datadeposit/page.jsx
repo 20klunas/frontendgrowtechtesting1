@@ -26,12 +26,15 @@ function UserSearchSelect({ label, value, search, onSearchChange, users, onChang
         type="text"
         placeholder={placeholder}
         value={search}
+        autoComplete="off"
+        spellCheck={false}
         onChange={(e) => onSearchChange(e.target.value)}
         className="input w-full"
       />
       <select
         className="input w-full"
         value={value}
+        autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
         required
       >
@@ -93,8 +96,18 @@ export default function DataDepositPage() {
   }, [])
 
   useEffect(() => {
+    if (activeTab === 'manual') {
+      setManualTopup((prev) => ({ ...prev, user_id: '' }))
+      setUserSearch('')
+    }
+
+    if (activeTab === 'adjust') {
+      setAdjustForm((prev) => ({ ...prev, user_id: '' }))
+      setAdjustUserSearch('')
+    }
+
     if (activeTab === 'manual' || activeTab === 'adjust') {
-      fetchUsers(activeTab === 'adjust' ? adjustUserSearch : userSearch)
+      fetchUsers('')
     }
   }, [activeTab])
 

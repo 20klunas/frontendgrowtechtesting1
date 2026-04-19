@@ -111,23 +111,30 @@ export default function CustomerCategoryContent({
   useEffect(() => {
     let active = true
 
-    //  kalau sudah ada initial data → jangan fetch lagi
-    if (selectedCategory === null && hasInitialSubcategories) {
-      return
+    const categoryId = normalizeId(selectedCategory)
+
+    if (categoryId === null && hasInitialSubcategories) {
+      setCatalogMaintenance("")
+      setSubcategories(Array.isArray(initialSubcategories) ? initialSubcategories : [])
+      setLoadingSubcategories(false)
+
+      return () => {
+        active = false
+      }
     }
 
     const fetchSubcategories = async () => {
       try {
         setLoadingSubcategories(true)
         setCatalogMaintenance("")
+        setSubcategories([])
 
-        const categoryId = normalizeId(selectedCategory)
         const url =
           categoryId !== null
             ? `/api/v1/catalog/categories/${categoryId}/subcategories`
             : "/api/v1/catalog/subcategories"
 
-        const json = await fetcher(url)
+        const json = await fetcher(url, { cache: "no-store" })
 
         if (!active) return
 
@@ -147,7 +154,7 @@ export default function CustomerCategoryContent({
     return () => {
       active = false
     }
-  }, [selectedCategory])
+  }, [selectedCategory, hasInitialSubcategories, initialSubcategories])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -218,9 +225,7 @@ export default function CustomerCategoryContent({
     setCurrentPage(1)
   }
 
-  const isLoading =
-    (!hasInitialCategories && loadingCategories) ||
-    (!hasInitialSubcategories && loadingSubcategories)
+  const isLoading = loadingCategories || loadingSubcategories
   const isCatalogUnavailable = catalogDisabled || Boolean(catalogMaintenance)
   const effectiveMaintenanceMessage =
     catalogMaintenance || catalogMessage || "Katalog sedang maintenance."

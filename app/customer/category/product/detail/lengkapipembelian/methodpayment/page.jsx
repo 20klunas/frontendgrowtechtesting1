@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useMemo, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Script from "next/script"
 import {
@@ -90,6 +90,27 @@ function PaymentPage() {
     }
   }, [searchParams, router])
 
+  const syncCheckoutBootstrap = useCallback(async ({ force = true, showLoader = false } = {}) => {
+    if (showLoader) setLoading(true)
+
+    try {
+      const res = await getCheckoutBootstrap({ force })
+      const data = res?.data || {}
+
+      setCheckout(data.checkout || null)
+      setWalletBalance(Number(data.wallet?.wallet?.balance ?? data.wallet?.balance ?? 0))
+      setGateways(data.gateways || [])
+
+      const firstGateway = (data.gateways || []).find(
+        (row) => String(row?.code || "").toLowerCase() !== "wallet"
+      )
+      setSelectedGateway((prev) => prev || firstGateway?.code || "wallet")
+      return data
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     refreshNavbarCart({ force: true }).catch(() => {})
     let active = true
@@ -99,44 +120,38 @@ function PaymentPage() {
 
     if (cached) {
       setCheckout(cachedCheckout)
-      setWalletBalance(
-        Number(cached.wallet?.wallet?.balance ?? cached.wallet?.balance ?? 0)
-      )
+      setWalletBalance(Number(cached.wallet?.wallet?.balance ?? cached.wallet?.balance ?? 0))
       setGateways(cached.gateways || [])
 
       const firstGateway = (cached.gateways || []).find(
         (row) => String(row?.code || "").toLowerCase() !== "wallet"
       )
       setSelectedGateway(firstGateway?.code || "wallet")
-
       setLoading(false)
     }
 
-    getCheckoutBootstrap({ force: true }).then((res) => {
-      if (!active) return
-
-      const data = res?.data || {}
-
-      setCheckout(data.checkout)
-      setWalletBalance(
-        Number(data.wallet?.wallet?.balance ?? data.wallet?.balance ?? 0)
-      )
-      setGateways(data.gateways || [])
-
-      const firstGateway = (data.gateways || []).find(
-        (row) => String(row?.code || "").toLowerCase() !== "wallet"
-      )
-      setSelectedGateway(firstGateway?.code || "wallet")
-      setLoading(false)
-    }).catch(() => {
+    syncCheckoutBootstrap({ force: true, showLoader: !cachedCheckout }).catch(() => {
       if (!active) return
       setLoading(false)
     })
 
+    const resync = () => {
+      if (document.visibilityState !== 'visible') return
+      syncCheckoutBootstrap({ force: true, showLoader: false }).catch(() => {})
+      refreshNavbarCart({ force: true }).catch(() => {})
+    }
+
+    const intervalId = window.setInterval(resync, 5000)
+    window.addEventListener('focus', resync)
+    document.addEventListener('visibilitychange', resync)
+
     return () => {
       active = false
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', resync)
+      document.removeEventListener('visibilitychange', resync)
     }
-  }, [])
+  }, [refreshNavbarCart, syncCheckoutBootstrap])
 
   const visibleGateways = useMemo(
     () => gateways.filter((row) => String(row?.code || "").toLowerCase() !== "wallet"),
@@ -178,7 +193,9 @@ function PaymentPage() {
     setProcessing(true)
 
     try {
-      let orderId = checkout?.order?.id
+      const synced = await syncCheckoutBootstrap({ force: true, showLoader: false })
+
+      let orderId = synced?.checkout?.order?.id || checkout?.order?.id
       if (!orderId) {
         clearCheckoutBootstrapCache()
         const refreshed = await getCheckoutBootstrap({ force: true })
