@@ -167,6 +167,7 @@ function UnauthorizedState() {
 
 export default function CartClient({ initialItems, initialSummary }) {
   const router = useRouter();
+  const { refreshCart: refreshNavbarCart } = useCustomerNavbar()
 
   const [items, setItems] = useState(Array.isArray(initialItems) ? initialItems : []);
   const [summary, setSummary] = useState(
