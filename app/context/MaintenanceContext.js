@@ -6,16 +6,21 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { publicFetch } from "../lib/publicFetch"
 import {
   DEFAULT_MAINTENANCE_STATE,
   normalizeFeatureAccess,
 } from "../lib/featureAccess"
+import { isAuthRoute } from "../lib/maintenanceHandler"
 
 const MaintenanceContext = createContext(null)
 MaintenanceContext.displayName = "MaintenanceContext"
+
+const POLL_INTERVAL_MS = 5000
 
 let accessCache = null
 let accessPromise = null
@@ -25,6 +30,62 @@ function mergeState(nextState) {
     ...DEFAULT_MAINTENANCE_STATE,
     ...(nextState || {}),
   }
+}
+
+function buildMaintenanceTarget({ key, message, pathname }) {
+  const safeNext = encodeURIComponent(pathname || "/")
+  const safeMessage = encodeURIComponent(message || "System Maintenance")
+
+  if (key === "public_access") {
+    return `/maintenance?scope=public&key=public_access&message=${safeMessage}&next=${safeNext}`
+  }
+
+  if (key === "user_auth_access") {
+    return `/maintenance?scope=auth&key=user_auth_access&message=${safeMessage}&next=${safeNext}`
+  }
+
+  if (key === "user_area_access") {
+    return `/maintenance?scope=user&key=user_area_access&message=${safeMessage}&next=${safeNext}`
+  }
+
+  return null
+}
+
+function resolveActiveRedirect(state, pathname) {
+  if (!pathname || pathname.startsWith("/admin")) {
+    return null
+  }
+
+  if (state?.userAreaDisabled && pathname.startsWith("/customer")) {
+    return buildMaintenanceTarget({
+      key: "user_area_access",
+      message: state.userAreaMessage || "Area user sedang maintenance.",
+      pathname,
+    })
+  }
+
+  if (state?.userAuthDisabled && isAuthRoute(pathname)) {
+    return buildMaintenanceTarget({
+      key: "user_auth_access",
+      message: state.userAuthMessage || "Login dan registrasi sedang maintenance.",
+      pathname,
+    })
+  }
+
+  if (
+    state?.publicMaintenance &&
+    !pathname.startsWith("/customer") &&
+    !pathname.startsWith("/maintenance") &&
+    !isAuthRoute(pathname)
+  ) {
+    return buildMaintenanceTarget({
+      key: "public_access",
+      message: state.publicMaintenanceMessage || "Halaman publik sedang maintenance.",
+      pathname,
+    })
+  }
+
+  return null
 }
 
 async function fetchFeatureAccess(force = false) {
@@ -39,6 +100,10 @@ async function fetchFeatureAccess(force = false) {
   accessPromise = (async () => {
     const res = await publicFetch("/api/v1/content/feature-access", {
       cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
     })
     const normalized = mergeState(normalizeFeatureAccess(res?.data || {}))
     accessCache = normalized
@@ -53,6 +118,11 @@ async function fetchFeatureAccess(force = false) {
 }
 
 export function MaintenanceProvider({ children, initialState = null }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const isMountedRef = useRef(false)
+
   const mergedInitialState = mergeState(initialState || accessCache)
 
   const [state, setState] = useState(mergedInitialState)
@@ -65,9 +135,9 @@ export function MaintenanceProvider({ children, initialState = null }) {
   }, [])
 
   const hydrate = useCallback(
-    async ({ force = false } = {}) => {
+    async ({ force = false, silent = false } = {}) => {
       try {
-        setLoading(true)
+        if (!silent) setLoading(true)
         const snapshot = await fetchFeatureAccess(force)
         applyState(snapshot)
         return snapshot
@@ -76,29 +146,81 @@ export function MaintenanceProvider({ children, initialState = null }) {
         applyState(DEFAULT_MAINTENANCE_STATE)
         return DEFAULT_MAINTENANCE_STATE
       } finally {
-        setLoading(false)
+        if (!silent) setLoading(false)
       }
     },
     [applyState]
   )
 
   useEffect(() => {
+    isMountedRef.current = true
+
     if (initialState) {
       applyState(initialState)
       setLoading(false)
-      hydrate({ force: true })
-      return
-    }
-
-    if (accessCache) {
+      hydrate({ force: true, silent: true })
+    } else if (accessCache) {
       applyState(accessCache)
       setLoading(false)
-      hydrate({ force: true })
+      hydrate({ force: true, silent: true })
+    } else {
+      hydrate()
+    }
+
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [initialState, applyState, hydrate])
+
+  useEffect(() => {
+    const run = () => hydrate({ force: true, silent: true })
+
+    const intervalId = window.setInterval(run, POLL_INTERVAL_MS)
+    const onFocus = () => run()
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        run()
+      }
+    }
+    const onPageShow = () => run()
+
+    window.addEventListener("focus", onFocus)
+    window.addEventListener("pageshow", onPageShow)
+    document.addEventListener("visibilitychange", onVisibilityChange)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener("focus", onFocus)
+      window.removeEventListener("pageshow", onPageShow)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+    }
+  }, [hydrate])
+
+  useEffect(() => {
+    if (!isMountedRef.current || !pathname) return
+
+    const activeRedirect = resolveActiveRedirect(state, pathname)
+    const current = `${pathname}${typeof window !== "undefined" ? window.location.search || "" : ""}`
+
+    if (!pathname.startsWith("/maintenance")) {
+      if (activeRedirect && current !== activeRedirect) {
+        router.replace(activeRedirect)
+      }
       return
     }
 
-    hydrate()
-  }, [initialState, applyState, hydrate])
+    const currentKey = searchParams?.get("key") || ""
+    const nextPath = searchParams?.get("next") || "/"
+
+    const stillActive =
+      (currentKey === "public_access" && state.publicMaintenance) ||
+      (currentKey === "user_auth_access" && state.userAuthDisabled) ||
+      (currentKey === "user_area_access" && state.userAreaDisabled)
+
+    if (!stillActive) {
+      router.replace(nextPath)
+    }
+  }, [pathname, router, searchParams, state])
 
   const refreshMaintenance = useCallback(async () => {
     return hydrate({ force: true })

@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useMaintenance } from "../../context/MaintenanceContext";
 
 export default function MaintenanceClient() {
   const params = useSearchParams();
+  const { loading, refreshMaintenance } = useMaintenance();
 
   const message = params.get("message") || "Website sedang maintenance";
   const scope = params.get("scope") || "system";
@@ -26,9 +28,20 @@ export default function MaintenanceClient() {
           <div>
             <span className="text-gray-500">Key:</span> {key}
           </div>
+          <div>
+            <span className="text-gray-500">Sync:</span> {loading ? "Memeriksa status terbaru..." : "Auto refresh aktif"}
+          </div>
         </div>
 
         <div className="flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => refreshMaintenance()}
+            className="px-5 py-2 rounded-lg border border-purple-500 text-purple-300 hover:bg-purple-500/10 transition"
+          >
+            Cek Lagi Sekarang
+          </button>
+
           <Link
             href="/"
             className="px-5 py-2 rounded-lg border border-purple-500 text-purple-300 hover:bg-purple-500/10 transition"

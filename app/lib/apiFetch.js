@@ -2,7 +2,7 @@ import Cookies from "js-cookie";
 import { handleMaintenance } from "./maintenanceHandler";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
-const pending = new Map()
+
 function resolveCacheMode(url, explicitCache) {
   if (explicitCache) return explicitCache;
 
@@ -24,10 +24,11 @@ function resolveCacheMode(url, explicitCache) {
     /\/api\/v1\/admin\/withdraws?\b/,
     /\/api\/v1\/admin\/audit-logs?\b/,
     /\/api\/v1\/admin\/logs?\b/,
+    /\/api\/v1\/content\/settings\b/,
+    /\/api\/v1\/content\/feature-access\b/,
   ];
 
   const cacheablePatterns = [
-    /\/api\/v1\/content\/settings\b/,
     /\/api\/v1\/content\/banners?\b/,
     /\/api\/v1\/content\/popups?\b/,
     /\/api\/v1\/content\/faqs?\b/,
@@ -84,11 +85,7 @@ export async function apiFetch(url, options = {}) {
   handleMaintenance(res, data);
 
   if (!res.ok) {
-    throw new Error(
-      data?.error?.message ||
-        data?.message ||
-        `HTTP ${res.status}`
-    );
+    throw new Error(data?.error?.message || data?.message || `HTTP ${res.status}`);
   }
 
   return data;

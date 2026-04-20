@@ -24,10 +24,7 @@ export function getMaintenanceMeta(data = {}) {
     scope: data?.meta?.scope || "system",
     key: data?.meta?.key || "maintenance",
     feature: data?.meta?.feature || null,
-    message:
-      data?.error?.message ||
-      data?.message ||
-      "System Maintenance",
+    message: data?.error?.message || data?.message || "System Maintenance",
   };
 }
 
@@ -39,22 +36,23 @@ export function isFeatureMaintenanceKey(key) {
   return FEATURE_KEYS.has(key);
 }
 
+export function getMaintenanceReturnUrl() {
+  if (typeof window === "undefined") return "/";
+  const pathname = window.location.pathname || "/";
+  const search = window.location.search || "";
+  const hash = window.location.hash || "";
+  return `${pathname}${search}${hash}`;
+}
+
 export function buildMaintenanceRedirectUrl(input) {
   const meta = input?.meta ? getMaintenanceMeta(input) : input;
 
-  const message = encodeURIComponent(
-    meta?.message || "System Maintenance"
-  );
+  const message = encodeURIComponent(meta?.message || "System Maintenance");
+  const scope = encodeURIComponent(meta?.scope || "system");
+  const key = encodeURIComponent(meta?.key || "maintenance");
+  const next = encodeURIComponent(getMaintenanceReturnUrl());
 
-  const scope = encodeURIComponent(
-    meta?.scope || "system"
-  );
-
-  const key = encodeURIComponent(
-    meta?.key || "maintenance"
-  );
-
-  return `/maintenance?scope=${scope}&key=${key}&message=${message}`;
+  return `/maintenance?scope=${scope}&key=${key}&message=${message}&next=${next}`;
 }
 
 export function createMaintenanceError(meta) {
@@ -73,10 +71,7 @@ export function handleMaintenance(res, data) {
   const meta = getMaintenanceMeta(data);
   const err = createMaintenanceError(meta);
 
-  if (
-    typeof window !== "undefined" &&
-    isRedirectMaintenanceKey(meta.key)
-  ) {
+  if (typeof window !== "undefined" && isRedirectMaintenanceKey(meta.key)) {
     const pathname = window.location.pathname || "";
     const target = buildMaintenanceRedirectUrl(meta);
 
@@ -84,7 +79,6 @@ export function handleMaintenance(res, data) {
       throw err;
     }
 
-    // auth tetap boleh dibuka saat public maintenance
     if (meta.key === "public_access" && AUTH_ROUTES.includes(pathname)) {
       throw err;
     }
@@ -112,9 +106,9 @@ export function isFeatureMaintenanceError(error, key = null) {
 }
 
 export function getMaintenanceMessage(error, fallback = "Fitur sedang maintenance.") {
-  return (
-    error?.maintenance?.message ||
-    error?.message ||
-    fallback
-  );
+  return error?.maintenance?.message || error?.message || fallback;
+}
+
+export function isAuthRoute(pathname = "") {
+  return AUTH_ROUTES.includes(pathname);
 }
