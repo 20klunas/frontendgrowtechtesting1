@@ -15,6 +15,10 @@ import {
   DEFAULT_MAINTENANCE_STATE,
   normalizeFeatureAccess,
 } from "../lib/featureAccess"
+import {
+  isAdminSession,
+  isAuthRoute,
+} from "../lib/maintenanceHandler"
 
 const MaintenanceContext = createContext(null)
 MaintenanceContext.displayName = "MaintenanceContext"
@@ -51,7 +55,15 @@ function buildMaintenanceTarget({ key, message, pathname }) {
 }
 
 function resolveActiveRedirect(state, pathname) {
-  if (!pathname || pathname.startsWith("/admin")) {
+  if (!pathname) {
+    return null
+  }
+
+  if (pathname.startsWith("/admin") || isAdminSession()) {
+    return null
+  }
+
+  if (isAuthRoute(pathname) || pathname.startsWith("/auth/callback")) {
     return null
   }
 
@@ -63,20 +75,10 @@ function resolveActiveRedirect(state, pathname) {
     })
   }
 
-  // user_auth_access sengaja TIDAK redirect global dari FE.
-  // Alasannya:
-  // 1) halaman login dipakai bersama oleh customer dan admin
-  // 2) admin harus tetap bisa login saat auth customer dimaintenance
-  // 3) customer tetap akan diblok secara benar oleh response 503 dari BE
   if (
     state?.publicMaintenance &&
     !pathname.startsWith("/customer") &&
-    !pathname.startsWith("/maintenance") &&
-    !pathname.startsWith("/login") &&
-    !pathname.startsWith("/register") &&
-    !pathname.startsWith("/forgot-password") &&
-    !pathname.startsWith("/reset-password") &&
-    !pathname.startsWith("/verify-otp")
+    !pathname.startsWith("/maintenance")
   ) {
     return buildMaintenanceTarget({
       key: "public_access",
@@ -217,6 +219,7 @@ export function MaintenanceProvider({ children, initialState = null }) {
   useEffect(() => {
     if (!isMountedRef.current || !pathname) return
 
+    const adminSession = isAdminSession()
     const activeRedirect = resolveActiveRedirect(state, pathname)
     const { currentPathWithSearch, currentKey, nextPath } = getMaintenanceRouteSnapshot()
 
@@ -224,6 +227,11 @@ export function MaintenanceProvider({ children, initialState = null }) {
       if (activeRedirect && currentPathWithSearch !== activeRedirect) {
         router.replace(activeRedirect)
       }
+      return
+    }
+
+    if (adminSession) {
+      router.replace("/admin/dashboard")
       return
     }
 

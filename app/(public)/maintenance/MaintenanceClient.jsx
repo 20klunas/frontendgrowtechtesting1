@@ -5,6 +5,15 @@ import Cookies from "js-cookie";
 import { useSearchParams } from "next/navigation";
 import { useMaintenance } from "../../context/MaintenanceContext";
 
+function isAdminSession() {
+  const role = String(Cookies.get("role") || "").toLowerCase();
+  const hasToken = Boolean(Cookies.get("token"));
+  const isAdminFlag = Cookies.get("is_admin") === "1";
+  const adminRoleId = Cookies.get("admin_role_id") || "";
+
+  return hasToken && (isAdminFlag || (role === "admin" && adminRoleId !== ""));
+}
+
 export default function MaintenanceClient() {
   const params = useSearchParams();
   const { loading, refreshMaintenance } = useMaintenance();
@@ -12,9 +21,7 @@ export default function MaintenanceClient() {
   const message = params.get("message") || "Website sedang maintenance";
   const scope = params.get("scope") || "system";
   const key = params.get("key") || "maintenance";
-  const role = Cookies.get("role") || "";
-  const hasToken = Boolean(Cookies.get("token"));
-  const isAdminSession = hasToken && String(role).toLowerCase() === "admin";
+  const adminSession = isAdminSession();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black px-6">
@@ -53,7 +60,7 @@ export default function MaintenanceClient() {
             Kembali ke Beranda
           </Link>
 
-          {isAdminSession ? (
+          {adminSession ? (
             <Link
               href="/admin/dashboard"
               className="px-5 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"

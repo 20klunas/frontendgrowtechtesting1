@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Cookies from "js-cookie";
@@ -11,12 +11,22 @@ import { publicFetch } from "../../lib/publicFetch";
 import {
   persistAuthSession,
   resolvePostLoginPath,
+  isAdminUser,
 } from "../../lib/authSession";
 import {
   getTrustedDevicePreference,
   saveTrustedDeviceCredential,
   setTrustedDevicePreference,
 } from "../../lib/trustedDevicePreference";
+
+function isAdminFromCookies() {
+  const token = Cookies.get("token");
+  const role = String(Cookies.get("role") || "").toLowerCase();
+  const isAdminFlag = Cookies.get("is_admin") === "1";
+  const adminRoleId = Cookies.get("admin_role_id") || "";
+
+  return Boolean(token) && (isAdminFlag || (role === "admin" && adminRoleId !== ""));
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,29 +45,31 @@ export default function LoginPage() {
     message: "",
   });
 
+  const currentUserTarget = useMemo(() => {
+    if (isAdminUser(user || {})) return "/admin/dashboard";
+    if (user) return "/customer";
+    if (isAdminFromCookies()) return "/admin/dashboard";
+    if (Cookies.get("token")) return "/customer";
+    return null;
+  }, [user]);
+
   useEffect(() => {
     setRememberDevice(getTrustedDevicePreference(true));
   }, []);
 
   useEffect(() => {
     if (authLoading) return;
-
-    const token = Cookies.get("token");
-    const role = user?.role || Cookies.get("role") || "user";
-
-    if (!token) return;
-
-    const targetPath = role === "admin" ? "/admin/dashboard" : "/customer";
+    if (!currentUserTarget) return;
 
     beginTransition(
-      targetPath,
-      role === "admin"
+      currentUserTarget,
+      currentUserTarget === "/admin/dashboard"
         ? "Menyiapkan dashboard admin..."
         : "Menyiapkan dashboard Anda..."
     );
 
-    router.replace(targetPath);
-  }, [authLoading, beginTransition, router, user]);
+    router.replace(currentUserTarget);
+  }, [authLoading, beginTransition, currentUserTarget, router]);
 
   const finishLogin = (authUser, token) => {
     const targetPath = resolvePostLoginPath(authUser);
@@ -75,6 +87,8 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
 
     try {
@@ -89,7 +103,7 @@ export default function LoginPage() {
         saveTrustedDeviceCredential(
           json.data.trusted_device_credential,
           json?.data?.trusted_device_expires_at || null
-        )
+        );
       }
 
       if (json?.data?.requires_2fa) {
@@ -167,8 +181,8 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 pt-16">
-      <div className="w-full max-w-md rounded-2xl border border-purple-400/60 bg-black p-8">
+    <main className="relative z-10 min-h-[calc(100vh-80px)] flex items-center justify-center px-4 pt-16 pointer-events-auto">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-purple-400/60 bg-black p-8">
         {popup.open && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
             <div className="w-95 rounded-2xl border border-purple-500 bg-black p-6 shadow-xl">
@@ -179,6 +193,7 @@ export default function LoginPage() {
               <p className="text-sm text-gray-300 mb-6">{popup.message}</p>
 
               <button
+                type="button"
                 onClick={() => setPopup({ ...popup, open: false })}
                 className="w-full rounded-lg bg-purple-600 py-2 font-semibold hover:bg-purple-700 transition"
               >
@@ -187,6 +202,10 @@ export default function LoginPage() {
             </div>
           </div>
         )}
+
+        <div className="flex justify-center mb-5">
+          <Image src="/logoherosection.png" alt="Growtech" width={90} height={90} />
+        </div>
 
         <h1 className="text-center text-2xl font-semibold text-purple-300 mb-6">
           Login
@@ -256,46 +275,29 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <div className="mt-5 grid grid-cols-1 gap-3">
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full rounded-xl border border-purple-400/40 px-4 py-3 text-white hover:bg-purple-500/10 transition"
+          >
+            Login dengan Google
+          </button>
+          <button
+            type="button"
+            onClick={handleDiscordLogin}
+            className="w-full rounded-xl border border-purple-400/40 px-4 py-3 text-white hover:bg-purple-500/10 transition"
+          >
+            Login dengan Discord
+          </button>
+        </div>
+
         <p className="mt-6 text-center text-sm text-gray-400">
           Belum punya akun?{" "}
           <a href="/register" className="text-purple-400 hover:underline">
-            Register
+            Daftar
           </a>
         </p>
-
-        <div className="mt-6 border-t border-purple-400/30 pt-4 text-center">
-          <p className="mb-3 text-sm text-gray-400">Masuk dengan</p>
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/50 py-2 text-sm hover:bg-purple-400/10"
-            >
-              <Image
-                src="/icons/google-icon.svg"
-                alt="Google"
-                width={18}
-                height={18}
-              />
-              Google
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDiscordLogin}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/50 py-2 text-sm hover:bg-purple-400/10"
-            >
-              <Image
-                src="/icons/discord-icon.svg"
-                alt="Discord"
-                width={18}
-                height={18}
-              />
-              Discord
-            </button>
-          </div>
-        </div>
       </div>
     </main>
   );
