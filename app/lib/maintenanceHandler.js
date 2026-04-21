@@ -3,7 +3,6 @@ import Cookies from "js-cookie"
 const REDIRECT_KEYS = new Set([
   "public_access",
   "user_area_access",
-  "user_auth_access",
 ])
 
 const FEATURE_KEYS = new Set([

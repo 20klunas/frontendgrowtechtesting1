@@ -15,7 +15,7 @@ import {
   DEFAULT_MAINTENANCE_STATE,
   normalizeFeatureAccess,
 } from "../lib/featureAccess"
-import { isAuthRoute } from "../lib/maintenanceHandler"
+import { isAdminPath, isAdminSession, isAuthRoute } from "../lib/maintenanceHandler"
 
 const MaintenanceContext = createContext(null)
 MaintenanceContext.displayName = "MaintenanceContext"
@@ -52,7 +52,7 @@ function buildMaintenanceTarget({ key, message, pathname }) {
 }
 
 function resolveActiveRedirect(state, pathname) {
-  if (!pathname || pathname.startsWith("/admin")) {
+  if (!pathname || isAdminPath(pathname) || isAdminSession()) {
     return null
   }
 
@@ -60,14 +60,6 @@ function resolveActiveRedirect(state, pathname) {
     return buildMaintenanceTarget({
       key: "user_area_access",
       message: state.userAreaMessage || "Area user sedang maintenance.",
-      pathname,
-    })
-  }
-
-  if (state?.userAuthDisabled && isAuthRoute(pathname)) {
-    return buildMaintenanceTarget({
-      key: "user_auth_access",
-      message: state.userAuthMessage || "Login dan registrasi sedang maintenance.",
       pathname,
     })
   }
@@ -229,7 +221,6 @@ export function MaintenanceProvider({ children, initialState = null }) {
 
     const stillActive =
       (currentKey === "public_access" && state.publicMaintenance) ||
-      (currentKey === "user_auth_access" && state.userAuthDisabled) ||
       (currentKey === "user_area_access" && state.userAreaDisabled)
 
     if (!stillActive) {
