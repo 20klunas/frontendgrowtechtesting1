@@ -134,6 +134,8 @@ export function handleMaintenance(res, data) {
     }
   }
 
+  // user_auth_access tetap dilempar sebagai error biasa tanpa redirect global,
+  // supaya halaman login bersama tetap bisa dipakai admin.
   throw err
 }
 

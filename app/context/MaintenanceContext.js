@@ -15,7 +15,6 @@ import {
   DEFAULT_MAINTENANCE_STATE,
   normalizeFeatureAccess,
 } from "../lib/featureAccess"
-import { isAdminPath, isAdminSession, isAuthRoute } from "../lib/maintenanceHandler"
 
 const MaintenanceContext = createContext(null)
 MaintenanceContext.displayName = "MaintenanceContext"
@@ -52,7 +51,7 @@ function buildMaintenanceTarget({ key, message, pathname }) {
 }
 
 function resolveActiveRedirect(state, pathname) {
-  if (!pathname || isAdminPath(pathname) || isAdminSession()) {
+  if (!pathname || pathname.startsWith("/admin")) {
     return null
   }
 
@@ -64,11 +63,20 @@ function resolveActiveRedirect(state, pathname) {
     })
   }
 
+  // user_auth_access sengaja TIDAK redirect global dari FE.
+  // Alasannya:
+  // 1) halaman login dipakai bersama oleh customer dan admin
+  // 2) admin harus tetap bisa login saat auth customer dimaintenance
+  // 3) customer tetap akan diblok secara benar oleh response 503 dari BE
   if (
     state?.publicMaintenance &&
     !pathname.startsWith("/customer") &&
     !pathname.startsWith("/maintenance") &&
-    !isAuthRoute(pathname)
+    !pathname.startsWith("/login") &&
+    !pathname.startsWith("/register") &&
+    !pathname.startsWith("/forgot-password") &&
+    !pathname.startsWith("/reset-password") &&
+    !pathname.startsWith("/verify-otp")
   ) {
     return buildMaintenanceTarget({
       key: "public_access",
@@ -221,6 +229,7 @@ export function MaintenanceProvider({ children, initialState = null }) {
 
     const stillActive =
       (currentKey === "public_access" && state.publicMaintenance) ||
+      (currentKey === "user_auth_access" && state.userAuthDisabled) ||
       (currentKey === "user_area_access" && state.userAreaDisabled)
 
     if (!stillActive) {
