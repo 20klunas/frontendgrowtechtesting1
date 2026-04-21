@@ -15,7 +15,8 @@ import {
   DEFAULT_MAINTENANCE_STATE,
   normalizeFeatureAccess,
 } from "../lib/featureAccess"
-import { isAuthRoute } from "../lib/maintenanceHandler"
+import Cookies from "js-cookie"
+import { isAdminPath, isAdminRole, isAuthRoute } from "../lib/maintenanceHandler"
 
 const MaintenanceContext = createContext(null)
 MaintenanceContext.displayName = "MaintenanceContext"
@@ -52,7 +53,15 @@ function buildMaintenanceTarget({ key, message, pathname }) {
 }
 
 function resolveActiveRedirect(state, pathname) {
-  if (!pathname || pathname.startsWith("/admin")) {
+  if (!pathname) {
+    return null
+  }
+
+  const role = (typeof window !== "undefined" ? Cookies.get("role") : "") || ""
+  const hasToken = typeof window !== "undefined" ? Boolean(Cookies.get("token")) : false
+  const isAdminSession = isAdminRole(role) && hasToken
+
+  if (isAdminPath(pathname) || isAdminSession) {
     return null
   }
 
@@ -211,6 +220,14 @@ export function MaintenanceProvider({ children, initialState = null }) {
 
     const currentKey = searchParams?.get("key") || ""
     const nextPath = searchParams?.get("next") || "/"
+    const role = Cookies.get("role") || ""
+    const hasToken = Boolean(Cookies.get("token"))
+    const adminSession = isAdminRole(role) && hasToken
+
+    if (adminSession) {
+      router.replace("/admin/dashboard")
+      return
+    }
 
     const stillActive =
       (currentKey === "public_access" && state.publicMaintenance) ||

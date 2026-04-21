@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Cookies from "js-cookie";
 import { useSearchParams } from "next/navigation";
 import { useMaintenance } from "../../context/MaintenanceContext";
 
@@ -11,6 +12,9 @@ export default function MaintenanceClient() {
   const message = params.get("message") || "Website sedang maintenance";
   const scope = params.get("scope") || "system";
   const key = params.get("key") || "maintenance";
+  const role = Cookies.get("role") || "";
+  const hasToken = Boolean(Cookies.get("token"));
+  const isAdminSession = hasToken && String(role).toLowerCase() === "admin";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black px-6">
@@ -49,12 +53,21 @@ export default function MaintenanceClient() {
             Kembali ke Beranda
           </Link>
 
-          <Link
-            href="/login"
-            className="px-5 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
-          >
-            Ke Login
-          </Link>
+          {isAdminSession ? (
+            <Link
+              href="/admin/dashboard"
+              className="px-5 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
+            >
+              Ke Dashboard Admin
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="px-5 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
+            >
+              Ke Login
+            </Link>
+          )}
         </div>
       </div>
     </div>
