@@ -9,14 +9,13 @@ import {
   useRef,
   useState,
 } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { publicFetch } from "../lib/publicFetch"
 import {
   DEFAULT_MAINTENANCE_STATE,
   normalizeFeatureAccess,
 } from "../lib/featureAccess"
-import Cookies from "js-cookie"
-import { isAdminPath, isAdminRole, isAuthRoute } from "../lib/maintenanceHandler"
+import { isAuthRoute } from "../lib/maintenanceHandler"
 
 const MaintenanceContext = createContext(null)
 MaintenanceContext.displayName = "MaintenanceContext"
@@ -53,15 +52,7 @@ function buildMaintenanceTarget({ key, message, pathname }) {
 }
 
 function resolveActiveRedirect(state, pathname) {
-  if (!pathname) {
-    return null
-  }
-
-  const role = (typeof window !== "undefined" ? Cookies.get("role") : "") || ""
-  const hasToken = typeof window !== "undefined" ? Boolean(Cookies.get("token")) : false
-  const isAdminSession = isAdminRole(role) && hasToken
-
-  if (isAdminPath(pathname) || isAdminSession) {
+  if (!pathname || pathname.startsWith("/admin")) {
     return null
   }
 
@@ -126,10 +117,28 @@ async function fetchFeatureAccess(force = false) {
   }
 }
 
+function getMaintenanceRouteSnapshot() {
+  if (typeof window === "undefined") {
+    return {
+      currentPathWithSearch: "",
+      currentKey: "",
+      nextPath: "/",
+    }
+  }
+
+  const currentPathWithSearch = `${window.location.pathname}${window.location.search || ""}`
+  const params = new URLSearchParams(window.location.search || "")
+
+  return {
+    currentPathWithSearch,
+    currentKey: params.get("key") || "",
+    nextPath: params.get("next") || "/",
+  }
+}
+
 export function MaintenanceProvider({ children, initialState = null }) {
   const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const isMountedRef = useRef(false)
 
   const mergedInitialState = mergeState(initialState || accessCache)
@@ -209,23 +218,12 @@ export function MaintenanceProvider({ children, initialState = null }) {
     if (!isMountedRef.current || !pathname) return
 
     const activeRedirect = resolveActiveRedirect(state, pathname)
-    const current = `${pathname}${typeof window !== "undefined" ? window.location.search || "" : ""}`
+    const { currentPathWithSearch, currentKey, nextPath } = getMaintenanceRouteSnapshot()
 
     if (!pathname.startsWith("/maintenance")) {
-      if (activeRedirect && current !== activeRedirect) {
+      if (activeRedirect && currentPathWithSearch !== activeRedirect) {
         router.replace(activeRedirect)
       }
-      return
-    }
-
-    const currentKey = searchParams?.get("key") || ""
-    const nextPath = searchParams?.get("next") || "/"
-    const role = Cookies.get("role") || ""
-    const hasToken = Boolean(Cookies.get("token"))
-    const adminSession = isAdminRole(role) && hasToken
-
-    if (adminSession) {
-      router.replace("/admin/dashboard")
       return
     }
 
@@ -237,7 +235,7 @@ export function MaintenanceProvider({ children, initialState = null }) {
     if (!stillActive) {
       router.replace(nextPath)
     }
-  }, [pathname, router, searchParams, state])
+  }, [pathname, router, state])
 
   const refreshMaintenance = useCallback(async () => {
     return hydrate({ force: true })
