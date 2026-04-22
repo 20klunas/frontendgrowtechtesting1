@@ -67,6 +67,40 @@ function shouldUseMemoryCache(url, method = "GET") {
   ].some((pattern) => pattern.test(path))
 }
 
+function buildMatcher(patterns = []) {
+  const safePatterns = Array.isArray(patterns) ? patterns : [patterns]
+
+  return (key) =>
+    safePatterns.some((pattern) => {
+      if (!pattern) return false
+      if (typeof pattern === "function") return Boolean(pattern(key))
+      if (pattern instanceof RegExp) return pattern.test(key)
+      return key.includes(String(pattern))
+    })
+}
+
+function clearPendingRequestsByMatcher(matcher) {
+  for (const key of Array.from(pendingRequests.keys())) {
+    if (matcher(key)) {
+      pendingRequests.delete(key)
+    }
+  }
+}
+
+function clearResponseCacheByMatcher(matcher) {
+  for (const key of Array.from(responseCache.keys())) {
+    if (matcher(key)) {
+      responseCache.delete(key)
+    }
+  }
+}
+
+export function invalidatePublicFetchCache(patterns = []) {
+  const matcher = buildMatcher(patterns)
+  clearResponseCacheByMatcher(matcher)
+  clearPendingRequestsByMatcher(matcher)
+}
+
 function getCacheTTL(url) {
   const path = String(url || "").toLowerCase()
 

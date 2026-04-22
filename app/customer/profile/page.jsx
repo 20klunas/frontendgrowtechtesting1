@@ -116,10 +116,23 @@ function buildOrderHistorySummary(order) {
     )
   );
 
+  const subtotal = Number(summary?.subtotal ?? order?.subtotal ?? items.reduce((total, item) => total + Number(item?.line_subtotal || 0), 0));
+  const discountTotal = Number(summary?.discount_total ?? order?.discount_total ?? 0);
+  const taxAmount = Number(summary?.tax_amount ?? order?.tax_amount ?? 0);
+  const gatewayFeeAmount = Number(summary?.gateway_fee_amount ?? order?.gateway_fee_amount ?? 0);
+  const totalPaid = Number(summary?.total_paid ?? order?.amount ?? 0);
+
   return {
     invoice: summary?.invoice || order?.invoice_number || "-",
     waktu: summary?.waktu || order?.transaction_datetime || order?.created_at || null,
-    harga: Number(summary?.harga || order?.amount || 0),
+    harga: totalPaid,
+    subtotal,
+    discount_total: discountTotal,
+    tax_amount: taxAmount,
+    gateway_fee_amount: gatewayFeeAmount,
+    total_paid: totalPaid,
+    voucher_discount_total: Number(summary?.voucher_discount_total ?? 0),
+    campaign_discount_total: Number(summary?.campaign_discount_total ?? 0),
     total_item_qty: Number(summary?.total_item_qty || order?.total_item_qty || items.reduce((total, item) => total + Number(item?.qty || 0), 0)),
     categories,
     items,
@@ -625,13 +638,15 @@ export default function ProfilePage() {
                         </div>
 
                         <div className="text-left lg:text-right space-y-2">
-                          <div className="text-xs uppercase tracking-wide text-purple-300">Harga</div>
-                          <div className="text-2xl font-bold text-white">{formatRupiah(summary.harga)}</div>
+                          <div className="text-xs uppercase tracking-wide text-purple-300">Total Dibayar</div>
+                          <div className="text-2xl font-bold text-white">{formatRupiah(summary.total_paid)}</div>
                           <div className="text-sm text-gray-400">Total item: {summary.total_item_qty || 0}</div>
                         </div>
                       </div>
 
-                      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+                        <div className="space-y-3">
+
                         {items.length > 0 ? (
                           items.map((item, idx) => (
                             <div key={`${order.id}-${item.order_item_id || idx}`} className="rounded-xl border border-purple-800/50 bg-purple-950/20 p-4">
@@ -648,6 +663,45 @@ export default function ProfilePage() {
                             Detail item belum tersedia.
                           </div>
                         )}
+                        </div>
+
+                        <div className="rounded-2xl border border-purple-800/50 bg-purple-950/20 p-4 h-fit">
+                          <div className="text-sm font-semibold text-white mb-3">Ringkasan Pembayaran</div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between gap-3 text-gray-300">
+                              <span>Subtotal</span>
+                              <span>{formatRupiah(summary.subtotal)}</span>
+                            </div>
+                            <div className="flex justify-between gap-3 text-green-400">
+                              <span>Diskon</span>
+                              <span>- {formatRupiah(summary.discount_total)}</span>
+                            </div>
+                            {summary.voucher_discount_total > 0 && (
+                              <div className="flex justify-between gap-3 text-xs text-green-300">
+                                <span>Diskon voucher</span>
+                                <span>- {formatRupiah(summary.voucher_discount_total)}</span>
+                              </div>
+                            )}
+                            {summary.campaign_discount_total > 0 && (
+                              <div className="flex justify-between gap-3 text-xs text-green-300">
+                                <span>Diskon campaign</span>
+                                <span>- {formatRupiah(summary.campaign_discount_total)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between gap-3 text-gray-300">
+                              <span>Pajak</span>
+                              <span>{formatRupiah(summary.tax_amount)}</span>
+                            </div>
+                            <div className="flex justify-between gap-3 text-gray-300">
+                              <span>Biaya gateway</span>
+                              <span>{formatRupiah(summary.gateway_fee_amount)}</span>
+                            </div>
+                            <div className="border-t border-purple-800/60 pt-3 mt-3 flex justify-between gap-3 text-base font-semibold text-white">
+                              <span>Total dibayar</span>
+                              <span>{formatRupiah(summary.total_paid)}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );

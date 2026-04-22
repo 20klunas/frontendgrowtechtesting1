@@ -3,26 +3,38 @@
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import {
+  Search,
+  SlidersHorizontal,
+  Star,
+  ShoppingBag,
+  ShieldCheck,
+  Clock3,
+  PackageSearch,
+} from "lucide-react"
 
 function resolveMemberPricing(product) {
   const pricing = product?.tier_pricing || {}
 
-  const final = Number(
-    pricing?.member ??
-    pricing?.reseller ??
-    pricing?.vip ??
-    product?.display_price_breakdown?.base_price ??
-    product?.display_price ??
-    product?.price ??
-    0
-  ) || 0
+  const final =
+    Number(
+      pricing?.member ??
+        pricing?.reseller ??
+        pricing?.vip ??
+        product?.display_price_breakdown?.base_price ??
+        product?.display_price ??
+        product?.price ??
+        0
+    ) || 0
 
   return { final }
 }
 
 function resolveProductHref(product, subcategoryId) {
   if (product?.id) {
-    return `/customer/category/product/detail?id=${encodeURIComponent(String(product.id))}`
+    return `/customer/category/product/detail?id=${encodeURIComponent(
+      String(product.id)
+    )}`
   }
 
   if (subcategoryId) {
@@ -32,7 +44,24 @@ function resolveProductHref(product, subcategoryId) {
   return "/customer/category"
 }
 
-export default function ProductsContent({ initialProducts = [], initialSubcategoryId = null }) {
+function formatDuration(product) {
+  return (
+    product?.duration_label ||
+    product?.duration ||
+    product?.active_period ||
+    product?.masa_aktif ||
+    "Aktif instan"
+  )
+}
+
+function formatPrice(value) {
+  return `Rp ${Number(value || 0).toLocaleString("id-ID")}`
+}
+
+export default function ProductsContent({
+  initialProducts = [],
+  initialSubcategoryId = null,
+}) {
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [sort, setSort] = useState("terbaru")
@@ -42,33 +71,22 @@ export default function ProductsContent({ initialProducts = [], initialSubcatego
 
     const keyword = search.trim().toLowerCase()
     if (keyword) {
-      data = data.filter((product) =>
-        String(product?.name || "").toLowerCase().includes(keyword)
-      )
+      data = data.filter((product) => {
+        const name = String(product?.name || "").toLowerCase()
+        const description = String(product?.description || "").toLowerCase()
+
+        return name.includes(keyword) || description.includes(keyword)
+      })
     }
 
     if (sort === "termurah") {
-      data.sort((a, b) => resolveMemberPricing(a).final - resolveMemberPricing(b).final)
+      data.sort(
+        (a, b) => resolveMemberPricing(a).final - resolveMemberPricing(b).final
+      )
     }
 
     if (sort === "terbaru") {
       data.sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0))
-    }
-
-    if (sort === "terlaris") {
-      data.sort((a, b) => Number(b?.purchases_count ?? b?.sold ?? 0) - Number(a?.purchases_count ?? a?.sold ?? 0))
-    }
-
-    if (sort === "favorite") {
-      data.sort((a, b) => Number(b?.favorites_count || 0) - Number(a?.favorites_count || 0))
-    }
-
-    if (sort === "popular") {
-      data.sort((a, b) => Number(b?.popularity_score || 0) - Number(a?.popularity_score || 0))
-    }
-
-    if (sort === "rating") {
-      data.sort((a, b) => Number(b?.rating || 0) - Number(a?.rating || 0))
     }
 
     return data
@@ -79,85 +97,124 @@ export default function ProductsContent({ initialProducts = [], initialSubcatego
   }
 
   return (
-    <main className="min-h-screen px-4 py-8 text-white sm:px-8 lg:px-12">
-      <motion.h1
-        initial={{ opacity: 0, y: -15 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8 text-3xl font-bold"
-      >
-        {initialSubcategoryId ? "Produk" : "Semua Produk"}
-      </motion.h1>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.14),_transparent_28%),linear-gradient(to_bottom,_#020617,_#050816_45%,_#020617)] px-4 py-8 text-white sm:px-8 lg:px-12">
+      <div className="mx-auto max-w-7xl">
 
-      <div className="mb-6 flex flex-col justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl md:flex-row">
-        <input
-          placeholder="Cari produk..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-purple-500 md:w-64"
-        />
-
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none md:w-40"
+        {/* HEADER */}
+        <motion.div
+          initial={{ opacity: 0, y: -18 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
         >
-          <option value="terbaru">Terbaru</option>
-          <option value="termurah">Termurah</option>
-          <option value="terlaris">Terlaris</option>
-          <option value="favorite">Favorit</option>
-          <option value="popular">Popular</option>
-          <option value="rating">Top Rated</option>
-        </select>
-      </div>
+          <h1 className="text-3xl font-bold text-white sm:text-4xl">
+            {initialSubcategoryId ? "Produk Pilihan" : "Semua Produk"}
+          </h1>
 
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <p className="mt-2 text-sm text-zinc-400">
+            Temukan produk terbaik dengan tampilan clean & profesional.
+          </p>
+        </motion.div>
+
+        {/* SEARCH + SORT */}
+        <div className="mb-8 grid gap-4 rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl md:grid-cols-[1fr_220px]">
+
+          <div className="relative">
+            <Search
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-300"
+            />
+            <input
+              placeholder="Cari produk..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-14 w-full rounded-2xl border border-white/10 bg-black/30 pl-12 pr-4 text-sm text-white outline-none focus:border-purple-500"
+            />
+          </div>
+
+          <div className="relative">
+            <SlidersHorizontal
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-300"
+            />
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="h-14 w-full rounded-2xl border border-white/10 bg-black/30 pl-12 pr-4 text-sm text-white outline-none"
+            >
+              <option value="terbaru">Terbaru</option>
+              <option value="termurah">Termurah</option>
+            </select>
+          </div>
+        </div>
+
+        {/* GRID */}
         {filteredProducts.length === 0 ? (
           <EmptyState />
         ) : (
-          filteredProducts.map((product, i) => {
-            const memberPricing = resolveMemberPricing(product)
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {filteredProducts.map((product, i) => {
+              const price = resolveMemberPricing(product).final
+              const rating = Number(product?.rating || 4.8)
+              const duration = formatDuration(product)
 
-            return (
-              <motion.div
-                key={product.id || `${product?.name || "product"}-${i}`}
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                whileHover={{ scale: 1.05, rotateX: 4, rotateY: -4 }}
-                className="group relative rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-black p-5 shadow-lg transition duration-300 hover:shadow-purple-500/30"
-              >
-                <div className="absolute inset-0 opacity-0 blur-2xl transition group-hover:opacity-100 bg-purple-500/10" />
+              return (
+                <motion.div
+                  key={product.id || i}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  whileHover={{ y: -6 }}
+                  className="group rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-lg backdrop-blur-xl hover:border-purple-500/40 transition"
+                >
 
-                <div className="relative flex h-full flex-col">
-                  <h3 className="mb-1 text-lg font-semibold">{product?.name}</h3>
+                  {/* BADGE */}
+                  <div className="mb-3 flex justify-between">
+                    <span className="text-xs text-purple-400">Populer</span>
+                    <ShieldCheck size={14} className="text-emerald-400" />
+                  </div>
 
-                  <p className="line-clamp-2 text-sm text-zinc-400">
+                  {/* TITLE */}
+                  <h3 className="text-lg font-semibold text-white">
+                    {product?.name}
+                  </h3>
+
+                  {/* DESC */}
+                  <p className="mt-1 text-sm text-zinc-400 line-clamp-2">
                     {product?.description}
                   </p>
 
-                  {product?.duration_days ? (
-                    <p className="mt-1 text-xs text-zinc-500">
-                      Durasi: {product.duration_days} hari
-                    </p>
-                  ) : null}
+                  {/* INFO */}
+                  <div className="mt-4 flex gap-3 text-xs text-zinc-300">
+                    <span className="flex items-center gap-1">
+                      <Star size={14} className="text-yellow-400" />
+                      {rating}
+                    </span>
 
-                  <div className="mt-4">
-                    <p className="text-xs text-zinc-400">Harga mulai</p>
+                    <span className="flex items-center gap-1">
+                      <Clock3 size={14} className="text-purple-300" />
+                      {duration}
+                    </span>
+                  </div>
+
+                  {/* PRICE */}
+                  <div className="mt-5">
+                    <p className="text-xs text-zinc-500">Harga mulai</p>
                     <p className="text-xl font-bold text-purple-400">
-                      Rp {memberPricing.final.toLocaleString("id-ID")}
+                      {formatPrice(price)}
                     </p>
                   </div>
 
+                  {/* BUTTON */}
                   <button
                     onClick={() => handleOpenProduct(product)}
-                    className="mt-auto w-full rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 py-2.5 text-sm font-semibold text-white shadow-md transition hover:from-purple-500 hover:to-purple-400 hover:shadow-purple-500/40"
+                    className="mt-5 w-full rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 py-3 text-sm font-semibold text-white hover:opacity-90 transition"
                   >
                     Lihat Detail
                   </button>
-                </div>
-              </motion.div>
-            )
-          })
+                </motion.div>
+              )
+            })}
+          </div>
         )}
       </div>
     </main>
@@ -166,16 +223,9 @@ export default function ProductsContent({ initialProducts = [], initialSubcatego
 
 function EmptyState() {
   return (
-    <div className="col-span-full py-20 text-center">
-      <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-white/5">
-        📦
-      </div>
-
-      <p className="text-lg text-zinc-400">Tidak ada produk ditemukan</p>
-
-      <p className="text-sm text-zinc-500">
-        Coba ubah filter atau kata kunci pencarian
-      </p>
+    <div className="text-center py-20">
+      <PackageSearch size={40} className="mx-auto text-purple-400 mb-4" />
+      <p className="text-zinc-400">Produk tidak ditemukan</p>
     </div>
   )
 }
