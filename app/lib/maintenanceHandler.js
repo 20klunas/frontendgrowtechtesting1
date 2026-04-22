@@ -1,92 +1,119 @@
-import Cookies from 'js-cookie'
+import Cookies from "js-cookie"
 
 const REDIRECT_KEYS = new Set([
-  'public_access',
-  'user_area_access',
+  "public_access",
+  "user_area_access",
 ])
 
 const FEATURE_KEYS = new Set([
-  'catalog_access',
-  'checkout_access',
-  'topup_access',
+  "catalog_access",
+  "checkout_access",
+  "topup_access",
 ])
 
 const AUTH_ROUTES = [
-  '/login',
-  '/register',
-  '/verify-otp',
-  '/forgot-password',
-  '/reset-password',
+  "/login",
+  "/register",
+  "/verify-otp",
+  "/forgot-password",
+  "/reset-password",
 ]
 
-function readCookie(name) {
+const AUTH_BYPASS_SESSION_KEY = "gt_allow_auth_navigation_until"
+
+function readRoleCookie() {
   try {
-    return Cookies.get(name) || ''
+    return (Cookies.get("role") || "").toLowerCase()
   } catch {
-    return ''
+    return ""
+  }
+}
+
+function readIsAdminCookie() {
+  try {
+    return String(Cookies.get("is_admin") || "").toLowerCase() === "true"
+  } catch {
+    return false
+  }
+}
+
+function readAdminRoleIdCookie() {
+  try {
+    return Cookies.get("admin_role_id") || ""
+  } catch {
+    return ""
   }
 }
 
 function hasTokenCookie() {
-  return Boolean(readCookie('token'))
+  try {
+    return Boolean(Cookies.get("token"))
+  } catch {
+    return false
+  }
 }
 
-export function isAdminRole(role = '') {
-  return String(role || '').toLowerCase() === 'admin'
+export function isAdminRole(role = "") {
+  return String(role || "").toLowerCase() === "admin"
 }
 
-export function isAdminUserShape(user = {}) {
-  if (!user || typeof user !== 'object') return false
-  if (user.is_admin === true) return true
-
-  return isAdminRole(user.role) && user.admin_role_id !== null && user.admin_role_id !== undefined && user.admin_role_id !== ''
+export function isAdminPath(pathname = "") {
+  return String(pathname || "").startsWith("/admin")
 }
 
-export function isAdminPath(pathname = '') {
-  return String(pathname || '').startsWith('/admin')
-}
-
-export function isAuthRoute(pathname = '') {
+export function isAuthRoute(pathname = "") {
   return AUTH_ROUTES.includes(pathname)
 }
 
 export function isAdminSession() {
-  if (!hasTokenCookie()) return false
-
-  const explicitFlag = readCookie('is_admin')
-  if (explicitFlag === '1') return true
-
-  const role = readCookie('role')
-  const adminRoleId = readCookie('admin_role_id')
-
-  return isAdminRole(role) && adminRoleId !== ''
+  return hasTokenCookie() && (readIsAdminCookie() || (isAdminRole(readRoleCookie()) && !!readAdminRoleIdCookie()))
 }
 
-export function shouldBypassMaintenanceRedirect(pathname = '', key = '') {
-  if (isAdminPath(pathname)) {
-    return true
-  }
+export function allowAuthNavigationOnce(ttlMs = 15000) {
+  if (typeof window === "undefined") return
+  try {
+    sessionStorage.setItem(AUTH_BYPASS_SESSION_KEY, String(Date.now() + ttlMs))
+  } catch {}
+}
 
-  if (isAdminSession()) {
+export function consumeAuthNavigationAllowance() {
+  if (typeof window === "undefined") return false
+  try {
+    const raw = sessionStorage.getItem(AUTH_BYPASS_SESSION_KEY)
+    if (!raw) return false
+    const expiresAt = Number(raw)
+    if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) {
+      sessionStorage.removeItem(AUTH_BYPASS_SESSION_KEY)
+      return false
+    }
     return true
+  } catch {
+    return false
   }
+}
 
-  // halaman auth publik harus tetap bisa dibuka supaya admin/customer masih bisa melihat form.
-  // pembatasan customer auth tetap dilakukan oleh response 503 dari backend.
-  if (key === 'public_access' && isAuthRoute(pathname)) {
-    return true
-  }
+export function clearAuthNavigationAllowance() {
+  if (typeof window === "undefined") return
+  try {
+    sessionStorage.removeItem(AUTH_BYPASS_SESSION_KEY)
+  } catch {}
+}
 
+export function shouldBypassMaintenanceRedirect(pathname = "", key = "") {
+  if (isAdminPath(pathname)) return true
+  if (isAdminSession()) return true
+  if (key === "public_access" && isAuthRoute(pathname)) return true
+  if (key === "public_access" && consumeAuthNavigationAllowance()) return true
   return false
 }
 
 export function getMaintenanceMeta(data = {}) {
   return {
     isMaintenance: Boolean(data?.meta?.maintenance),
-    scope: data?.meta?.scope || 'system',
-    key: data?.meta?.key || 'maintenance',
+    scope: data?.meta?.scope || "system",
+    key: data?.meta?.key || "maintenance",
     feature: data?.meta?.feature || null,
-    message: data?.error?.message || data?.message || 'System Maintenance',
+    message: data?.error?.message || data?.message || "System Maintenance",
   }
 }
 
@@ -99,27 +126,27 @@ export function isFeatureMaintenanceKey(key) {
 }
 
 export function getMaintenanceReturnUrl() {
-  if (typeof window === 'undefined') return '/'
-  const pathname = window.location.pathname || '/'
-  const search = window.location.search || ''
-  const hash = window.location.hash || ''
+  if (typeof window === "undefined") return "/"
+  const pathname = window.location.pathname || "/"
+  const search = window.location.search || ""
+  const hash = window.location.hash || ""
   return `${pathname}${search}${hash}`
 }
 
 export function buildMaintenanceRedirectUrl(input) {
   const meta = input?.meta ? getMaintenanceMeta(input) : input
 
-  const message = encodeURIComponent(meta?.message || 'System Maintenance')
-  const scope = encodeURIComponent(meta?.scope || 'system')
-  const key = encodeURIComponent(meta?.key || 'maintenance')
+  const message = encodeURIComponent(meta?.message || "System Maintenance")
+  const scope = encodeURIComponent(meta?.scope || "system")
+  const key = encodeURIComponent(meta?.key || "maintenance")
   const next = encodeURIComponent(getMaintenanceReturnUrl())
 
   return `/maintenance?scope=${scope}&key=${key}&message=${message}&next=${next}`
 }
 
 export function createMaintenanceError(meta) {
-  const err = new Error(meta?.message || 'System Maintenance')
-  err.name = 'MaintenanceError'
+  const err = new Error(meta?.message || "System Maintenance")
+  err.name = "MaintenanceError"
   err.isMaintenance = true
   err.maintenance = meta
   return err
@@ -133,11 +160,11 @@ export function handleMaintenance(res, data) {
   const meta = getMaintenanceMeta(data)
   const err = createMaintenanceError(meta)
 
-  if (typeof window !== 'undefined' && isRedirectMaintenanceKey(meta.key)) {
-    const pathname = window.location.pathname || ''
+  if (typeof window !== "undefined" && isRedirectMaintenanceKey(meta.key)) {
+    const pathname = window.location.pathname || ""
     const target = buildMaintenanceRedirectUrl(meta)
 
-    if (pathname.startsWith('/maintenance')) {
+    if (pathname.startsWith("/maintenance")) {
       throw err
     }
 
@@ -145,16 +172,12 @@ export function handleMaintenance(res, data) {
       throw err
     }
 
-    const current = `${pathname}${window.location.search || ''}`
+    const current = `${pathname}${window.location.search || ""}`
     if (current !== target) {
       window.location.replace(target)
-      return
     }
   }
 
-  // user_auth_access sengaja tidak redirect global.
-  // Customer akan menerima popup error dari form login,
-  // sementara admin masih bisa login dari halaman yang sama.
   throw err
 }
 
@@ -171,6 +194,6 @@ export function isFeatureMaintenanceError(error, key = null) {
   return error?.maintenance?.key === key
 }
 
-export function getMaintenanceMessage(error, fallback = 'Fitur sedang maintenance.') {
+export function getMaintenanceMessage(error, fallback = "Fitur sedang maintenance.") {
   return error?.maintenance?.message || error?.message || fallback
 }

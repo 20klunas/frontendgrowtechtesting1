@@ -5,6 +5,7 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import { usePathname } from "next/navigation"
 import { useWebsiteSettings } from "../context/WebsiteSettingsContext"
+import { allowAuthNavigationOnce } from "../lib/maintenanceHandler"
 
 export default function NavbarPublic() {
   const pathname = usePathname()
@@ -17,6 +18,12 @@ export default function NavbarPublic() {
 
   const isActive = (href) => pathname === href || pathname.startsWith(`${href}/`)
   const siteName = brand?.site_name || "Growtech Central"
+
+  const goToLogin = (event) => {
+    event.preventDefault()
+    allowAuthNavigationOnce()
+    window.location.href = "/login"
+  }
 
   return (
     <nav className="sticky top-0 z-50 border-b border-purple-800/40 bg-[#14002a]">
@@ -47,9 +54,9 @@ export default function NavbarPublic() {
             </Link>
           ))}
 
-          <Link href="/login" className="text-purple-300 hover:text-purple-200">
+          <a href="/login" onClick={goToLogin} className="text-purple-300 hover:text-purple-200">
             Login
-          </Link>
+          </a>
         </div>
       </div>
     </nav>

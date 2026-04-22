@@ -4,15 +4,7 @@ import Link from "next/link";
 import Cookies from "js-cookie";
 import { useSearchParams } from "next/navigation";
 import { useMaintenance } from "../../context/MaintenanceContext";
-
-function isAdminSession() {
-  const role = String(Cookies.get("role") || "").toLowerCase();
-  const hasToken = Boolean(Cookies.get("token"));
-  const isAdminFlag = Cookies.get("is_admin") === "1";
-  const adminRoleId = Cookies.get("admin_role_id") || "";
-
-  return hasToken && (isAdminFlag || (role === "admin" && adminRoleId !== ""));
-}
+import { allowAuthNavigationOnce } from "../../lib/maintenanceHandler";
 
 export default function MaintenanceClient() {
   const params = useSearchParams();
@@ -21,7 +13,17 @@ export default function MaintenanceClient() {
   const message = params.get("message") || "Website sedang maintenance";
   const scope = params.get("scope") || "system";
   const key = params.get("key") || "maintenance";
-  const adminSession = isAdminSession();
+  const role = Cookies.get("role") || "";
+  const isAdminFlag = String(Cookies.get("is_admin") || "").toLowerCase() === "true";
+  const adminRoleId = Cookies.get("admin_role_id") || "";
+  const hasToken = Boolean(Cookies.get("token"));
+  const isAdminSession = hasToken && (isAdminFlag || (String(role).toLowerCase() === "admin" && !!adminRoleId));
+
+  const goToLogin = (event) => {
+    event.preventDefault();
+    allowAuthNavigationOnce();
+    window.location.href = "/login";
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black px-6">
@@ -60,7 +62,7 @@ export default function MaintenanceClient() {
             Kembali ke Beranda
           </Link>
 
-          {adminSession ? (
+          {isAdminSession ? (
             <Link
               href="/admin/dashboard"
               className="px-5 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
@@ -68,12 +70,13 @@ export default function MaintenanceClient() {
               Ke Dashboard Admin
             </Link>
           ) : (
-            <Link
+            <a
               href="/login"
+              onClick={goToLogin}
               className="px-5 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
             >
               Ke Login
-            </Link>
+            </a>
           )}
         </div>
       </div>

@@ -16,7 +16,8 @@ import {
   normalizeFeatureAccess,
 } from "../lib/featureAccess"
 import {
-  isAdminSession,
+  clearAuthNavigationAllowance,
+  consumeAuthNavigationAllowance,
   isAuthRoute,
 } from "../lib/maintenanceHandler"
 
@@ -55,15 +56,12 @@ function buildMaintenanceTarget({ key, message, pathname }) {
 }
 
 function resolveActiveRedirect(state, pathname) {
-  if (!pathname) {
+  if (!pathname || pathname.startsWith("/admin")) {
     return null
   }
 
-  if (pathname.startsWith("/admin") || isAdminSession()) {
-    return null
-  }
-
-  if (isAuthRoute(pathname) || pathname.startsWith("/auth/callback")) {
+  if (isAuthRoute(pathname)) {
+    clearAuthNavigationAllowance()
     return null
   }
 
@@ -77,8 +75,14 @@ function resolveActiveRedirect(state, pathname) {
 
   if (
     state?.publicMaintenance &&
+    !consumeAuthNavigationAllowance() &&
     !pathname.startsWith("/customer") &&
-    !pathname.startsWith("/maintenance")
+    !pathname.startsWith("/maintenance") &&
+    !pathname.startsWith("/login") &&
+    !pathname.startsWith("/register") &&
+    !pathname.startsWith("/forgot-password") &&
+    !pathname.startsWith("/reset-password") &&
+    !pathname.startsWith("/verify-otp")
   ) {
     return buildMaintenanceTarget({
       key: "public_access",
@@ -219,7 +223,6 @@ export function MaintenanceProvider({ children, initialState = null }) {
   useEffect(() => {
     if (!isMountedRef.current || !pathname) return
 
-    const adminSession = isAdminSession()
     const activeRedirect = resolveActiveRedirect(state, pathname)
     const { currentPathWithSearch, currentKey, nextPath } = getMaintenanceRouteSnapshot()
 
@@ -227,11 +230,6 @@ export function MaintenanceProvider({ children, initialState = null }) {
       if (activeRedirect && currentPathWithSearch !== activeRedirect) {
         router.replace(activeRedirect)
       }
-      return
-    }
-
-    if (adminSession) {
-      router.replace("/admin/dashboard")
       return
     }
 
