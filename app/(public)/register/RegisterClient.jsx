@@ -65,9 +65,7 @@ export default function RegisterClient() {
         return
       }
     } catch (err) {
-      if (!err?.isMaintenance) {
-        alert(err?.message || "Register gagal")
-      }
+      alert(err?.message || "Register gagal")
     } finally {
       setLoading(false)
     }

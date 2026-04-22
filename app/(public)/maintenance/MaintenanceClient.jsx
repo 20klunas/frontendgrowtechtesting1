@@ -4,11 +4,13 @@ import Link from "next/link";
 import Cookies from "js-cookie";
 import { useSearchParams } from "next/navigation";
 import { useMaintenance } from "../../context/MaintenanceContext";
+import { useAuth } from "../../hooks/useAuth";
 import { allowAuthNavigationOnce } from "../../lib/maintenanceHandler";
 
 export default function MaintenanceClient() {
   const params = useSearchParams();
   const { loading, refreshMaintenance } = useMaintenance();
+  const { logout } = useAuth();
 
   const message = params.get("message") || "Website sedang maintenance";
   const scope = params.get("scope") || "system";
@@ -61,6 +63,16 @@ export default function MaintenanceClient() {
           >
             Kembali ke Beranda
           </Link>
+
+          {hasToken && !isAdminSession ? (
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="px-5 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+            >
+              Logout
+            </button>
+          ) : null}
 
           {isAdminSession ? (
             <Link

@@ -31,7 +31,6 @@ export default function WebsitePage() {
     system: {
       public_access: { enabled: true, message: "" },
       user_auth_access: { enabled: true, message: "" },
-      user_area_access: { enabled: true, message: "" },
       catalog_access: { enabled: true, message: "" },
       checkout_access: { enabled: true, message: "" },
       topup_access: { enabled: true, message: "" },
@@ -80,7 +79,6 @@ export default function WebsitePage() {
           system: {
             public_access: systemMap.public_access || { enabled: true, message: "" },
             user_auth_access: systemMap.user_auth_access || { enabled: true, message: "" },
-            user_area_access: systemMap.user_area_access || { enabled: true, message: "" },
             catalog_access: systemMap.catalog_access || { enabled: true, message: "" },
             checkout_access: systemMap.checkout_access || { enabled: true, message: "" },
             topup_access: systemMap.topup_access || { enabled: true, message: "" },

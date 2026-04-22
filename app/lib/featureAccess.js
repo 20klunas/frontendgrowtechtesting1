@@ -28,9 +28,9 @@ export function normalizeFeatureAccess(payload = {}) {
     payload?.public_access,
     "Halaman publik sedang maintenance."
   )
-  const userArea = normalizeFeatureNode(
-    payload?.user_area_access,
-    "Area user sedang maintenance."
+  const userAuth = normalizeFeatureNode(
+    payload?.user_auth_access,
+    "Login dan registrasi sedang maintenance."
   )
   const catalog = normalizeFeatureNode(
     payload?.catalog_access,
@@ -44,10 +44,6 @@ export function normalizeFeatureAccess(payload = {}) {
     payload?.topup_access,
     "Top up sedang maintenance."
   )
-  const userAuth = normalizeFeatureNode(
-    payload?.user_auth_access,
-    "Login dan registrasi sedang maintenance."
-  )
 
   return {
     publicMaintenance: publicAccess.disabled,
@@ -60,7 +56,8 @@ export function normalizeFeatureAccess(payload = {}) {
     topupMessage: topup.message,
     userAuthDisabled: userAuth.disabled,
     userAuthMessage: userAuth.message,
-    userAreaDisabled: userArea.disabled,
-    userAreaMessage: userArea.message,
+    // legacy alias supaya komponen lama yang masih membaca userArea tetap aman
+    userAreaDisabled: userAuth.disabled,
+    userAreaMessage: userAuth.message,
   }
 }

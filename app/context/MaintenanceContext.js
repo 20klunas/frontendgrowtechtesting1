@@ -48,10 +48,6 @@ function buildMaintenanceTarget({ key, message, pathname }) {
     return `/maintenance?scope=auth&key=user_auth_access&message=${safeMessage}&next=${safeNext}`
   }
 
-  if (key === "user_area_access") {
-    return `/maintenance?scope=user&key=user_area_access&message=${safeMessage}&next=${safeNext}`
-  }
-
   return null
 }
 
@@ -65,10 +61,10 @@ function resolveActiveRedirect(state, pathname) {
     return null
   }
 
-  if (state?.userAreaDisabled && pathname.startsWith("/customer")) {
+  if (state?.userAuthDisabled && pathname.startsWith("/customer")) {
     return buildMaintenanceTarget({
-      key: "user_area_access",
-      message: state.userAreaMessage || "Area user sedang maintenance.",
+      key: "user_auth_access",
+      message: state.userAuthMessage || "Login dan area user sedang maintenance.",
       pathname,
     })
   }
@@ -235,8 +231,7 @@ export function MaintenanceProvider({ children, initialState = null }) {
 
     const stillActive =
       (currentKey === "public_access" && state.publicMaintenance) ||
-      (currentKey === "user_auth_access" && state.userAuthDisabled) ||
-      (currentKey === "user_area_access" && state.userAreaDisabled)
+      (currentKey === "user_auth_access" && state.userAuthDisabled)
 
     if (!stillActive) {
       router.replace(nextPath)

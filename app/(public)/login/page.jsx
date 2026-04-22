@@ -22,7 +22,7 @@ import {
 function isAdminFromCookies() {
   const token = Cookies.get("token");
   const role = String(Cookies.get("role") || "").toLowerCase();
-  const isAdminFlag = Cookies.get("is_admin") === "1";
+  const isAdminFlag = ["1", "true"].includes(String(Cookies.get("is_admin") || "").toLowerCase());
   const adminRoleId = Cookies.get("admin_role_id") || "";
 
   return Boolean(token) && (isAdminFlag || (role === "admin" && adminRoleId !== ""));
@@ -126,14 +126,12 @@ export default function LoginPage() {
     } catch (err) {
       finishTransition();
 
-      if (!err?.isMaintenance) {
-        setPopup({
-          open: true,
-          type: "error",
-          message:
-            err?.message || "Sedang Maintenance, coba beberapa saat lagi.",
-        });
-      }
+      setPopup({
+        open: true,
+        type: "error",
+        message:
+          err?.message || "Sedang Maintenance, coba beberapa saat lagi.",
+      });
     } finally {
       setLoading(false);
     }
