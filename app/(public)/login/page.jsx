@@ -22,7 +22,9 @@ import {
 function isAdminFromCookies() {
   const token = Cookies.get("token");
   const role = String(Cookies.get("role") || "").toLowerCase();
-  const isAdminFlag = ["1", "true"].includes(String(Cookies.get("is_admin") || "").toLowerCase());
+  const isAdminFlag = ["1", "true"].includes(
+    String(Cookies.get("is_admin") || "").toLowerCase()
+  );
   const adminRoleId = Cookies.get("admin_role_id") || "";
 
   return Boolean(token) && (isAdminFlag || (role === "admin" && adminRoleId !== ""));
@@ -96,7 +98,11 @@ export default function LoginPage() {
 
       const json = await publicFetch("/api/v1/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password, remember: rememberDevice }),
+        body: JSON.stringify({
+          email,
+          password,
+          remember: rememberDevice,
+        }),
       });
 
       if (json?.data?.trusted_device_credential) {
@@ -129,8 +135,7 @@ export default function LoginPage() {
       setPopup({
         open: true,
         type: "error",
-        message:
-          err?.message || "Sedang Maintenance, coba beberapa saat lagi.",
+        message: err?.message || "Sedang maintenance, coba beberapa saat lagi.",
       });
     } finally {
       setLoading(false);
@@ -151,26 +156,21 @@ export default function LoginPage() {
       setTrustedDevicePreference(rememberDevice);
       window.location.href = `${API}/api/v1/auth/google/redirect`;
     } catch (err) {
-      if (err?.isMaintenance) {
-        setPopup({
-          open: true,
-          type: "error",
-          message: err.message || "Login sedang maintenance",
-        });
-        return;
-      }
-
       setPopup({
         open: true,
         type: "error",
-        message: "Gagal memulai login Google",
+        message: err?.message || "Gagal memulai login Google",
       });
     }
   };
 
   const handleDiscordLogin = () => {
     if (!API) {
-      alert("NEXT_PUBLIC_API_URL belum diset");
+      setPopup({
+        open: true,
+        type: "error",
+        message: "API belum dikonfigurasi",
+      });
       return;
     }
 
@@ -179,33 +179,36 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative z-10 min-h-[calc(100vh-80px)] flex items-center justify-center px-4 pt-16 pointer-events-auto">
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-purple-400/60 bg-black p-8">
-        {popup.open && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-            <div className="w-95 rounded-2xl border border-purple-500 bg-black p-6 shadow-xl">
-              <h2 className="text-lg font-semibold text-purple-300 mb-3">
-                Pemberitahuan !
-              </h2>
-
-              <p className="text-sm text-gray-300 mb-6">{popup.message}</p>
-
-              <button
-                type="button"
-                onClick={() => setPopup({ ...popup, open: false })}
-                className="w-full rounded-lg bg-purple-600 py-2 font-semibold hover:bg-purple-700 transition"
-              >
-                Tutup
-              </button>
-            </div>
+    <main className="min-h-screen flex items-center justify-center px-4 py-10 bg-gradient-to-br from-black via-[#0a0014] to-[#1a0033]">
+      {popup.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-purple-500/30 bg-[#12061d] p-6 shadow-2xl backdrop-blur-xl">
+            <h2 className="mb-3 text-lg font-semibold text-purple-300">
+              Pemberitahuan
+            </h2>
+            <p className="mb-6 text-sm text-gray-300">{popup.message}</p>
+            <button
+              type="button"
+              onClick={() => setPopup({ ...popup, open: false })}
+              className="w-full rounded-xl bg-gradient-to-r from-purple-700 to-purple-500 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            >
+              Tutup
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="flex justify-center mb-5">
-          <Image src="/logoherosection.png" alt="Growtech" width={90} height={90} />
+      <div className="w-full max-w-xl rounded-2xl border border-purple-500/30 bg-white/5 p-6 text-white shadow-xl backdrop-blur-xl sm:p-8">
+        <div className="mb-4 flex justify-center">
+          <Image
+            src="/logoherosection.png"
+            alt="Growtech"
+            width={70}
+            height={70}
+          />
         </div>
 
-        <h1 className="text-center text-2xl font-semibold text-purple-300 mb-6">
+        <h1 className="mb-6 text-center text-xl font-semibold text-purple-300 sm:text-2xl">
           Login
         </h1>
 
@@ -218,39 +221,37 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="growtech@email.com"
               required
-              className="mt-1 w-full rounded-lg border border-purple-400/50 bg-black px-4 py-2 text-white outline-none focus:border-purple-500"
+              className="mt-1 w-full rounded-lg border border-purple-400/40 bg-black/40 px-4 py-2.5 text-sm text-white outline-none transition focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
             />
           </div>
 
           <div>
             <label className="text-sm text-purple-300">Password</label>
-
             <div className="relative mt-1">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="********"
+                placeholder="Masukkan password"
                 required
-                className="w-full rounded-lg border border-purple-400/50 bg-black px-4 py-2 pr-10 text-white outline-none focus:border-purple-500"
+                className="w-full rounded-lg border border-purple-400/40 bg-black/40 px-4 py-2.5 pr-12 text-sm text-white outline-none transition focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
               />
-
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 hover:text-purple-200"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 transition hover:text-purple-200"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
-          <label className="flex items-start gap-3 rounded-xl border border-purple-400/20 bg-purple-950/20 px-4 py-3 text-sm text-gray-200">
+          <label className="flex items-start gap-3 rounded-xl border border-purple-400/20 bg-purple-900/20 px-4 py-3 text-xs text-gray-200">
             <input
               type="checkbox"
               checked={rememberDevice}
               onChange={(e) => setRememberDevice(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-purple-400/50 bg-transparent text-purple-500 focus:ring-purple-500"
+              className="mt-1 h-4 w-4 accent-purple-500"
             />
             <span>Ingat perangkat ini untuk lewati OTP hingga 30 hari</span>
           </label>
@@ -258,7 +259,7 @@ export default function LoginPage() {
           <div className="text-right">
             <a
               href="/forgot-password"
-              className="text-sm text-purple-400 hover:underline"
+              className="text-sm text-purple-400 transition hover:underline"
             >
               Lupa password?
             </a>
@@ -267,35 +268,52 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-4 w-full rounded-xl bg-[#2B044D] py-3 font-semibold text-white transition hover:bg-[#3a0a6a] disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-r from-purple-700 to-purple-500 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        <div className="mt-5 grid grid-cols-1 gap-3">
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="w-full rounded-xl border border-purple-400/40 px-4 py-3 text-white hover:bg-purple-500/10 transition"
-          >
-            Login dengan Google
-          </button>
-          <button
-            type="button"
-            onClick={handleDiscordLogin}
-            className="w-full rounded-xl border border-purple-400/40 px-4 py-3 text-white hover:bg-purple-500/10 transition"
-          >
-            Login dengan Discord
-          </button>
-        </div>
-
-        <p className="mt-6 text-center text-sm text-gray-400">
+        <p className="mt-5 text-center text-sm text-gray-400">
           Belum punya akun?{" "}
           <a href="/register" className="text-purple-400 hover:underline">
             Daftar
           </a>
         </p>
+
+        <div className="mt-6 border-t border-purple-400/20 pt-4">
+          <p className="mb-3 text-center text-sm text-gray-400">Atau login dengan</p>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/40 py-2.5 text-sm text-white transition hover:bg-purple-400/10"
+            >
+              <Image
+                src="/icons/google-icon.svg"
+                alt="Google"
+                width={18}
+                height={18}
+              />
+              Google
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDiscordLogin}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-purple-400/40 py-2.5 text-sm text-white transition hover:bg-purple-400/10"
+            >
+              <Image
+                src="/icons/discord-icon.svg"
+                alt="Discord"
+                width={18}
+                height={18}
+              />
+              Discord
+            </button>
+          </div>
+        </div>
       </div>
     </main>
   );
