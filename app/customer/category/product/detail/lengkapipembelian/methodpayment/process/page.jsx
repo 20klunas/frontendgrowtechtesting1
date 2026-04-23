@@ -7,11 +7,11 @@ import { clearCheckoutBootstrapCache } from "../../../../../../../lib/clientBoot
 import { notifyCustomerCartChanged } from "../../../../../../../lib/customerCartEvents";
 import { Lock, CheckCircle, XCircle } from "lucide-react";
 import { invalidateFetcherCache } from "../../../../../../../lib/fetcher";
+import { invalidatePublicFetchCache } from "../../../../../../../lib/publicFetch";
 
 function ProcessContent() {
   const router = useRouter();
   const params = useSearchParams();
-
   const orderId = params.get("order");
 
   const [payment, setPayment] = useState(null);
@@ -20,57 +20,54 @@ function ProcessContent() {
   const pollingRef = useRef(null);
   const redirectedRef = useRef(false);
 
-  const SUCCESS_STATUS = ["paid", "completed", "success"];
-  const FAILED_STATUS = ["failed", "error", "cancelled"];
+  const SUCCESS_STATUS = ["paid", "completed", "success", "settlement", "capture"];
+  const FAILED_STATUS = ["failed", "error", "cancelled", "cancel", "expire", "deny"];
 
-  /* ================= FETCH PAYMENT ================= */
+  const invalidateClientCaches = () => {
+    clearCheckoutBootstrapCache();
+    notifyCustomerCartChanged();
+    invalidateAuthFetchCache([
+      /\/api\/v1\/products\b/,
+      /\/api\/v1\/catalog\//,
+      /\/api\/v1\/categories\b/,
+      /\/api\/v1\/subcategories\b/,
+      /\/api\/v1\/orders\b/,
+      /\/api\/v1\/bootstrap\/orders\//,
+    ]);
+    invalidateFetcherCache([
+      "/api/v1/products",
+      "/api/v1/catalog",
+      "/api/v1/categories",
+      "/api/v1/subcategories",
+      "/api/v1/orders",
+    ]);
+    invalidatePublicFetchCache([/\/api\/v1\/products\b/, /\/api\/v1\/catalog\/products\b/]);
+  };
 
   const fetchPayment = async () => {
     if (!orderId) return;
 
     try {
-      const json = await authFetch(`/api/v1/orders/${orderId}/payments`);
-
+      const json = await authFetch(`/api/v1/orders/${orderId}/payments`, { cache: "no-store" });
       if (!json?.success) return;
 
       const paymentData = json?.data?.payment || json?.data;
-
-      const status =
-        paymentData?.status?.toLowerCase() ||
-        json?.data?.payment?.status?.toLowerCase();
+      const status = String(paymentData?.status || "").toLowerCase();
 
       setPayment(paymentData);
 
-      /* ================= SUCCESS ================= */
-
       if (SUCCESS_STATUS.includes(status) && !redirectedRef.current) {
-
         redirectedRef.current = true;
-        clearCheckoutBootstrapCache();
-        notifyCustomerCartChanged();
-
-        router.refresh();
-        router.replace(
-          `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
-        );
-
+        invalidateClientCaches();
+        router.replace(`/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`);
         return;
       }
-
-      /* ================= FAILED ================= */
 
       if (FAILED_STATUS.includes(status) && !redirectedRef.current) {
-
         redirectedRef.current = true;
-
-        router.refresh();
-        router.replace(
-          `/customer/category/product/detail/lengkapipembelian/methodpayment/failed?order=${orderId}`
-        );
-
+        router.replace(`/customer/category/product/detail/lengkapipembelian/methodpayment/failed?order=${orderId}`);
         return;
       }
-
     } catch (err) {
       console.error("Fetch payment error:", err);
     } finally {
@@ -78,13 +75,9 @@ function ProcessContent() {
     }
   };
 
-  /* ================= POLLING ================= */
-
   const startPolling = async () => {
-
     await fetchPayment();
-
-    pollingRef.current = setTimeout(startPolling, 3000);
+    pollingRef.current = window.setTimeout(startPolling, 3000);
   };
 
   useEffect(() => {
@@ -93,11 +86,9 @@ function ProcessContent() {
     startPolling();
 
     return () => {
-      if (pollingRef.current) clearTimeout(pollingRef.current);
+      if (pollingRef.current) window.clearTimeout(pollingRef.current);
     };
   }, [orderId]);
-
-  /* ================= LOADING ================= */
 
   if (loading && !payment) {
     return (
@@ -107,7 +98,7 @@ function ProcessContent() {
     );
   }
 
-  const status = payment?.status?.toLowerCase();
+  const status = String(payment?.status || "").toLowerCase();
 
   const statusConfig = {
     pending: {
@@ -116,34 +107,25 @@ function ProcessContent() {
       color: "text-yellow-400",
       button: null,
     },
-
     paid: {
       icon: <CheckCircle className="text-green-400" size={48} />,
       title: "Pembayaran Berhasil",
       color: "text-green-400",
       button: (
         <button
-          onClick={() =>
-            router.push(
-              `/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`
-            )
-          }
+          onClick={() => router.push(`/customer/category/product/detail/lengkapipembelian/methodpayment/success?order=${orderId}`)}
           className="w-full rounded-xl bg-green-500 py-3 font-semibold text-black"
         >
           Lanjut Ke Pengiriman
         </button>
       ),
     },
-
     failed: {
       icon: <XCircle className="text-red-400" size={48} />,
       title: "Pembayaran Gagal",
       color: "text-red-400",
       button: (
-        <button
-          onClick={() => router.back()}
-          className="w-full rounded-xl bg-red-500 py-3 font-semibold text-black"
-        >
+        <button onClick={() => router.back()} className="w-full rounded-xl bg-red-500 py-3 font-semibold text-black">
           Coba Lagi
         </button>
       ),
@@ -155,28 +137,14 @@ function ProcessContent() {
   return (
     <main className="min-h-screen bg-black px-4 py-16 text-white">
       <div className="mx-auto max-w-xl text-center">
-
         {current.icon}
-
-        <h1 className={`text-2xl font-bold mb-2 ${current.color}`}>
-          {current.title}
-        </h1>
-
-        <p className="text-gray-400 mb-6">
-          Order #{orderId}
-        </p>
+        <h1 className={`text-2xl font-bold mb-2 ${current.color}`}>{current.title}</h1>
+        <p className="text-gray-400 mb-6">Order #{orderId}</p>
 
         <div className="border border-purple-500/40 rounded-xl p-4 mb-6">
-
           <Row label="Metode" value={payment?.gateway_code} />
-
           <Row label="Status" value={payment?.status} />
-
-          <Row
-            label="Amount"
-            value={`Rp ${Number(payment?.amount || 0).toLocaleString("id-ID")}`}
-          />
-
+          <Row label="Amount" value={`Rp ${Number(payment?.amount || 0).toLocaleString("id-ID")}`} />
         </div>
 
         <div className="flex items-center justify-center gap-2 text-sm text-gray-400 mb-8">
@@ -185,7 +153,6 @@ function ProcessContent() {
         </div>
 
         {current.button}
-
       </div>
     </main>
   );

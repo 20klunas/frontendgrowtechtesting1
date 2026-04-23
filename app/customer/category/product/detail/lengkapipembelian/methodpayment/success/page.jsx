@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState, useMemo } from "react";
-import { CheckCircle, Eye, Lock, FileText, Download, Copy } from "lucide-react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle, Eye, Lock, FileText, Copy, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authFetch, invalidateAuthFetchCache } from "../../../../../../../lib/authFetch";
@@ -11,167 +11,252 @@ import confetti from "canvas-confetti";
 import { invalidateFetcherCache } from "../../../../../../../lib/fetcher";
 import { invalidatePublicFetchCache } from "../../../../../../../lib/publicFetch";
 
-const DEFAULT_VIEW_DURATION = 30; // detik one-time view
+const DEFAULT_VIEW_DURATION = 30;
+const MAX_BOOTSTRAP_RETRIES = 12;
+const RETRY_INTERVAL_MS = 2500;
 
 function SuccessContent() {
-  // const params = useSearchParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order");
-
-  const hasFetched = useRef(false);
-
-  useEffect(() => {
-    setRevealedData(null)
-    hasFetched.current = false
-  }, [orderId])
-
-  useEffect(() => {
-    if (!orderId) return;
-
-    if (hasFetched.current) return;
-
-    hasFetched.current = true;
-    clearCheckoutBootstrapCache();
-    notifyCustomerCartChanged();
-    invalidateAuthFetchCache([/\/api\/v1\/products\b/, /\/api\/v1\/catalog\//, /\/api\/v1\/categories\b/, /\/api\/v1\/subcategories\b/, /\/api\/v1\/bootstrap\/customer-home\b/]);
-    invalidateFetcherCache(["/api/v1/products", "/api/v1/catalog", "/api/v1/categories", "/api/v1/subcategories", "/api/v1/bootstrap/customer-home"]);
-    invalidatePublicFetchCache([/\/api\/v1\/products\b/, /\/api\/v1\/catalog\/products\b/, /\/api\/v1\/content\//]);
-
-    fetchAll();
-    router.refresh();
-    triggerConfetti();
-  }, [orderId]);
-  const timerRef = useRef(null);
 
   const cached = readCheckoutBootstrapCache();
 
   const [delivery, setDelivery] = useState(cached?.delivery || null);
   const [order, setOrder] = useState(cached?.order || null);
   const [paymentInfo, setPaymentInfo] = useState(cached?.payment || null);
-  const [loading, setLoading] = useState(!cached);
-
-  // const [delivery, setDelivery] = useState(null);
-
-  // // order detail (GET /orders/{id})
-  // const [order, setOrder] = useState(null);
-
-  // // payment status (GET /orders/{id}/payments)
-  // const [paymentInfo, setPaymentInfo] = useState(null);
-
+  const [loading, setLoading] = useState(true);
   const [revealedData, setRevealedData] = useState(null);
-
-  // const [loading, setLoading] = useState(true);
   const [revealing, setRevealing] = useState(false);
   const [resending, setResending] = useState(false);
   const [closing, setClosing] = useState(false);
-
   const [countdown, setCountdown] = useState(DEFAULT_VIEW_DURATION);
   const [blurred, setBlurred] = useState(false);
-
-  const revealWindowSeconds = Number(delivery?.reveal_window_seconds || DEFAULT_VIEW_DURATION);
-
   const [toast, setToast] = useState(null);
-
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
-  const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [existingRating, setExistingRating] = useState(null);
   const [editingRating, setEditingRating] = useState(false);
+  const [bootstrapRetries, setBootstrapRetries] = useState(0);
+  const [bootstrapError, setBootstrapError] = useState("");
+
+  const timerRef = useRef(null);
+  const initOnceRef = useRef(false);
+  const retryTimerRef = useRef(null);
+  const hasAutoRevealed = useRef(false);
+
+  const revealWindowSeconds = Number(delivery?.reveal_window_seconds || DEFAULT_VIEW_DURATION);
+  const isFulfillmentPending = Boolean(delivery?.fulfillment_pending) || (!delivery?.delivery_ready && Number(paymentInfo?.status === "paid"));
 
   const primaryProductName = useMemo(() => {
-    return revealedData?.product_name || delivery?.primary_product_name || paymentInfo?.items?.[0]?.product_name || paymentInfo?.items?.[0]?.product?.name || order?.item_details?.[0]?.product || order?.product?.name || null;
+    return (
+      revealedData?.product_name ||
+      delivery?.primary_product_name ||
+      paymentInfo?.items?.[0]?.product_name ||
+      paymentInfo?.items?.[0]?.product?.name ||
+      order?.item_details?.[0]?.product ||
+      order?.product?.name ||
+      "Produk digital"
+    );
   }, [revealedData, delivery, paymentInfo, order]);
 
-  // const rawParams = useSearchParams();
+  const invoiceNumber = useMemo(() => {
+    return paymentInfo?.invoice_number || order?.invoice_number || "-";
+  }, [paymentInfo, order]);
 
+  const rateProductId = useMemo(() => {
+    if (order?.product_id) return order.product_id;
+    const firstItem = paymentInfo?.items?.[0];
+    if (!firstItem) return null;
+    if (firstItem.product_id) return firstItem.product_id;
+    if (firstItem.product?.id) return firstItem.product.id;
+    return null;
+  }, [order, paymentInfo]);
 
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ message, type });
+    window.clearTimeout(showToast._timer);
+    showToast._timer = window.setTimeout(() => setToast(null), 2500);
+  }, []);
 
-  /* ================= CONFETTI ================= */
-  const triggerConfetti = () => {
+  const invalidateAllClientCaches = useCallback(() => {
+    clearCheckoutBootstrapCache();
+    notifyCustomerCartChanged();
+    invalidateAuthFetchCache([
+      /\/api\/v1\/products\b/,
+      /\/api\/v1\/catalog\//,
+      /\/api\/v1\/categories\b/,
+      /\/api\/v1\/subcategories\b/,
+      /\/api\/v1\/bootstrap\/customer-home\b/,
+      /\/api\/v1\/orders\b/,
+    ]);
+    invalidateFetcherCache([
+      "/api/v1/products",
+      "/api/v1/catalog",
+      "/api/v1/categories",
+      "/api/v1/subcategories",
+      "/api/v1/bootstrap/customer-home",
+      "/api/v1/orders",
+    ]);
+    invalidatePublicFetchCache([
+      /\/api\/v1\/products\b/,
+      /\/api\/v1\/catalog\/products\b/,
+      /\/api\/v1\/content\//,
+    ]);
+  }, []);
+
+  const triggerConfetti = useCallback(() => {
     confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
-  };
+  }, []);
 
-  // useEffect(() => {
-  //   if (!orderId) return;
-  //   fetchAll();
-  //   triggerConfetti();
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [orderId]);
+  const fetchExistingRating = useCallback(async (productId) => {
+    if (!productId) return;
 
-  // const hasFetched = useRef(false);
-
-  // useEffect(() => {
-  //   if (!orderId || hasFetched.current) return;
-
-  //   hasFetched.current = true;
-
-  //   fetchAll();
-  //   triggerConfetti();
-  // }, [orderId]);
-
-  /* ================= FETCH ================= */
-  const fetchAll = async () => {
     try {
-      setLoading(true);
+      const json = await authFetch(`/api/v1/favorites?per_page=100&scope=all`);
+      const rows = Array.isArray(json?.data?.data) ? json.data.data : [];
+      const found = rows.find((item) => Number(item?.product_id) === Number(productId));
+      const value = Number(found?.rating || 0);
 
-      const bootstrapJson = await authFetch(`/api/v1/bootstrap/orders/${orderId}/success`);
-
-      if (bootstrapJson?.success) {
-        const nextDelivery = bootstrapJson?.data?.delivery || null;
-        const nextOrder = bootstrapJson?.data?.order?.order ?? bootstrapJson?.data?.order ?? null;
-        const nextPayment = bootstrapJson?.data?.payment || null;
-
-        setDelivery(nextDelivery);
-        setOrder(nextOrder);
-        setPaymentInfo(nextPayment);
-
-        const nextProductId =
-          nextOrder?.product_id ||
-          nextPayment?.items?.[0]?.product_id ||
-          nextPayment?.items?.[0]?.product?.id ||
-          null;
-
-        if (nextProductId) {
-          await fetchExistingRating(nextProductId);
-        }
+      if (value > 0) {
+        setExistingRating(value);
+        setRating(value);
+        setEditingRating(false);
+      } else {
+        setExistingRating(null);
       }
     } catch (err) {
-      console.error("Fetch error:", err);
-      showToast("Gagal memuat data", "error");
-    } finally {
-      setLoading(false);
+      console.error("loadExistingRating error:", err);
     }
-  };
+  }, []);
 
-  const fetchDelivery = async () => {
+  const fetchAll = useCallback(async ({ silent = false } = {}) => {
+    if (!orderId) return false;
+
     try {
-      const json = await authFetch(`/api/v1/orders/${orderId}/delivery`);
-      if (json?.success) setDelivery(json.data);
+      if (!silent) setLoading(true);
+      setBootstrapError("");
+
+      const bootstrapJson = await authFetch(`/api/v1/bootstrap/orders/${orderId}/success`, {
+        cache: "no-store",
+      });
+
+      if (!bootstrapJson?.success) {
+        throw new Error(bootstrapJson?.error?.message || "Gagal memuat bootstrap order success");
+      }
+
+      const nextDelivery = bootstrapJson?.data?.delivery ?? null;
+      const nextOrder = bootstrapJson?.data?.order?.order ?? bootstrapJson?.data?.order ?? null;
+      const nextPayment = bootstrapJson?.data?.payment?.payment ?? bootstrapJson?.data?.payment ?? null;
+
+      if (nextDelivery) setDelivery(nextDelivery);
+      if (nextOrder) setOrder(nextOrder);
+      if (nextPayment) setPaymentInfo(nextPayment);
+
+      const nextProductId =
+        nextOrder?.product_id ||
+        nextPayment?.items?.[0]?.product_id ||
+        nextPayment?.items?.[0]?.product?.id ||
+        null;
+
+      if (nextProductId) {
+        await fetchExistingRating(nextProductId);
+      }
+
+      const ready = Boolean(nextDelivery);
+      return ready;
     } catch (err) {
-      console.error("Refresh error:", err);
+      console.error("Success bootstrap error:", err);
+      setBootstrapError(err?.message || "Gagal memuat data pembelian");
+      return false;
+    } finally {
+      if (!silent) setLoading(false);
     }
-  };
+  }, [orderId, fetchExistingRating]);
 
-  const fetchPaymentStatus = async () => {
+  const fetchDelivery = useCallback(async () => {
+    if (!orderId) return null;
     try {
-      const json = await authFetch(`/api/v1/orders/${orderId}/payments`);
-      if (json?.success) setPaymentInfo(json.data);
+      const json = await authFetch(`/api/v1/orders/${orderId}/delivery`, { cache: "no-store" });
+      if (json?.success) {
+        setDelivery(json.data);
+        return json.data;
+      }
+    } catch (err) {
+      console.error("Refresh delivery error:", err);
+    }
+    return null;
+  }, [orderId]);
+
+  const fetchPaymentStatus = useCallback(async () => {
+    if (!orderId) return null;
+    try {
+      const json = await authFetch(`/api/v1/orders/${orderId}/payments`, { cache: "no-store" });
+      if (json?.success) {
+        const nextPayment = json?.data?.payment ?? json?.data ?? null;
+        setPaymentInfo(nextPayment);
+        return nextPayment;
+      }
     } catch (err) {
       console.error("Payment status refresh error:", err);
     }
-  };
+    return null;
+  }, [orderId]);
 
-  /* ================= TOAST ================= */
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 2500);
-  };
+  useEffect(() => {
+    if (!orderId) return;
 
-  /* ================= COUNTDOWN ================= */
-  const startCountdown = (initialSeconds = revealWindowSeconds) => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    setRevealedData(null);
+    setBootstrapRetries(0);
+    setBootstrapError("");
+    setBlurred(false);
+    initOnceRef.current = false;
+    hasAutoRevealed.current = false;
+  }, [orderId]);
+
+  useEffect(() => {
+    if (!orderId || initOnceRef.current) return;
+
+    initOnceRef.current = true;
+    invalidateAllClientCaches();
+    triggerConfetti();
+    fetchAll({ silent: false }).then((ready) => {
+      if (!ready) {
+        fetchPaymentStatus();
+        fetchDelivery();
+      }
+    });
+  }, [orderId, fetchAll, fetchPaymentStatus, fetchDelivery, invalidateAllClientCaches, triggerConfetti]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    if (delivery) return;
+    if (bootstrapRetries >= MAX_BOOTSTRAP_RETRIES) return;
+
+    retryTimerRef.current = window.setTimeout(async () => {
+      setBootstrapRetries((prev) => prev + 1);
+      await fetchPaymentStatus();
+      const ready = await fetchAll({ silent: true });
+      if (!ready) {
+        await fetchDelivery();
+      }
+    }, RETRY_INTERVAL_MS);
+
+    return () => {
+      if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
+    };
+  }, [orderId, delivery, bootstrapRetries, fetchAll, fetchDelivery, fetchPaymentStatus]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) window.clearInterval(timerRef.current);
+      if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
+    };
+  }, []);
+
+  const startCountdown = useCallback((initialSeconds = revealWindowSeconds) => {
+    if (timerRef.current) window.clearInterval(timerRef.current);
 
     let timeLeft = Math.max(0, Number(initialSeconds || 0));
     setCountdown(timeLeft);
@@ -181,44 +266,19 @@ function SuccessContent() {
       return;
     }
 
-    timerRef.current = setInterval(() => {
+    timerRef.current = window.setInterval(() => {
       timeLeft -= 1;
       setCountdown(Math.max(0, timeLeft));
 
       if (timeLeft <= 0) {
-        clearInterval(timerRef.current);
+        window.clearInterval(timerRef.current);
         timerRef.current = null;
         setBlurred(true);
         setRevealedData(null);
         showToast("One-time view habis", "info");
       }
     }, 1000);
-  };
-
-  useEffect(() => {
-    if (!delivery || delivery.can_reveal || delivery?.reveal_active) return;
-
-    const interval = setInterval(async () => {
-      const json = await authFetch(`/api/v1/orders/${orderId}/delivery`);
-      if (json?.success) {
-        setDelivery(json.data);
-
-        if (json.data?.can_reveal || json.data?.reveal_active) {
-          clearInterval(interval);
-        }
-      }
-    }, 1500); // tiap 1.5 detik
-
-    return () => clearInterval(interval);
-  }, [delivery, orderId]);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
-  const hasAutoRevealed = useRef(false)
+  }, [revealWindowSeconds, showToast]);
 
   useEffect(() => {
     if (
@@ -227,57 +287,49 @@ function SuccessContent() {
       !revealedData &&
       !hasAutoRevealed.current
     ) {
-      hasAutoRevealed.current = true
-      handleReveal()
+      hasAutoRevealed.current = true;
+      handleReveal();
     }
-  }, [delivery, revealedData])
+  }, [delivery, revealedData]);
 
   useEffect(() => {
-    if (!delivery?.reveal_active) return
-    setBlurred(false)
-    startCountdown(Number(delivery?.reveal_remaining_seconds || revealWindowSeconds))
-  }, [delivery?.reveal_active, delivery?.reveal_remaining_seconds, revealWindowSeconds])
+    if (!delivery?.reveal_active) return;
+    setBlurred(false);
+    startCountdown(Number(delivery?.reveal_remaining_seconds || revealWindowSeconds));
+  }, [delivery?.reveal_active, delivery?.reveal_remaining_seconds, revealWindowSeconds, startCountdown]);
 
-  /* ================= REVEAL ================= */
   const handleReveal = async () => {
-    if (!delivery?.can_reveal && !delivery?.reveal_active && !delivery?.is_revealed) {
-      showToast("Menunggu sistem siap...", "info");
+    if (!orderId) return;
+
+    const latestDelivery = delivery || (await fetchDelivery());
+
+    if (!latestDelivery?.can_reveal && !latestDelivery?.reveal_active && !latestDelivery?.is_revealed) {
+      showToast("Produk masih disiapkan, coba lagi sebentar", "info");
       return;
     }
 
     try {
       setRevealing(true);
 
-      const json = await authFetch(
-        `/api/v1/orders/${orderId}/delivery/reveal`,
-        { method: "POST" }
-      );
-
-        console.log("REVEAL RESPONSE:", json);
+      const json = await authFetch(`/api/v1/orders/${orderId}/delivery/reveal`, { method: "POST" });
 
       if (json?.success) {
         setRevealedData(json.data);
         setBlurred(false);
-        startCountdown(Number(json?.data?.reveal_remaining_seconds || delivery?.reveal_remaining_seconds || revealWindowSeconds));
-        fetchDelivery();
+        startCountdown(Number(json?.data?.reveal_remaining_seconds || latestDelivery?.reveal_remaining_seconds || revealWindowSeconds));
+        await fetchDelivery();
         showToast("Kode berhasil ditampilkan");
       } else {
         showToast(json?.error?.message || "Reveal gagal", "error");
       }
     } catch (err) {
       console.error("Reveal error:", err);
-      showToast("Reveal gagal", "error");
+      showToast(err?.message || "Reveal gagal", "error");
     } finally {
       setRevealing(false);
     }
   };
 
-  console.log({
-    delivery,
-    revealedData,
-  });
-
-  /* ================= COPY ================= */
   const copyLicense = async () => {
     try {
       await navigator.clipboard.writeText(revealedData?.license_key || "");
@@ -287,7 +339,6 @@ function SuccessContent() {
     }
   };
 
-  /* ================= ACTIONS ================= */
   const handleResend = async () => {
     try {
       setResending(true);
@@ -300,7 +351,7 @@ function SuccessContent() {
         return;
       }
 
-      fetchDelivery();
+      await fetchDelivery();
       showToast("Email dikirim ulang");
     } finally {
       setResending(false);
@@ -319,82 +370,26 @@ function SuccessContent() {
         return;
       }
 
-      fetchDelivery();
+      await fetchDelivery();
       showToast("Delivery ditutup");
     } finally {
       setClosing(false);
     }
   };
 
-  /* ================= AMBIL PRODUCT_ID UNTUK RATING ================= */
-  const rateProductId = useMemo(() => {
-    // 1) kalau order punya product_id (legacy)
-    if (order?.product_id) return order.product_id;
-
-    // 2) kalau order items (cart flow)
-    const firstItem = paymentInfo?.items?.[0];
-    if (!firstItem) return null;
-
-    // biasanya order_items punya product_id
-    if (firstItem.product_id) return firstItem.product_id;
-
-    // atau bisa nested product
-    if (firstItem.product?.id) return firstItem.product.id;
-
-    return null;
-  }, [order, paymentInfo]);
-
-
-  const fetchExistingRating = async (productId) => {
-    if (!productId) return;
-
-    try {
-      const json = await authFetch(`/api/v1/favorites?per_page=100&scope=all`);
-      const rows = Array.isArray(json?.data?.data) ? json.data.data : [];
-      const found = rows.find((item) => Number(item?.product_id) === Number(productId));
-      const value = Number(found?.rating || 0);
-
-      if (value > 0) {
-        setExistingRating(value);
-        setRating(value);
-        setRatingSubmitted(true);
-        setEditingRating(false);
-      } else {
-        setExistingRating(null);
-        setRatingSubmitted(false);
-      }
-    } catch (err) {
-      console.error("loadExistingRating error:", err);
-    }
-  };
-
-  const invoiceNumber = useMemo(() => {
-    return (
-      paymentInfo?.invoice_number ||
-      order?.invoice_number ||
-      "-"
-    );
-  }, [paymentInfo, order]);
-
-  /* ================= RATING (WAJIB BUY) ================= */
   const handleSubmitRating = async () => {
     if (!rateProductId || rating === 0) return;
 
     try {
       setSubmittingRating(true);
-
       const res = await authFetch(`/api/v1/favorites`, {
         method: "POST",
-        body: JSON.stringify({
-          product_id: rateProductId,
-          rating: rating,
-        }),
+        body: JSON.stringify({ product_id: rateProductId, rating }),
       });
 
       if (res?.success) {
         showToast(existingRating ? "Rating berhasil diperbarui ⭐" : "Terima kasih atas rating kamu ⭐");
         setExistingRating(rating);
-        setRatingSubmitted(true);
         setEditingRating(false);
       } else {
         showToast(res?.error?.message || "Gagal memberi rating", "error");
@@ -407,13 +402,6 @@ function SuccessContent() {
     }
   };
 
-  const downloadInvoice = () => {
-    window.open(`./invoice/${orderId}?print=pdf`, "_blank");
-  };
-
-  
-
-  /* ================= LOADING ================= */
   if (loading) {
     return (
       <main className="min-h-screen bg-black px-4 py-16">
@@ -429,38 +417,76 @@ function SuccessContent() {
   }
 
   if (!delivery) {
-    return <p>Menyiapkan produk digital...</p>;
+    return (
+      <main className="min-h-screen bg-black px-4 py-16 text-white">
+        <div className="mx-auto max-w-3xl rounded-3xl border border-purple-500/40 p-8 bg-gradient-to-b from-purple-900/20 to-black text-center">
+          <CheckCircle className="mx-auto mb-4 text-green-400" size={56} />
+          <h1 className="text-3xl font-bold mb-3">Pembayaran diterima</h1>
+          <p className="text-gray-300 mb-3">Produk digital sedang disiapkan. Halaman ini akan mencoba memuat ulang otomatis.</p>
+          <p className="text-sm text-gray-500 mb-6">Order #{orderId} · percobaan {Math.min(bootstrapRetries + 1, MAX_BOOTSTRAP_RETRIES)}/{MAX_BOOTSTRAP_RETRIES}</p>
+
+          {bootstrapError ? (
+            <p className="text-sm text-red-400 mb-4">{bootstrapError}</p>
+          ) : null}
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={async () => {
+                invalidateAllClientCaches();
+                setBootstrapRetries(0);
+                const ready = await fetchAll({ silent: false });
+                if (!ready) {
+                  await fetchPaymentStatus();
+                  await fetchDelivery();
+                }
+              }}
+              className="rounded-xl bg-purple-700 px-5 py-3 text-sm font-semibold flex items-center justify-center gap-2"
+            >
+              <RefreshCw size={16} />
+              Coba Muat Ulang
+            </button>
+
+            <Link
+              href="/customer/profile"
+              className="rounded-xl border border-purple-500 px-5 py-3 text-sm font-semibold"
+            >
+              Ke Riwayat Pembelian
+            </Link>
+          </div>
+        </div>
+
+        {toast && <Toast {...toast} />}
+      </main>
+    );
   }
+
   return (
     <main className="min-h-screen bg-black px-4 py-16 text-white">
       <div className="mx-auto max-w-5xl">
-        {/* HEADER */}
         <div className="rounded-3xl border border-purple-500/40 p-10 text-center mb-10 bg-gradient-to-b from-purple-900/20 to-black">
           <CheckCircle className="mx-auto mb-4 text-green-400" size={64} />
-
-          <h1 className="text-4xl font-bold mb-3">
-            Pembelianmu Berhasil Dibayar
-          </h1>
-
+          <h1 className="text-4xl font-bold mb-3">Pembelianmu Berhasil Dibayar</h1>
           <p className="text-gray-300 text-lg mb-3">
-            Invoice :{" "}
-            <span className="text-white font-semibold">{invoiceNumber}</span>
+            Invoice : <span className="text-white font-semibold">{invoiceNumber}</span>
           </p>
-
-          <StatusBadge status={paymentInfo?.order_status} />
+          <StatusBadge status={paymentInfo?.order_status || paymentInfo?.status} />
         </div>
 
-        {/* RATING SECTION */}
         {rateProductId && (
-          <div className="mt-8 rounded-2xl border border-yellow-500/40 p-6 bg-yellow-500/5">
+          <div className="mt-8 rounded-2xl border border-yellow-500/40 p-6 bg-yellow-500/5 mb-6">
             <h2 className="text-lg font-semibold mb-4 text-center">
               {existingRating && !editingRating ? "Rating Produk Kamu" : "Beri Rating Produk"}
             </h2>
 
             {existingRating && !editingRating ? (
               <div className="text-center">
-                <div className="mb-3 text-3xl text-yellow-400">{"★".repeat(existingRating)}<span className="text-gray-600">{"★".repeat(5 - existingRating)}</span></div>
-                <p className="mb-4 text-sm text-gray-300">Kamu sudah pernah memberi rating untuk produk ini. Saat repeat order, kamu boleh mengubah rating yang sudah ada.</p>
+                <div className="mb-3 text-3xl text-yellow-400">
+                  {"★".repeat(existingRating)}
+                  <span className="text-gray-600">{"★".repeat(5 - existingRating)}</span>
+                </div>
+                <p className="mb-4 text-sm text-gray-300">
+                  Kamu sudah pernah memberi rating untuk produk ini. Saat repeat order, kamu boleh mengubah rating yang sudah ada.
+                </p>
                 <button
                   onClick={() => {
                     setEditingRating(true);
@@ -482,19 +508,10 @@ function SuccessContent() {
                       onMouseLeave={() => setHover(0)}
                       className="text-3xl transition"
                     >
-                      <span
-                        className={
-                          star <= (hover || rating)
-                            ? "text-yellow-400"
-                            : "text-gray-600"
-                        }
-                      >
-                        ★
-                      </span>
+                      <span className={star <= (hover || rating) ? "text-yellow-400" : "text-gray-600"}>★</span>
                     </button>
                   ))}
                 </div>
-
                 <div className="text-center">
                   <button
                     onClick={handleSubmitRating}
@@ -510,7 +527,6 @@ function SuccessContent() {
         )}
 
         <div className="grid gap-6 md:grid-cols-2">
-          {/* DETAIL */}
           <div className="rounded-2xl border border-purple-500/40 p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <FileText size={18} />
@@ -522,59 +538,48 @@ function SuccessContent() {
             <InfoRow label="Produk" value={primaryProductName || "-"} />
             <InfoRow label="Qty" value={delivery?.total_qty || "-"} />
             <InfoRow label="Mode" value={delivery?.delivery_mode || "-"} />
-            <InfoRow
-              label="Total Delivery"
-              value={delivery?.deliveries_count ?? "-"}
-            />
+            <InfoRow label="Total Delivery" value={delivery?.deliveries_count ?? "-"} />
             <InfoRow
               label="Status Email"
               value={
-                delivery?.emailed ? (
-                  <span className="text-green-400">Terkirim</span>
-                ) : (
-                  <span className="text-yellow-400">Belum</span>
-                )
+                delivery?.emailed ? <span className="text-green-400">Terkirim</span> : <span className="text-yellow-400">Belum</span>
               }
             />
-
-            {/* <button
-              onClick={downloadInvoice}
-              className="mt-4 w-full rounded-xl bg-purple-700 py-2 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-purple-600"
-            >
-              <Download size={16} />
-              Download Invoice PDF
-            </button> */}
           </div>
 
-          {/* DIGITAL ACCESS */}
           <div className="rounded-2xl border border-purple-500/40 p-6">
             <h2 className="text-lg font-semibold mb-4">Akses Produk Digital</h2>
 
-            {delivery?.delivery_mode?.toLowerCase() === "one_time" &&
-            !delivery?.is_revealed ? (
-
+            {delivery?.fulfillment_pending || delivery?.deliveries_count === 0 ? (
+              <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/5 p-4 text-sm text-yellow-300">
+                Produk digital masih disiapkan oleh sistem. Halaman ini akan mencoba sinkron otomatis. Bila belum muncul, tekan tombol muat ulang.
+                <button
+                  onClick={async () => {
+                    invalidateAllClientCaches();
+                    await fetchAll({ silent: false });
+                    await fetchDelivery();
+                  }}
+                  className="mt-4 w-full rounded-xl border border-yellow-500 py-2 font-semibold text-yellow-300"
+                >
+                  Muat Ulang Produk Digital
+                </button>
+              </div>
+            ) : delivery?.delivery_mode?.toLowerCase() === "one_time" && !delivery?.is_revealed ? (
               <button
                 onClick={handleReveal}
-                disabled={revealing}
-                className={`w-full rounded-xl py-3 font-semibold flex items-center justify-center gap-2
-                  ${
-                    delivery?.can_reveal
-                      ? "bg-green-500 text-black"
-                      : "bg-gray-800 text-gray-500"
-                  }`}
+                disabled={revealing || !delivery?.can_reveal}
+                className={`w-full rounded-xl py-3 font-semibold flex items-center justify-center gap-2 ${
+                  delivery?.can_reveal ? "bg-green-500 text-black" : "bg-gray-800 text-gray-500"
+                }`}
               >
                 <Eye size={18} />
-                {revealing ? "Membuka..." : "One Time View"}
+                {revealing ? "Membuka..." : delivery?.can_reveal ? "One Time View" : "Menyiapkan One Time View..."}
               </button>
-
             ) : revealedData ? (
-
               <div className="border border-green-500/40 rounded-xl p-4">
                 <p className="text-sm text-gray-400">Produk</p>
-                <p className="font-semibold mb-3">{primaryProductName || revealedData?.product_name || "Produk digital"}</p>
-
+                <p className="font-semibold mb-3">{primaryProductName}</p>
                 <p className="text-sm text-gray-400">License Key</p>
-
                 <div className={`rounded-lg p-3 font-mono text-green-400 bg-green-500/10 border border-green-500 ${blurred ? "blur-sm select-none" : ""}`}>
                   {revealedData?.license_key}
                 </div>
@@ -589,28 +594,16 @@ function SuccessContent() {
                   </div>
                 )}
 
-                {blurred && (
-                  <p className="text-xs text-red-400 mt-2">
-                    One-time view selesai
-                  </p>
-                )}
+                {blurred && <p className="text-xs text-red-400 mt-2">One-time view selesai</p>}
               </div>
-
             ) : (
-
               <div className="text-yellow-400 text-sm text-center py-4">
                 <span className="font-semibold">"One Time View"</span> selesai.
               </div>
-
             )}
 
-            {/* ACTION BUTTONS */}
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <button
-                onClick={handleResend}
-                disabled={resending}
-                className="rounded-xl border border-purple-500 py-2 text-sm"
-              >
+              <button onClick={handleResend} disabled={resending} className="rounded-xl border border-purple-500 py-2 text-sm">
                 {resending ? "Mengirim..." : "Send Email"}
               </button>
 
@@ -622,15 +615,15 @@ function SuccessContent() {
               </Link>
             </div>
 
-            {delivery?.delivery_mode === "one_time" && (
+            {delivery?.delivery_mode === "one_time" && delivery?.deliveries_count > 0 && (
               <button
                 onClick={handleClose}
-                disabled={closing}
-                className="w-full mt-3 rounded-xl border border-red-500 text-red-400 py-2 text-sm font-medium hover:bg-red-500/10 transition"
+                disabled={closing || !delivery?.is_revealed}
+                className="w-full mt-3 rounded-xl border border-red-500 text-red-400 py-2 text-sm font-medium hover:bg-red-500/10 transition disabled:opacity-50"
               >
                 {closing ? "Menutup..." : "Close Delivery"}
               </button>
-            )}  
+            )}
 
             <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mt-4">
               <Lock size={14} />
@@ -638,23 +631,6 @@ function SuccessContent() {
             </div>
           </div>
         </div>
-
-        {/* FOOTER */}
-        {/* <div className="mt-10 grid gap-4 sm:grid-cols-2">
-          {/* <Link
-            href="/orders"
-            className="rounded-xl bg-purple-700 py-4 text-center font-semibold"
-          >
-            Lihat Semua Pemesanan
-          </Link> */}
-
-          {/* <Link
-            href={`./invoice/${orderId}`}
-            className="rounded-xl border border-purple-500 py-4 text-center font-semibold"
-          >
-            Lihat Detail Produk
-          </Link>
-        </div> */}
       </div>
 
       {toast && <Toast {...toast} />}
@@ -670,29 +646,27 @@ export default function PaymentSuccessPage() {
   );
 }
 
-/* ================= COMPONENTS ================= */
-
 function InfoRow({ label, value }) {
   return (
-    <div className="flex justify-between text-sm mb-2">
+    <div className="flex justify-between text-sm mb-2 gap-4">
       <span className="text-gray-400">{label}</span>
-      <span className="text-white font-medium">{value}</span>
+      <span className="text-white font-medium text-right">{value}</span>
     </div>
   );
 }
 
 function StatusBadge({ status }) {
   const s = typeof status === "string" ? status : status?.value;
-  const isPaid = s === "paid" || s === "completed";
+  const safeStatus = String(s || "").toLowerCase();
+  const isPaid = ["paid", "completed", "success", "settlement", "capture", "fulfilled"].includes(safeStatus);
 
   return (
     <div
-      className={`inline-block px-4 py-1 rounded-full text-sm font-semibold
-        ${
-          isPaid
-            ? "bg-green-500/10 text-green-400 border border-green-500/40"
-            : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/40"
-        }`}
+      className={`inline-block px-4 py-1 rounded-full text-sm font-semibold ${
+        isPaid
+          ? "bg-green-500/10 text-green-400 border border-green-500/40"
+          : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/40"
+      }`}
     >
       {isPaid ? "Paid / Completed" : s || "-"}
     </div>
@@ -702,14 +676,9 @@ function StatusBadge({ status }) {
 function Toast({ message, type }) {
   return (
     <div
-      className={`fixed bottom-6 right-6 px-4 py-2 rounded-lg text-sm shadow-lg
-        ${
-          type === "error"
-            ? "bg-red-500 text-white"
-            : type === "info"
-            ? "bg-blue-500 text-white"
-            : "bg-green-500 text-black"
-        }`}
+      className={`fixed bottom-6 right-6 px-4 py-2 rounded-lg text-sm shadow-lg ${
+        type === "error" ? "bg-red-500 text-white" : type === "info" ? "bg-blue-500 text-white" : "bg-green-500 text-black"
+      }`}
     >
       {message}
     </div>
