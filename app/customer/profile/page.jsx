@@ -162,6 +162,8 @@ export default function ProfilePage() {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyLastPage, setHistoryLastPage] = useState(1);
   const [historyMeta, setHistoryMeta] = useState({ total: 0 });
+  const [historyError, setHistoryError] = useState("");
+  const [historyReloadKey, setHistoryReloadKey] = useState(0);
   const [historyFilters, setHistoryFilters] = useState({
     status: "",
     date_from: "",
@@ -264,6 +266,7 @@ export default function ProfilePage() {
 
     const fetchHistory = async () => {
       setHistoryLoading(true);
+      setHistoryError("");
       try {
         const params = new URLSearchParams();
         params.set("page", String(historyPage));
@@ -274,22 +277,36 @@ export default function ProfilePage() {
         });
 
         const res = await apiFetch(`/api/v1/orders?${params.toString()}`, { method: "GET" });
-        const paginated = res?.data || {};
+        const paginated = res?.data && typeof res.data === "object" ? res.data : {};
+        const nextItems = Array.isArray(paginated?.data)
+          ? paginated.data
+          : Array.isArray(res?.data)
+            ? res.data
+            : [];
 
-        setHistoryItems(Array.isArray(paginated?.data) ? paginated.data : []);
-        setHistoryPage(Number(paginated?.current_page || 1));
+        setHistoryItems(nextItems);
+        setHistoryPage(Number(paginated?.current_page || historyPage || 1));
         setHistoryLastPage(Number(paginated?.last_page || 1));
-        setHistoryMeta({ total: Number(paginated?.total || 0) });
+        setHistoryMeta({ total: Number(paginated?.total || nextItems.length || 0) });
       } catch (err) {
         console.error("GET HISTORY ERROR:", err);
+        const message =
+          err?.error?.message ||
+          err?.message ||
+          err?.data?.message ||
+          "Gagal mengambil history transaksi.";
+
         setHistoryItems([]);
+        setHistoryMeta({ total: 0 });
+        setHistoryLastPage(1);
+        setHistoryError(message);
       } finally {
         setHistoryLoading(false);
       }
     };
 
     fetchHistory();
-  }, [user, loading, historyPage, appliedFilters]);
+  }, [user, loading, historyPage, appliedFilters, historyReloadKey]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -363,6 +380,7 @@ export default function ProfilePage() {
   };
 
   const handleApplyFilter = () => {
+    setHistoryError("");
     setHistoryPage(1);
     setAppliedFilters({ ...historyFilters });
   };
@@ -376,9 +394,17 @@ export default function ProfilePage() {
       category: "",
       product: "",
     };
+    setHistoryError("");
     setHistoryFilters(empty);
     setAppliedFilters(empty);
     setHistoryPage(1);
+    setHistoryReloadKey((prev) => prev + 1);
+  };
+
+  const handleReloadHistory = () => {
+    setHistoryError("");
+    setHistoryPage(1);
+    setHistoryReloadKey((prev) => prev + 1);
   };
 
   const avatarSrc = user?.avatar_url || user?.avatar || null;
@@ -601,9 +627,30 @@ export default function ProfilePage() {
               >
                 Reset Filter
               </button>
+              <button
+                type="button"
+                onClick={handleReloadHistory}
+                className="border border-purple-600 px-5 py-2.5 rounded-xl text-purple-200 hover:bg-purple-900/20"
+              >
+                Muat Ulang History
+              </button>
             </div>
 
-            {historyLoading ? (
+            {historyError ? (
+              <div className="mb-6 rounded-2xl border border-rose-700/50 bg-rose-950/20 p-4 text-rose-200">
+                <div className="font-semibold text-white">History transaksi gagal dimuat</div>
+                <div className="mt-1 text-sm text-rose-200/90">{historyError}</div>
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={handleReloadHistory}
+                    className="px-4 py-2 rounded-xl border border-rose-500/50 text-white hover:bg-rose-900/20"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
+              </div>
+            ) : historyLoading ? (
               <div className="text-center py-14 text-purple-200">Memuat history transaksi...</div>
             ) : historyItems.length === 0 ? (
               <div className="text-center py-14 text-gray-400 border border-dashed border-purple-800 rounded-2xl">
