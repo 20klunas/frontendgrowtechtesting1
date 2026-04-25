@@ -66,8 +66,10 @@ function InvoiceContent() {
 
           <div className="space-y-3 text-sm">
             <Row label="Order ID" value={delivery.order_id} />
+            <Row label="Invoice" value={delivery.invoice_number || "-"} />
             <Row label="Produk" value={delivery.primary_product_name || "-"} />
             <Row label="Total Qty" value={delivery.total_qty} />
+            <Row label="Total Bayar" value={formatCurrency(delivery.total_payable_gateway || delivery.amount)} />
             <Row label="Delivery Mode" value={delivery.delivery_mode} />
             <Row label="Jumlah Delivery" value={delivery.deliveries_count} />
             <Row label="Order Status" value={delivery.order_status} />
@@ -77,6 +79,8 @@ function InvoiceContent() {
               value={delivery.emailed ? "Sudah dikirim ke email" : "Belum dikirim"}
             />
           </div>
+
+          <ProductItems items={delivery.items} />
 
           <div className="mt-8 text-center text-xs text-gray-400">
             Simpan invoice ini sebagai bukti pembelian.
@@ -108,6 +112,40 @@ export default function InvoicePage() {
     </Suspense>
   )
 }
+
+function formatCurrency(value) {
+  const num = Number(value || 0)
+  if (!Number.isFinite(num) || num <= 0) return "-"
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num)
+}
+
+function ProductItems({ items }) {
+  const rows = Array.isArray(items) ? items.filter(Boolean) : []
+  if (!rows.length) return null
+
+  return (
+    <div className="mt-6 rounded-2xl border border-purple-500/20 p-4">
+      <h2 className="font-semibold mb-3">Rincian Produk</h2>
+      <div className="space-y-3">
+        {rows.map((item, index) => (
+          <div key={`${item?.product_id || index}-${index}`} className="rounded-xl border border-purple-500/20 p-3 text-sm">
+            <div className="flex justify-between gap-4">
+              <span className="font-semibold">{item?.product_name || item?.product?.name || "Produk digital"}</span>
+              <span>x{item?.qty || 1}</span>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-400">
+              <span>Harga/unit</span>
+              <span className="text-right">{formatCurrency(item?.unit_price)}</span>
+              <span>Subtotal</span>
+              <span className="text-right">{formatCurrency(item?.line_subtotal || Number(item?.unit_price || 0) * Number(item?.qty || 1))}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 
 function Row({ label, value }) {
   return (

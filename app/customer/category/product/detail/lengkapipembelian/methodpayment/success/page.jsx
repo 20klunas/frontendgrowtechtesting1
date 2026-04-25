@@ -47,12 +47,13 @@ function SuccessContent() {
   const hasAutoRevealed = useRef(false);
 
   const revealWindowSeconds = Number(delivery?.reveal_window_seconds || DEFAULT_VIEW_DURATION);
-  const isFulfillmentPending = Boolean(delivery?.fulfillment_pending) || (!delivery?.delivery_ready && Number(paymentInfo?.status === "paid"));
+  const isFulfillmentPending = Boolean(delivery?.fulfillment_pending) || (!delivery?.delivery_ready && (paymentInfo?.status === "paid" || paymentInfo?.order_status === "paid"));
 
   const primaryProductName = useMemo(() => {
     return (
       revealedData?.product_name ||
       delivery?.primary_product_name ||
+      delivery?.items?.[0]?.product_name ||
       paymentInfo?.items?.[0]?.product_name ||
       paymentInfo?.items?.[0]?.product?.name ||
       order?.item_details?.[0]?.product ||
@@ -62,17 +63,19 @@ function SuccessContent() {
   }, [revealedData, delivery, paymentInfo, order]);
 
   const invoiceNumber = useMemo(() => {
-    return paymentInfo?.invoice_number || order?.invoice_number || "-";
-  }, [paymentInfo, order]);
+    return paymentInfo?.invoice_number || delivery?.invoice_number || order?.invoice_number || "-";
+  }, [paymentInfo, delivery, order]);
 
   const rateProductId = useMemo(() => {
     if (order?.product_id) return order.product_id;
+    const deliveryItem = delivery?.items?.[0];
+    if (deliveryItem?.product_id) return deliveryItem.product_id;
     const firstItem = paymentInfo?.items?.[0];
     if (!firstItem) return null;
     if (firstItem.product_id) return firstItem.product_id;
     if (firstItem.product?.id) return firstItem.product.id;
     return null;
-  }, [order, paymentInfo]);
+  }, [order, paymentInfo, delivery]);
 
   const showToast = useCallback((message, type = "success") => {
     setToast({ message, type });
@@ -148,7 +151,17 @@ function SuccessContent() {
 
       const nextDelivery = bootstrapJson?.data?.delivery ?? null;
       const nextOrder = bootstrapJson?.data?.order?.order ?? bootstrapJson?.data?.order ?? null;
-      const nextPayment = bootstrapJson?.data?.payment?.payment ?? bootstrapJson?.data?.payment ?? null;
+      const rawPayment = bootstrapJson?.data?.payment ?? null;
+      const nextPayment = rawPayment
+        ? {
+            ...rawPayment,
+            ...(rawPayment?.payment || {}),
+            invoice_number: rawPayment?.invoice_number || rawPayment?.payment?.invoice_number || nextDelivery?.invoice_number || nextOrder?.invoice_number,
+            order_id: rawPayment?.order_id || rawPayment?.payment?.order_id || nextDelivery?.order_id || nextOrder?.id,
+            order_status: rawPayment?.order_status || rawPayment?.payment?.order_status || nextDelivery?.order_status,
+            items: rawPayment?.items || nextDelivery?.items || [],
+          }
+        : null;
 
       if (nextDelivery) setDelivery(nextDelivery);
       if (nextOrder) setOrder(nextOrder);
@@ -156,6 +169,7 @@ function SuccessContent() {
 
       const nextProductId =
         nextOrder?.product_id ||
+        nextDelivery?.items?.[0]?.product_id ||
         nextPayment?.items?.[0]?.product_id ||
         nextPayment?.items?.[0]?.product?.id ||
         null;
@@ -537,6 +551,7 @@ function SuccessContent() {
             <InfoRow label="Invoice" value={invoiceNumber} />
             <InfoRow label="Produk" value={primaryProductName || "-"} />
             <InfoRow label="Qty" value={delivery?.total_qty || "-"} />
+            <InfoRow label="Total Bayar" value={formatCurrency(paymentInfo?.total_payable_gateway || delivery?.total_payable_gateway || paymentInfo?.amount || delivery?.amount)} />
             <InfoRow label="Mode" value={delivery?.delivery_mode || "-"} />
             <InfoRow label="Total Delivery" value={delivery?.deliveries_count ?? "-"} />
             <InfoRow
@@ -545,6 +560,8 @@ function SuccessContent() {
                 delivery?.emailed ? <span className="text-green-400">Terkirim</span> : <span className="text-yellow-400">Belum</span>
               }
             />
+          
+            <ProductItems items={delivery?.items?.length ? delivery.items : paymentInfo?.items} />
           </div>
 
           <div className="rounded-2xl border border-purple-500/40 p-6">
@@ -684,6 +701,40 @@ function Toast({ message, type }) {
     </div>
   );
 }
+
+function formatCurrency(value) {
+  const num = Number(value || 0);
+  if (!Number.isFinite(num) || num <= 0) return "-";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
+}
+
+function ProductItems({ items }) {
+  const rows = Array.isArray(items) ? items.filter(Boolean) : [];
+  if (!rows.length) return null;
+
+  return (
+    <div className="mt-5 rounded-xl border border-purple-500/20 p-4 bg-purple-500/5">
+      <p className="mb-3 text-sm font-semibold text-white">Rincian Produk</p>
+      <div className="space-y-3">
+        {rows.map((item, index) => (
+          <div key={`${item?.product_id || index}-${index}`} className="rounded-lg border border-white/10 p-3 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="font-medium text-white">{item?.product_name || item?.product?.name || "Produk digital"}</span>
+              <span className="text-green-400 font-semibold">x{item?.qty || 1}</span>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-400">
+              <span>Harga/unit</span>
+              <span className="text-right text-gray-200">{formatCurrency(item?.unit_price)}</span>
+              <span>Subtotal</span>
+              <span className="text-right text-gray-200">{formatCurrency(item?.line_subtotal || Number(item?.unit_price || 0) * Number(item?.qty || 1))}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 function SkeletonCard() {
   return (
