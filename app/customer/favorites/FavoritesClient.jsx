@@ -136,7 +136,7 @@ export default function FavoritesClient({
       clearCheckoutBootstrapCache()
 
       const checkout = await fetcher(
-        "/api/v1/orders",
+        "/api/v1/cart/buy-now",
         {
           method: "POST",
           body: JSON.stringify({

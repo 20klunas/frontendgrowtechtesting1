@@ -15,6 +15,8 @@ import { clearAuthSession } from "../lib/authSession";
 import { invalidateAuthFetchCache } from "../lib/authFetch";
 import { invalidateFetcherCache } from "../lib/fetcher";
 
+const AUTH_LOGIN_EVENT = "auth:login";
+
 export const AuthContext = createContext(null);
 
 const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
@@ -259,6 +261,17 @@ export function AuthProvider({ children, initialUser = null }) {
         setLoading(false)
       })
   }, [initialUser, applyUser, syncProfile])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const handleAuthLogin = () => {
+      syncProfile({ force: true, display: true }).catch(() => {});
+    };
+
+    window.addEventListener(AUTH_LOGIN_EVENT, handleAuthLogin);
+    return () => window.removeEventListener(AUTH_LOGIN_EVENT, handleAuthLogin);
+  }, [syncProfile]);
 
   useEffect(() => {
     if (!isTransitioning) {

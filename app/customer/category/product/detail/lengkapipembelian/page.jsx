@@ -30,11 +30,13 @@ export default function StepTwo() {
   const { loading: accessLoading, allowed, message } = useCheckoutAccess()
   const router = useRouter()
   const { refreshCart: refreshNavbarCart } = useCustomerNavbar()
-  const syncCheckoutBootstrap = useCallback(async ({ force = true, showLoader = false } = {}) => {
+  const cachedOrderId = useMemo(() => Number(checkout?.order?.id || 0) || null, [checkout])
+
+  const syncCheckoutBootstrap = useCallback(async ({ force = true, showLoader = false, orderId = null } = {}) => {
     if (showLoader) setLoading(true)
 
     try {
-      const json = await getCheckoutBootstrap({ force })
+      const json = await getCheckoutBootstrap({ force, orderId })
       const checkoutData = json?.data?.checkout || null
       const walletData = json?.data?.wallet || null
 
@@ -59,14 +61,14 @@ export default function StepTwo() {
       setLoading(false)
     }
 
-    syncCheckoutBootstrap({ force: true, showLoader: !cachedCheckout }).catch(() => {
+    syncCheckoutBootstrap({ force: true, showLoader: !cachedCheckout, orderId: cachedCheckout?.order?.id || null }).catch(() => {
       if (!active) return
       setLoading(false)
     })
 
     const resync = () => {
       if (document.visibilityState !== 'visible') return
-      syncCheckoutBootstrap({ force: true, showLoader: false }).catch(() => {})
+      syncCheckoutBootstrap({ force: true, showLoader: false, orderId: cachedOrderId }).catch(() => {})
       refreshNavbarCart({ force: true }).catch(() => {})
     }
 
@@ -80,10 +82,10 @@ export default function StepTwo() {
       window.removeEventListener('focus', resync)
       document.removeEventListener('visibilitychange', resync)
     }
-  }, [refreshNavbarCart, syncCheckoutBootstrap])
+  }, [cachedOrderId, refreshNavbarCart, syncCheckoutBootstrap])
 
   const handleGoPayment = async () => {
-    await syncCheckoutBootstrap({ force: true, showLoader: false })
+    await syncCheckoutBootstrap({ force: true, showLoader: false, orderId: cachedOrderId })
     router.push("/customer/category/product/detail/lengkapipembelian/methodpayment")
   }
 

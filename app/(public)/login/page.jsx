@@ -33,7 +33,7 @@ function isAdminFromCookies() {
 export default function LoginPage() {
   const router = useRouter();
   const API = process.env.NEXT_PUBLIC_API_URL;
-  const { user, setUser, loading: authLoading } = useAuth();
+  const { user, setUser, refreshUser, loading: authLoading } = useAuth();
   const { beginTransition, finishTransition } = useAppTransition();
 
   const [email, setEmail] = useState("");
@@ -83,7 +83,11 @@ export default function LoginPage() {
         ? "Menyiapkan dashboard admin..."
         : "Menyiapkan dashboard Anda..."
     );
-    setUser(authUser, { display: false });
+    setUser(authUser, { display: true });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("auth:login"));
+    }
+    refreshUser?.().catch(() => {});
     router.replace(targetPath);
   };
 

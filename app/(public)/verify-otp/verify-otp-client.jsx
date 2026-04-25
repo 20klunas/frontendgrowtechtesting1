@@ -19,7 +19,7 @@ export default function VerifyOtpClient() {
   const router = useRouter();
   const params = useSearchParams();
   const challengeId = params.get("challenge_id");
-  const { setUser } = useAuth();
+  const { setUser, refreshUser } = useAuth();
   const { beginTransition, finishTransition } = useAppTransition();
 
   const [code, setCode] = useState("");
@@ -71,7 +71,11 @@ export default function VerifyOtpClient() {
           ? "Menyiapkan dashboard admin..."
           : "Menyiapkan dashboard Anda..."
       );
-      setUser(authUser, { display: false });
+      setUser(authUser, { display: true });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("auth:login"));
+      }
+      refreshUser?.().catch(() => {});
       router.replace(targetPath);
     } catch (err) {
       finishTransition();

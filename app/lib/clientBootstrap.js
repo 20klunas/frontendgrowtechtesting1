@@ -1,6 +1,6 @@
 import { authFetch } from "./authFetch"
 
-const CHECKOUT_BOOTSTRAP_KEY = "checkout-bootstrap-v4"
+const CHECKOUT_BOOTSTRAP_KEY = "checkout-bootstrap-v5"
 const CHECKOUT_BOOTSTRAP_TTL = 45 * 1000
 
 let checkoutBootstrapMemory = null
@@ -9,6 +9,16 @@ let checkoutBootstrapPromise = null
 
 function canUseSessionStorage() {
   return typeof window !== "undefined" && typeof window.sessionStorage !== "undefined"
+}
+
+function extractCheckoutOrderId(value) {
+  const orderId = value?.order?.id ?? value?.data?.order?.id ?? null
+  const numeric = Number(orderId)
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null
+}
+
+function hasCheckoutOrder(value) {
+  return extractCheckoutOrderId(value) !== null
 }
 
 function normalizeGateways(value) {
@@ -100,8 +110,30 @@ function mergeBootstrapData(nextData) {
   const existing = readMemory() || null
   const normalized = normalizeCheckoutBootstrapData(nextData)
 
+  const existingCheckout = existing?.checkout || null
+  const incomingCheckout = normalized.checkout || null
+
+  const checkout = (() => {
+    if (!incomingCheckout && existingCheckout) return existingCheckout
+    if (!existingCheckout && incomingCheckout) return incomingCheckout
+    if (!existingCheckout && !incomingCheckout) return null
+
+    const existingHasOrder = hasCheckoutOrder(existingCheckout)
+    const incomingHasOrder = hasCheckoutOrder(incomingCheckout)
+
+    if (existingHasOrder && !incomingHasOrder) {
+      return {
+        ...incomingCheckout,
+        ...existingCheckout,
+        summary: incomingCheckout?.summary || existingCheckout?.summary || null,
+      }
+    }
+
+    return incomingCheckout || existingCheckout
+  })()
+
   return {
-    checkout: normalized.checkout || existing?.checkout || null,
+    checkout,
     wallet: normalized.wallet || existing?.wallet || null,
     gateways:
       Array.isArray(normalized.gateways) && normalized.gateways.length > 0
@@ -177,7 +209,7 @@ export function clearCheckoutBootstrapCache() {
   } catch {}
 }
 
-export async function getCheckoutBootstrap({ force = false } = {}) {
+export async function getCheckoutBootstrap({ force = false, orderId = null } = {}) {
   if (!force) {
     const cached = readCheckoutBootstrapCache()
     if (cached) {
@@ -194,7 +226,8 @@ export async function getCheckoutBootstrap({ force = false } = {}) {
   }
 
   checkoutBootstrapPromise = (async () => {
-    const json = await authFetch("/api/v1/bootstrap/checkout", {
+    const query = orderId ? `?order_id=${encodeURIComponent(orderId)}` : ""
+    const json = await authFetch(`/api/v1/bootstrap/checkout${query}`, {
       cache: "no-store",
     })
 

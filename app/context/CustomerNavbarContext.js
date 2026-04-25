@@ -19,6 +19,7 @@ const CART_TTL = 15 * 1000
 const FAVORITE_TTL = 60 * 1000
 const FAVORITE_REFRESH_EVENT = "favorite:changed"
 const LEGACY_CART_REFRESH_EVENT = "cart-updated"
+const AUTH_LOGIN_EVENT = "auth:login"
 
 export function CustomerNavbarProvider({ children, initialShellData = null }) {
   const { user, loading: authLoading } = useAuth()
@@ -188,14 +189,16 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
     let timeoutId
     let idleId
 
+    fetchCart({ force: true, silent: true }).catch(() => {})
+
     const preloadFavorites = () => {
-      fetchFavoriteCount({ force: false }).catch(() => {})
+      fetchFavoriteCount({ force: true }).catch(() => {})
     }
 
     if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(preloadFavorites, { timeout: 1500 })
+      idleId = window.requestIdleCallback(preloadFavorites, { timeout: 800 })
     } else {
-      timeoutId = window.setTimeout(preloadFavorites, 900)
+      timeoutId = window.setTimeout(preloadFavorites, 400)
     }
 
     return () => {
@@ -206,7 +209,7 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
         window.clearTimeout(timeoutId)
       }
     }
-  }, [authLoading, userId, initialCartCount, initialFavoriteCount, resetAll, fetchFavoriteCount])
+  }, [authLoading, userId, initialCartCount, initialFavoriteCount, resetAll, fetchCart, fetchFavoriteCount])
 
   useEffect(() => {
     const handleCartRefresh = (event) => {
@@ -315,15 +318,22 @@ export function CustomerNavbarProvider({ children, initialShellData = null }) {
       }
     }
 
+    const handleAuthLogin = () => {
+      fetchCart({ force: true, silent: true }).catch(() => {})
+      fetchFavoriteCount({ force: true }).catch(() => {})
+    }
+
     window.addEventListener(CUSTOMER_CART_REFRESH_EVENT, handleCartRefresh)
     window.addEventListener(LEGACY_CART_REFRESH_EVENT, handleCartRefresh)
     window.addEventListener(FAVORITE_REFRESH_EVENT, handleFavoriteRefresh)
+    window.addEventListener(AUTH_LOGIN_EVENT, handleAuthLogin)
     document.addEventListener("visibilitychange", handleVisible)
 
     return () => {
       window.removeEventListener(CUSTOMER_CART_REFRESH_EVENT, handleCartRefresh)
       window.removeEventListener(LEGACY_CART_REFRESH_EVENT, handleCartRefresh)
       window.removeEventListener(FAVORITE_REFRESH_EVENT, handleFavoriteRefresh)
+      window.removeEventListener(AUTH_LOGIN_EVENT, handleAuthLogin)
       document.removeEventListener("visibilitychange", handleVisible)
     }
   }, [applyCartData, fetchCart, refreshCart, fetchFavoriteCount])

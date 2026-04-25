@@ -90,11 +90,13 @@ function PaymentPage() {
     }
   }, [searchParams, router])
 
-  const syncCheckoutBootstrap = useCallback(async ({ force = true, showLoader = false } = {}) => {
+  const cachedOrderId = useMemo(() => Number(checkout?.order?.id || 0) || null, [checkout])
+
+  const syncCheckoutBootstrap = useCallback(async ({ force = true, showLoader = false, orderId = null } = {}) => {
     if (showLoader) setLoading(true)
 
     try {
-      const res = await getCheckoutBootstrap({ force })
+      const res = await getCheckoutBootstrap({ force, orderId })
       const data = res?.data || {}
 
       setCheckout(data.checkout || null)
@@ -130,14 +132,14 @@ function PaymentPage() {
       setLoading(false)
     }
 
-    syncCheckoutBootstrap({ force: true, showLoader: !cachedCheckout }).catch(() => {
+    syncCheckoutBootstrap({ force: true, showLoader: !cachedCheckout, orderId: cachedCheckout?.order?.id || null }).catch(() => {
       if (!active) return
       setLoading(false)
     })
 
     const resync = () => {
       if (document.visibilityState !== 'visible') return
-      syncCheckoutBootstrap({ force: true, showLoader: false }).catch(() => {})
+      syncCheckoutBootstrap({ force: true, showLoader: false, orderId: cachedOrderId }).catch(() => {})
       refreshNavbarCart({ force: true }).catch(() => {})
     }
 
@@ -151,7 +153,7 @@ function PaymentPage() {
       window.removeEventListener('focus', resync)
       document.removeEventListener('visibilitychange', resync)
     }
-  }, [refreshNavbarCart, syncCheckoutBootstrap])
+  }, [cachedOrderId, refreshNavbarCart, syncCheckoutBootstrap])
 
   const visibleGateways = useMemo(
     () => gateways.filter((row) => String(row?.code || "").toLowerCase() !== "wallet"),
@@ -193,12 +195,12 @@ function PaymentPage() {
     setProcessing(true)
 
     try {
-      const synced = await syncCheckoutBootstrap({ force: true, showLoader: false })
+      const synced = await syncCheckoutBootstrap({ force: true, showLoader: false, orderId: cachedOrderId })
 
       let orderId = synced?.checkout?.order?.id || checkout?.order?.id
       if (!orderId) {
         clearCheckoutBootstrapCache()
-        const refreshed = await getCheckoutBootstrap({ force: true })
+        const refreshed = await getCheckoutBootstrap({ force: true, orderId: cachedOrderId })
         const refreshedCheckout = refreshed?.data?.checkout || null
         if (refreshedCheckout) {
           setCheckout(refreshedCheckout)

@@ -14,7 +14,7 @@ import {
 function OAuthCallbackHandler() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { setUser } = useAuth()
+  const { setUser, refreshUser } = useAuth()
   const executed = useRef(false)
 
   useEffect(() => {
@@ -67,7 +67,11 @@ function OAuthCallbackHandler() {
 
         const targetPath = resolvePostLoginPath(authUser)
         persistAuthSession(token, authUser)
-        setUser(authUser, { display: false })
+        setUser(authUser, { display: true })
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("auth:login"))
+        }
+        refreshUser?.().catch(() => {})
         clearTrustedDevicePreference()
         router.replace(targetPath)
       } catch (err) {
@@ -78,7 +82,7 @@ function OAuthCallbackHandler() {
     }
 
     exchangeCode()
-  }, [router, searchParams, setUser])
+  }, [refreshUser, router, searchParams, setUser])
 
   return (
     <div className="flex min-h-screen items-center justify-center text-white">
