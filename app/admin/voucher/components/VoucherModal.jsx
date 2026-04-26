@@ -7,10 +7,24 @@ import { AnimatePresence, motion } from 'framer-motion'
 const API = process.env.NEXT_PUBLIC_API_URL
 const TIERS = ['member', 'reseller', 'vip']
 
+function normalizeMoneyDigits(value) {
+  const raw = String(value ?? '').trim()
+
+  if (raw === '') return ''
+
+  if (/^\d+\.\d{1,2}$/.test(raw)) {
+    return String(Math.trunc(Number(raw)))
+  }
+
+  if (/^\d+,\d{1,2}$/.test(raw)) {
+    return String(Math.trunc(Number(raw.replace(',', '.'))))
+  }
+
+  return raw.replace(/[^\d]/g, '')
+}
+
 function formatRupiah(value) {
-  return String(value || '')
-    .replace(/[^\d]/g, '')
-    .replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return normalizeMoneyDigits(value).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 
 function parseRupiah(value) {

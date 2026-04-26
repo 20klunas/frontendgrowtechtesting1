@@ -41,6 +41,7 @@ export default function BannerSection() {
       setLoading(true)
 
       const res = await fetch(`${API}/api/v1/admin/banners`, {
+        cache: 'no-store',
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${Cookies.get('token')}`,
@@ -93,6 +94,7 @@ export default function BannerSection() {
           b.id === banner.id ? { ...b, is_active: !b.is_active } : b
         )
       )
+      await loadBanners()
     } catch {
       alert('Gagal update status')
     }
@@ -122,7 +124,7 @@ export default function BannerSection() {
     setBanners(reordered)
 
     try {
-      await fetch(`${API}/api/v1/admin/banners/reorder`, {
+      const reorderRes = await fetch(`${API}/api/v1/admin/banners/reorder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -135,8 +137,14 @@ export default function BannerSection() {
           })),
         }),
       })
-    } catch {
-      alert('Gagal reorder banner')
+
+      if (!reorderRes.ok) {
+        await loadBanners()
+        throw new Error('Gagal menyimpan urutan banner')
+      }
+    } catch (err) {
+      console.error('REORDER BANNER ERROR:', err)
+      alert(err?.message || 'Gagal reorder banner')
     }
 
     setDraggedItem(null)
@@ -298,7 +306,7 @@ export default function BannerSection() {
                 })
                 setModalOpen(true)
               }}
-              className="px-4 py-2 rounded-lg bg-green-500 text-black font-semibold hover:scale-105 transition"
+              className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:scale-105 transition"
             >
               + Tambah Banner
             </button>
@@ -427,7 +435,7 @@ export default function BannerSection() {
 
           <button
             onClick={handleSubmit}
-            className="bg-green-500 text-black px-4 py-2 rounded-lg w-full"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg w-full"
           >
             Simpan
           </button>

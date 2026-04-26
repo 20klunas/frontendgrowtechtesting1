@@ -33,7 +33,7 @@ export async function getFaqs() {
       headers: {
         Accept: "application/json",
       },
-      next: { revalidate: 300 },
+      cache: "no-store",
     })
 
     if (!res.ok) {

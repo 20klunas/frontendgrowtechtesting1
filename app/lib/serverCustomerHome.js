@@ -114,7 +114,7 @@ async function fetchCustomerHomeBootstrap() {
       buildApiUrl("/api/v1/bootstrap/customer-home"),
       {
         headers,
-        next: { revalidate: 60 }, // 🔥 bukan no-store
+        cache: "no-store",
       }
     )
 
@@ -196,8 +196,8 @@ async function getCustomerHomeLegacyData() {
   };
 
   const [bannersResult, popupResult, productsResult] = await Promise.allSettled([
-    fetchJson("/api/v1/content/banners", { revalidate: 120 }),
-    fetchJson("/api/v1/content/popup", { revalidate: 60 }),
+    fetchJson("/api/v1/content/banners", { cacheMode: "no-store" }),
+    fetchJson("/api/v1/content/popup", { cacheMode: "no-store" }),
     getPopularProductsServerSafe(),
   ]);
 

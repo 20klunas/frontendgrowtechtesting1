@@ -1,7 +1,9 @@
-import dynamic from "next/dynamic"
 import Image from "next/image"
 import Link from "next/link"
 import BannerCarouselClient from "../components/customer/BannerCarouselClient"
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 // const BannerCarousel = dynamic(
 //   () => import("../components/customer/BannerCarousel"),
 //   {
@@ -20,16 +22,23 @@ const normalizeSettings = (rows = []) =>
     return acc
   }, {})
 
-async function getPublicJson(path, revalidate = 120) {
+async function getPublicJson(path, revalidate = 120, cacheMode = null) {
   if (!API) return null
 
   try {
-    const res = await fetch(`${API}${path}`, {
+    const fetchOptions = {
       headers: {
         Accept: "application/json",
       },
-      next: { revalidate },
-    })
+    }
+
+    if (cacheMode) {
+      fetchOptions.cache = cacheMode
+    } else {
+      fetchOptions.next = { revalidate }
+    }
+
+    const res = await fetch(`${API}${path}`, fetchOptions)
 
     if (!res.ok) {
       return null
@@ -49,8 +58,8 @@ async function getPublicJson(path, revalidate = 120) {
 
 async function getHomePageData() {
   const [bannerRes, settingsRes] = await Promise.all([
-    getPublicJson("/api/v1/content/banners", 60),
-    getPublicJson("/api/v1/content/settings?group=website", 300),
+    getPublicJson("/api/v1/content/banners", 0, "no-store"),
+    getPublicJson("/api/v1/content/settings?group=website", 0, "no-store"),
   ])
 
   const settings = normalizeSettings(settingsRes?.data || [])

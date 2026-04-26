@@ -1267,3 +1267,38 @@ html.dark .admin .modal-card .text-black {
 html.light .admin .modal-card .text-white {
   color: #111827 !important;
 }
+
+/* ADMIN LIGHT MODE BUTTON/TEXT CONTRAST FIX
+   Menjaga teks tetap terbaca ketika theme light membuat teks default menjadi gelap,
+   terutama pada tombol admin dengan background gelap/berwarna. */
+html.light .admin-shell button[class*="bg-black"],
+html.light .admin-shell button[class*="bg-zinc-"],
+html.light .admin-shell button[class*="bg-slate-"],
+html.light .admin-shell button[class*="bg-purple-"],
+html.light .admin-shell button[class*="bg-green-"],
+html.light .admin-shell button[class*="bg-red-"],
+html.light .admin-shell button[class*="bg-orange-"],
+html.light .admin-shell a[class*="bg-black"],
+html.light .admin-shell a[class*="bg-zinc-"],
+html.light .admin-shell a[class*="bg-slate-"],
+html.light .admin-shell a[class*="bg-purple-"],
+html.light .admin-shell a[class*="bg-green-"],
+html.light .admin-shell a[class*="bg-red-"],
+html.light .admin-shell a[class*="bg-orange-"] {
+  color: #ffffff !important;
+}
+
+html.light .admin-shell button[class*="bg-yellow-"],
+html.light .admin-shell a[class*="bg-yellow-"] {
+  color: #111827 !important;
+}
+
+html.light .admin-shell input,
+html.light .admin-shell textarea,
+html.light .admin-shell select {
+  color: #ffffff;
+}
+
+html.light .admin-shell option {
+  color: #111827;
+}

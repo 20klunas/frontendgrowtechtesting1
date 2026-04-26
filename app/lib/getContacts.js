@@ -37,7 +37,7 @@ export async function getContacts() {
         headers: {
           Accept: "application/json",
         },
-        next: { revalidate: 300 }, // ISR cache 5 menit
+        cache: "no-store",
       }
     )
 

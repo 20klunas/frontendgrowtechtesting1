@@ -10,7 +10,7 @@ import PermissionGate from '../../components/admin/PermissionGate'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 const DEFAULT_SUBCATEGORY_IMAGE = '/logogrowtech.png'
-const DEFAULT_SUBCATEGORY_IMAGE_PATH = '/logogrowtech.png'
+const DEFAULT_SUBCATEGORY_IMAGE_PATH = 'defaults/logogrowtech.png'
 
 const emptyForm = {
   category_id: '',
@@ -233,8 +233,8 @@ export default function SubKategoriPage() {
         slug: form.slug,
         provider: form.provider || null,
         description: form.description || null,
-        image_url: form.image_url || DEFAULT_SUBCATEGORY_IMAGE,
-        image_path: form.image_path || DEFAULT_SUBCATEGORY_IMAGE_PATH,
+        image_url: form.image_url || selected?.image_url || DEFAULT_SUBCATEGORY_IMAGE,
+        image_path: form.image_path || selected?.image_path || DEFAULT_SUBCATEGORY_IMAGE_PATH,
         is_active: !!form.is_active,
         sort_order: Number(form.sort_order) || 1,
       }
@@ -419,7 +419,7 @@ export default function SubKategoriPage() {
 
         {showModal && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 backdrop-blur-sm px-3 py-4 sm:px-4 sm:py-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -430,7 +430,7 @@ export default function SubKategoriPage() {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-2xl rounded-2xl border border-purple-600/60 bg-black shadow-[0_0_40px_rgba(168,85,247,0.25)] overflow-hidden"
+              className="relative w-full max-w-xl max-h-[calc(100vh-2rem)] rounded-2xl border border-purple-600/60 bg-black shadow-[0_0_40px_rgba(168,85,247,0.25)] overflow-hidden flex flex-col"
             >
               <button
                 type="button"
@@ -449,7 +449,8 @@ export default function SubKategoriPage() {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+              <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+                <div className="overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm block mb-1 text-gray-300">Kategori</label>
@@ -569,7 +570,9 @@ export default function SubKategoriPage() {
                   </div>
                 )}
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-purple-900/30">
+                </div>
+
+                <div className="sticky bottom-0 flex justify-end gap-3 border-t border-purple-900/30 bg-black/95 px-5 py-4 sm:px-6">
                   <button type="button" onClick={closeModal} className="px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700/40 transition">
                     Batal
                   </button>

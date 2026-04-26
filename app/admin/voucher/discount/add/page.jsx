@@ -94,6 +94,23 @@ export default function AddDiscountPage() {
     }))
   }
 
+  const getTargetLabel = (target) => {
+    const type = target?.type || target?.target_type
+    const id = Number(target?.id ?? target?.target_id)
+
+    if (type === 'product') {
+      const product = products.find((item) => Number(item.id) === id)
+      return `Product: ${product?.name || target?.name || 'ID ' + id}`
+    }
+
+    if (type === 'subcategory') {
+      const subcategory = subcategories.find((item) => Number(item.id) === id)
+      return `Subcategory: ${subcategory?.name || target?.name || 'ID ' + id}`
+    }
+
+    return `${type || 'target'}: ${id || '-'}`
+  }
+
   const toggleTier = (group, tier) => {
     setForm((prev) => {
       const current = prev.tier_rules[group] || []
@@ -183,8 +200,8 @@ export default function AddDiscountPage() {
           <label className="text-sm text-gray-400">Target yang dipilih</label>
           <div className="mt-2 flex flex-wrap gap-2">
             {form.targets.length === 0 ? <span className="text-gray-500 text-sm">Belum ada target khusus. Jika kosong, discount berlaku global.</span> : form.targets.map((target, index) => (
-              <button key={`${target.type}-${target.id}-${index}`} type="button" onClick={() => removeTarget(target.type, target.id)} className="rounded-full border border-purple-600/40 bg-purple-900/30 px-3 py-2 text-sm">
-                {target.type}:{target.id} ✕
+              <button key={`${target.type || target.target_type}-${target.id ?? target.target_id}-${index}`} type="button" onClick={() => removeTarget(target.type || target.target_type, target.id ?? target.target_id)} className="rounded-full border border-purple-600/40 bg-purple-900/30 px-3 py-2 text-sm">
+                {getTargetLabel(target)} ✕
               </button>
             ))}
           </div>

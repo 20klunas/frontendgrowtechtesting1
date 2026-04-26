@@ -5,6 +5,9 @@ import Footer from '../components/Footer'
 import FAQList from '../components/FAQList'
 import { getFaqs } from '../lib/getFaqs'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function FAQPage() {
   const faqs = await getFaqs()
 
