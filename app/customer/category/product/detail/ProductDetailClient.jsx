@@ -95,6 +95,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
             qty: quantity,
             voucher_code: null,
           }),
+          skipToast: true,
         },
         { auth: true }
       );
@@ -125,6 +126,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
         {
           method: "POST",
           body: JSON.stringify({ product_id: product.id, qty: quantity }),
+          skipToast: true,
         },
         { auth: true }
       );

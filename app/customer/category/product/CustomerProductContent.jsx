@@ -18,7 +18,7 @@ import { useAuth } from "../../../hooks/useAuth"
 import useCatalogAccess from "../../../hooks/useCatalogAccess"
 import { notifyFavoriteChanged } from "../../../lib/favoriteEvents"
 import { clearCheckoutBootstrapCache, writeCheckoutBootstrapCache } from "../../../lib/clientBootstrap"
-import Toast from "../../../components/ui/Toast"
+import { showGlobalToast } from "../../../lib/actionToast"
 
 const ITEMS_PER_PAGE = 6
 const FAVORITE_IDS_TTL = 2 * 60 * 1000
@@ -190,7 +190,6 @@ export default function CustomerProductContent({
 
   const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null)
-  const [toastMessage, setToastMessage] = useState(null)
 
   const [currentPage, setCurrentPage] = useState(Math.max(1, Number(initialPage || 1)))
   const [pagination, setPagination] = useState(
@@ -442,10 +441,7 @@ export default function CustomerProductContent({
   }, [userTier])
 
   const showToast = (message, type = "success") => {
-    setToastMessage({ message, type })
     showGlobalToast(message, type)
-    window.clearTimeout(window.__gtCatalogToastTimer)
-    window.__gtCatalogToastTimer = window.setTimeout(() => setToastMessage(null), 2200)
   }
 
   const updateFavoriteState = (updater) => {
@@ -486,6 +482,7 @@ export default function CustomerProductContent({
           `/api/v1/favorites/${productId}`,
           {
             method: "DELETE",
+            skipToast: true,
           },
           { auth: true }
         )
@@ -495,6 +492,7 @@ export default function CustomerProductContent({
           {
             method: "POST",
             body: JSON.stringify({ product_id: productId }),
+            skipToast: true,
           },
           { auth: true }
         )
@@ -572,6 +570,7 @@ export default function CustomerProductContent({
             qty: safeQty,
             voucher_code: null,
           }),
+          skipToast: true,
         },
         { auth: true }
       )
@@ -619,7 +618,8 @@ export default function CustomerProductContent({
           body: JSON.stringify({
             product_id: productId,
             qty: safeQty
-          })
+          }),
+          skipToast: true
         },
         { auth: true }
       )
@@ -684,7 +684,6 @@ export default function CustomerProductContent({
 
   return (
     <>
-      {toastMessage ? <Toast message={toastMessage.message} type={toastMessage.type} /> : null}
       <section className="mx-auto w-full max-w-7xl px-4 pb-12 pt-6 text-white sm:px-6 lg:px-8">
       <div className="mb-8 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <motion.div

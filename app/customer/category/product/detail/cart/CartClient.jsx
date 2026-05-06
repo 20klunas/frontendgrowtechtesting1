@@ -513,6 +513,7 @@ export default function CartClient({ initialItems, initialSummary }) {
         body: JSON.stringify({
           voucher_code: voucher.trim() || null,
         }),
+        skipToast: true,
       });
 
       clearCheckoutBootstrapCache();
@@ -559,10 +560,11 @@ export default function CartClient({ initialItems, initialSummary }) {
       const json = await authFetch(`/api/v1/cart/items/${itemId}`, {
         method: "PATCH",
         body: JSON.stringify({ qty: newQty }),
+        skipToast: true,
       });
 
       if (json?.success && Array.isArray(json?.data?.items)) {
-        showToast("Item berhasil dihapus dari keranjang", "error");
+        showToast("Jumlah item di keranjang berhasil diperbarui", "success");
         applyNormalizedCart({ items: json.data.items, summary: json.data.summary || buildFallbackSummary(json.data.items) });
         notifyCustomerCartChanged({
           type: "server-snapshot",
@@ -601,10 +603,11 @@ export default function CartClient({ initialItems, initialSummary }) {
 
       const json = await authFetch(`/api/v1/cart/items/${itemId}`, {
         method: "DELETE",
+        skipToast: true,
       });
 
       if (json?.success && Array.isArray(json?.data?.items)) {
-        showToast("Jumlah item di keranjang berhasil diperbarui", "success");
+        showToast("Item berhasil dihapus dari keranjang", "error");
         applyNormalizedCart({ items: json.data.items, summary: json.data.summary || buildFallbackSummary(json.data.items) });
         notifyCustomerCartChanged({
           type: "server-snapshot",

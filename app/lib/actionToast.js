@@ -107,6 +107,37 @@ export function defaultActionMessage({ url, method, ok = true }) {
   return `${label} berhasil diperbarui.`
 }
 
+export function resolveApiToastMessage({ url, method, ok = true, data = null }) {
+  const path = normalizePath(url)
+  const action = String(method || "GET").toUpperCase()
+
+  if (path.includes("/cart/buy-now")) {
+    return ok
+      ? "Produk siap dibeli. Melanjutkan ke checkout."
+      : extractApiMessage(data) || "Gagal memproses beli sekarang."
+  }
+
+  if (path.includes("/cart/items") && action === "PATCH") {
+    return ok
+      ? "Jumlah item di keranjang berhasil diperbarui."
+      : extractApiMessage(data) || "Gagal memperbarui jumlah item keranjang."
+  }
+
+  if (path.includes("/cart/items") && action === "DELETE") {
+    return ok
+      ? "Item berhasil dihapus dari keranjang."
+      : extractApiMessage(data) || "Gagal menghapus item dari keranjang."
+  }
+
+  if (path.includes("/favorites") && action === "POST") {
+    const serverMessage = extractApiMessage(data)
+    if (serverMessage) return serverMessage
+    return ok ? "Favorite/rating produk berhasil disimpan." : "Gagal menyimpan favorite/rating produk."
+  }
+
+  return extractApiMessage(data) || defaultActionMessage({ url, method: action, ok })
+}
+
 export function showGlobalToast(message, type = "success", options = {}) {
   if (typeof window === "undefined") return
 

@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   TOAST_EVENT,
-  defaultActionMessage,
-  extractApiMessage,
+  resolveApiToastMessage,
   isApiMutationToastCandidate,
 } from "../../lib/actionToast"
 
@@ -25,6 +24,10 @@ const typeIcon = {
 }
 
 function readSkipToastHeader(input, init = {}) {
+  if (init?.skipToast === true || init?.silentToast === true || input?.skipToast === true || input?.silentToast === true) {
+    return true
+  }
+
   const headers = new Headers(init?.headers || input?.headers || {})
   return headers.get("x-skip-toast") === "true" || headers.get("x-silent-toast") === "true"
 }
@@ -99,7 +102,7 @@ export default function GlobalToastProvider({ children }) {
         if (shouldToast) {
           const data = await tryReadJson(response)
           const type = response.ok ? "success" : "error"
-          const message = extractApiMessage(data) || defaultActionMessage({ url, method, ok: response.ok })
+          const message = resolveApiToastMessage({ url, method, ok: response.ok, data })
           pushToast({ message, type })
         }
 
@@ -107,7 +110,7 @@ export default function GlobalToastProvider({ children }) {
       } catch (error) {
         if (shouldToast) {
           pushToast({
-            message: error?.message || defaultActionMessage({ url, method, ok: false }),
+            message: error?.message || resolveApiToastMessage({ url, method, ok: false }),
             type: "error",
           })
         }

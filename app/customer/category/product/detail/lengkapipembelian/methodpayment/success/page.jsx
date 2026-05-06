@@ -112,26 +112,32 @@ function SuccessContent() {
     confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
   }, []);
 
+  const ratingStorageKey = useCallback((productId) => {
+    if (!orderId || !productId) return null;
+    return `gt-order-rating:${orderId}:${productId}`;
+  }, [orderId]);
+
   const fetchExistingRating = useCallback(async (productId) => {
     if (!productId) return;
 
     try {
-      const json = await authFetch(`/api/v1/favorites?per_page=100&scope=all`);
-      const rows = Array.isArray(json?.data?.data) ? json.data.data : [];
-      const found = rows.find((item) => Number(item?.product_id) === Number(productId));
-      const value = Number(found?.rating || 0);
+      const key = ratingStorageKey(productId);
+      const stored = key && typeof window !== "undefined"
+        ? Number(window.localStorage.getItem(key) || 0)
+        : 0;
 
-      if (value > 0) {
-        setExistingRating(value);
-        setRating(value);
-      } else {
-        setExistingRating(null);
-        setRating(5);
+      if (stored > 0) {
+        setExistingRating(stored);
+        setRating(stored);
+        return;
       }
     } catch (err) {
-      console.error("loadExistingRating error:", err);
+      console.error("loadExistingOrderRating error:", err);
     }
-  }, []);
+
+    setExistingRating(null);
+    setRating(5);
+  }, [ratingStorageKey]);
 
   const fetchAll = useCallback(async ({ silent = false } = {}) => {
     if (!orderId) return false;
@@ -324,7 +330,7 @@ function SuccessContent() {
     try {
       setRevealing(true);
 
-      const json = await authFetch(`/api/v1/orders/${orderId}/delivery/reveal`, { method: "POST" });
+      const json = await authFetch(`/api/v1/orders/${orderId}/delivery/reveal`, { method: "POST", skipToast: true });
 
       if (json?.success) {
         setRevealedData(json.data);
@@ -357,6 +363,7 @@ function SuccessContent() {
       setResending(true);
       const json = await authFetch(`/api/v1/orders/${orderId}/delivery/resend`, {
         method: "POST",
+        skipToast: true,
       });
 
       if (!json?.success) {
@@ -376,6 +383,7 @@ function SuccessContent() {
       setClosing(true);
       const json = await authFetch(`/api/v1/orders/${orderId}/delivery/close`, {
         method: "POST",
+        skipToast: true,
       });
 
       if (!json?.success) {
@@ -394,7 +402,7 @@ function SuccessContent() {
     if (!rateProductId) return;
 
     if (existingRating) {
-      showToast("Rating produk sudah terkunci dan tidak dapat diubah.", "info");
+      showToast("Rating untuk pembelian ini sudah terkunci dan tidak dapat diubah.", "info");
       return;
     }
 
@@ -404,19 +412,30 @@ function SuccessContent() {
       setSubmittingRating(true);
       const res = await authFetch(`/api/v1/favorites`, {
         method: "POST",
-        body: JSON.stringify({ product_id: rateProductId, rating: finalRating }),
+        body: JSON.stringify({
+          product_id: rateProductId,
+          order_id: Number(orderId),
+          rating: finalRating,
+        }),
+        skipToast: true,
       });
 
       if (res?.success) {
-        showToast("Terima kasih atas rating kamu ⭐");
+        showToast("Terima kasih, rating untuk pembelian ini berhasil disimpan ⭐");
         setExistingRating(finalRating);
         setRating(finalRating);
+        try {
+          const key = ratingStorageKey(rateProductId);
+          if (key && typeof window !== "undefined") {
+            window.localStorage.setItem(key, String(finalRating));
+          }
+        } catch {}
       } else {
         showToast(res?.error?.message || "Gagal memberi rating", "error");
       }
     } catch (err) {
       console.error(err);
-      showToast("Terjadi kesalahan", "error");
+      showToast(err?.message || "Terjadi kesalahan saat menyimpan rating", "error");
     } finally {
       setSubmittingRating(false);
     }
@@ -495,7 +514,7 @@ function SuccessContent() {
         {rateProductId && (
           <div className="mt-8 rounded-2xl border border-yellow-500/40 p-6 bg-yellow-500/5 mb-6">
             <h2 className="text-lg font-semibold mb-4 text-center">
-              {existingRating ? "Rating Produk Kamu" : "Beri Rating Produk"}
+              {existingRating ? "Rating Pembelian Ini" : "Beri Rating Produk"}
             </h2>
 
             {existingRating ? (
@@ -505,7 +524,7 @@ function SuccessContent() {
                   <span className="text-gray-600">{"★".repeat(5 - existingRating)}</span>
                 </div>
                 <p className="mb-4 text-sm text-gray-300">
-                  Rating produk sudah terkunci dan tidak dapat diubah. Jika kamu belum memilih rating, sistem memakai default bintang 5.
+                  Rating untuk pembelian ini sudah terkunci dan tidak dapat diubah. Kalau kamu membeli produk yang sama lagi, kamu bisa memberi rating baru pada transaksi berikutnya.
                 </p>
               </div>
             ) : (
