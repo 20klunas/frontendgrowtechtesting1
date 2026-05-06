@@ -141,7 +141,7 @@ function buildOrderHistorySummary(order) {
 }
 
 export default function ProfilePage() {
-  const { user, setUser, loading } = useAuth();
+  const { user, setUser, refreshUser, loading } = useAuth();
 
   const [openModal, setOpenModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -159,7 +159,6 @@ export default function ProfilePage() {
     login_method: "email",
     provider: null,
   });
-  const [currentPassword, setCurrentPassword] = useState("");
 
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyItems, setHistoryItems] = useState([]);
@@ -353,30 +352,11 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const emailChanged = initialForm && form.email !== initialForm.email;
       const payload = {
         name: form.name,
         full_name: form.full_name,
         address: form.address,
       };
-
-      if (emailChanged) {
-        const method = String(form.login_method || form.provider || "email").toLowerCase();
-        if (["google", "discord"].includes(method)) {
-          showGlobalToast("Email akun Google/Discord tidak dapat diubah.", "warning");
-          setSaving(false);
-          return;
-        }
-
-        if (!currentPassword.trim()) {
-          showGlobalToast("Masukkan password saat ini untuk mengganti email.", "warning");
-          setSaving(false);
-          return;
-        }
-
-        payload.email = form.email;
-        payload.current_password = currentPassword;
-      }
 
       const res = await apiFetch("/api/v1/auth/me/profile", {
         method: "PATCH",
@@ -388,15 +368,16 @@ export default function ProfilePage() {
       const updated = {
         name: data?.name || "",
         full_name: data?.full_name || "",
-        email: data?.email || "",
+        email: data?.email || form.email || "",
         address: data?.address || "",
         tier: data?.tier || form.tier || "member",
+        login_method: data?.login_method || form.login_method || data?.provider || "email",
+        provider: data?.provider || form.provider || null,
       };
 
       setForm(updated);
       setInitialForm(updated);
       setUser(data);
-      setCurrentPassword("");
 
       showGlobalToast("Profil berhasil diperbarui", "success");
     } catch (err) {
@@ -439,7 +420,6 @@ export default function ProfilePage() {
   const appliedFilterCount = Object.values(appliedFilters).filter(Boolean).length;
   const loginMethod = String(form.login_method || form.provider || "email").toLowerCase();
   const isSocialLogin = ["google", "discord"].includes(loginMethod);
-  const emailChanged = initialForm && form.email !== initialForm.email;
 
   if (loading) return null;
   if (!user) return <p className="text-white text-center">User tidak ditemukan</p>;
@@ -506,32 +486,41 @@ export default function ProfilePage() {
 
               <Input
                 icon={<Mail />}
-                label={`Email ${isSocialLogin ? `(terkunci karena login ${loginMethod})` : ""}`}
+                label={isSocialLogin ? `Email (terkunci karena login ${loginMethod})` : "Email akun"}
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                disabled={isSocialLogin}
+                disabled
                 filled
-                changed={isChanged("email")}
+                changed={false}
               />
 
-              {!isSocialLogin && emailChanged && (
-                <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4">
-                  <label className="block text-sm text-yellow-200 mb-2">Password saat ini wajib diisi untuk mengganti email</label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full rounded-xl bg-black border border-yellow-600/40 px-4 py-2 text-white outline-none"
-                    placeholder="Masukkan password saat ini"
-                  />
-                </div>
-              )}
-
-              {isSocialLogin && (
+              {isSocialLogin ? (
                 <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-4 text-sm text-sky-100">
                   Akun ini menggunakan login {loginMethod}. Email tidak bisa diubah dari profil maupun admin agar tetap sinkron dengan provider.
                 </div>
+              ) : (
+                <EmailChangeOtpBox
+                  currentEmail={form.email}
+                  onCompleted={async (updatedUser) => {
+                    const fresh = typeof refreshUser === "function"
+                      ? await refreshUser().catch(() => updatedUser)
+                      : updatedUser;
+                    const resolved = fresh || updatedUser || {};
+                    const updated = {
+                      name: resolved?.name || form.name || "",
+                      full_name: resolved?.full_name || form.full_name || "",
+                      email: resolved?.email || updatedUser?.email || form.email || "",
+                      address: resolved?.address || form.address || "",
+                      tier: resolved?.tier || form.tier || "member",
+                      login_method: resolved?.login_method || resolved?.provider || "email",
+                      provider: resolved?.provider || null,
+                    };
+                    setForm(updated);
+                    setInitialForm(updated);
+                    setUser(resolved);
+                  }}
+                />
               )}
 
               <Input
@@ -842,6 +831,246 @@ export default function ProfilePage() {
 
       <ChangePasswordModal open={openModal} onClose={() => setOpenModal(false)} />
     </>
+  );
+}
+
+
+function EmailChangeOtpBox({ currentEmail, onCompleted }) {
+  const [oldChallengeId, setOldChallengeId] = useState("");
+  const [oldCode, setOldCode] = useState("");
+  const [oldEmailToken, setOldEmailToken] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newChallengeId, setNewChallengeId] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const [busy, setBusy] = useState("");
+
+  const silentHeaders = { "X-Skip-Toast": "true" };
+  const isBusy = Boolean(busy);
+  const oldVerified = Boolean(oldEmailToken);
+
+  const resetFlow = () => {
+    setOldChallengeId("");
+    setOldCode("");
+    setOldEmailToken("");
+    setNewEmail("");
+    setNewChallengeId("");
+    setNewCode("");
+  };
+
+  const requestOldOtp = async () => {
+    setBusy("request-old");
+    try {
+      const res = await apiFetch("/api/v1/auth/me/email-change/request-current", {
+        method: "POST",
+        headers: silentHeaders,
+        body: JSON.stringify({}),
+      });
+      setOldChallengeId(res?.data?.challenge_id || "");
+      setOldCode("");
+      setOldEmailToken("");
+      setNewChallengeId("");
+      setNewCode("");
+      showGlobalToast(res?.meta?.message || `OTP sudah dikirim ke email lama ${res?.data?.email_hint || currentEmail}.`, "success");
+    } catch (err) {
+      showGlobalToast(err?.message || "Gagal mengirim OTP ke email lama.", "error");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const verifyOldOtp = async () => {
+    if (!oldChallengeId) {
+      showGlobalToast("Minta OTP ke email lama terlebih dahulu.", "warning");
+      return;
+    }
+    if (!/^\d{6}$/.test(oldCode.trim())) {
+      showGlobalToast("Isi OTP email lama dengan 6 digit angka.", "warning");
+      return;
+    }
+
+    setBusy("verify-old");
+    try {
+      const res = await apiFetch("/api/v1/auth/me/email-change/verify-current", {
+        method: "POST",
+        headers: silentHeaders,
+        body: JSON.stringify({
+          challenge_id: oldChallengeId,
+          code: oldCode.trim(),
+        }),
+      });
+      setOldEmailToken(res?.data?.old_email_token || "");
+      setNewChallengeId("");
+      setNewCode("");
+      showGlobalToast(res?.meta?.message || "Email lama berhasil diverifikasi. Sekarang masukkan email baru.", "success");
+    } catch (err) {
+      showGlobalToast(err?.message || "OTP email lama tidak valid.", "error");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const requestNewOtp = async () => {
+    const normalizedNewEmail = newEmail.trim().toLowerCase();
+    const normalizedCurrentEmail = String(currentEmail || "").trim().toLowerCase();
+
+    if (!oldEmailToken) {
+      showGlobalToast("Verifikasi email lama terlebih dahulu sebelum memasukkan email baru.", "warning");
+      return;
+    }
+    if (!normalizedNewEmail) {
+      showGlobalToast("Masukkan email baru terlebih dahulu.", "warning");
+      return;
+    }
+    if (normalizedNewEmail === normalizedCurrentEmail) {
+      showGlobalToast("Email baru tidak boleh sama dengan email lama.", "warning");
+      return;
+    }
+
+    setBusy("request-new");
+    try {
+      const res = await apiFetch("/api/v1/auth/me/email-change/request-new", {
+        method: "POST",
+        headers: silentHeaders,
+        body: JSON.stringify({
+          old_email_token: oldEmailToken,
+          new_email: normalizedNewEmail,
+        }),
+      });
+      setNewChallengeId(res?.data?.challenge_id || "");
+      setNewCode("");
+      showGlobalToast(res?.meta?.message || `OTP sudah dikirim ke email baru ${res?.data?.email_hint || normalizedNewEmail}.`, "success");
+    } catch (err) {
+      showGlobalToast(err?.message || "Gagal mengirim OTP ke email baru.", "error");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const verifyNewOtp = async () => {
+    if (!newChallengeId) {
+      showGlobalToast("Minta OTP ke email baru terlebih dahulu.", "warning");
+      return;
+    }
+    if (!/^\d{6}$/.test(newCode.trim())) {
+      showGlobalToast("Isi OTP email baru dengan 6 digit angka.", "warning");
+      return;
+    }
+
+    setBusy("verify-new");
+    try {
+      const res = await apiFetch("/api/v1/auth/me/email-change/verify-new", {
+        method: "POST",
+        headers: silentHeaders,
+        body: JSON.stringify({
+          challenge_id: newChallengeId,
+          old_email_token: oldEmailToken,
+          code: newCode.trim(),
+        }),
+      });
+      showGlobalToast(res?.meta?.message || "Email berhasil diganti dan sudah diverifikasi.", "success");
+      resetFlow();
+      if (typeof onCompleted === "function") {
+        await onCompleted(res?.data || null);
+      }
+    } catch (err) {
+      showGlobalToast(err?.message || "OTP email baru tidak valid.", "error");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-purple-500/40 bg-purple-950/20 p-4 space-y-4">
+      <div>
+        <div className="text-sm font-semibold text-white">Ganti Email Manual via OTP</div>
+        <p className="mt-1 text-xs text-purple-200/80">
+          Alurnya: minta OTP ke email lama, verifikasi, masukkan email baru, lalu verifikasi OTP email baru.
+        </p>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div>
+          <label className="block text-xs text-purple-300 mb-1">1. OTP email lama</label>
+          <input
+            value={oldCode}
+            onChange={(e) => setOldCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            disabled={!oldChallengeId || oldVerified || isBusy}
+            className="w-full rounded-xl bg-black border border-purple-700/50 px-4 py-2 text-white outline-none disabled:opacity-60"
+            placeholder={oldChallengeId ? "Masukkan 6 digit OTP email lama" : "Klik kirim OTP dulu"}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={requestOldOtp}
+            className="rounded-xl border border-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-900/30 disabled:opacity-50"
+          >
+            {busy === "request-old" ? "Mengirim..." : oldChallengeId ? "Kirim Ulang OTP Lama" : "Kirim OTP Lama"}
+          </button>
+          <button
+            type="button"
+            disabled={isBusy || !oldChallengeId || oldVerified}
+            onClick={verifyOldOtp}
+            className="rounded-xl bg-purple-700 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-800 disabled:opacity-50"
+          >
+            {busy === "verify-old" ? "Memverifikasi..." : oldVerified ? "Email Lama Terverifikasi" : "Verifikasi Lama"}
+          </button>
+        </div>
+      </div>
+
+      {oldVerified && (
+        <div className="space-y-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+          <div className="text-sm font-semibold text-emerald-100">Email lama sudah terverifikasi</div>
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div>
+              <label className="block text-xs text-emerald-200 mb-1">2. Email baru</label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => {
+                  setNewEmail(e.target.value);
+                  setNewChallengeId("");
+                  setNewCode("");
+                }}
+                disabled={isBusy}
+                className="w-full rounded-xl bg-black border border-emerald-600/40 px-4 py-2 text-white outline-none disabled:opacity-60"
+                placeholder="contoh: emailbaru@gmail.com"
+              />
+            </div>
+            <button
+              type="button"
+              disabled={isBusy || !newEmail.trim()}
+              onClick={requestNewOtp}
+              className="rounded-xl border border-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-900/20 disabled:opacity-50"
+            >
+              {busy === "request-new" ? "Mengirim..." : newChallengeId ? "Kirim Ulang OTP Baru" : "Kirim OTP Baru"}
+            </button>
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div>
+              <label className="block text-xs text-emerald-200 mb-1">3. OTP email baru</label>
+              <input
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                disabled={!newChallengeId || isBusy}
+                className="w-full rounded-xl bg-black border border-emerald-600/40 px-4 py-2 text-white outline-none disabled:opacity-60"
+                placeholder={newChallengeId ? "Masukkan 6 digit OTP email baru" : "Kirim OTP baru dulu"}
+              />
+            </div>
+            <button
+              type="button"
+              disabled={isBusy || !newChallengeId}
+              onClick={verifyNewOtp}
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {busy === "verify-new" ? "Menyimpan..." : "Verifikasi & Ganti Email"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
