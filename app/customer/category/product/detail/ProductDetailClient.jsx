@@ -9,6 +9,7 @@ import { ShoppingCart } from "lucide-react";
 import { fetcher } from "../../../../lib/fetcher";
 import { useAuth } from "../../../../hooks/useAuth";
 import { notifyCustomerCartChanged } from "../../../../lib/customerCartEvents";
+import { showGlobalToast } from "../../../../lib/actionToast";
 import {
   clearCheckoutBootstrapCache,
   writeCheckoutBootstrapCache,
@@ -105,7 +106,10 @@ export default function ProductDetailClient({ productId = null, initialProduct =
       }
 
       writeCheckoutBootstrapCache({ checkout: checkout?.data || null });
-      showToast(`${product?.name || "Produk"} siap dibeli (${quantity} item)`, "success");
+      showGlobalToast(
+        `${product?.name || "Produk"} siap dibeli (${quantity} item). Melanjutkan ke checkout.`,
+        "success"
+      );
       router.push(CHECKOUT_PAGE_PATH);
     } catch (error) {
       showToast(error?.message || "Gagal checkout", "error");

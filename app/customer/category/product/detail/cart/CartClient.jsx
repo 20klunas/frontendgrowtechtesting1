@@ -19,6 +19,26 @@ function formatImageSrc(src) {
   return src || "/logogrowtech.png";
 }
 
+function getCartProductName(item) {
+  return item?.product?.name || item?.product_name || item?.name || "Produk";
+}
+
+function buildQtyChangeMessage(item, oldQty, newQty) {
+  const productName = getCartProductName(item);
+  const before = Number(oldQty || 0);
+  const after = Number(newQty || 0);
+
+  if (after > before) {
+    return `${productName} bertambah dari ${before} menjadi ${after}.`;
+  }
+
+  if (after < before) {
+    return `${productName} berkurang dari ${before} menjadi ${after}.`;
+  }
+
+  return `Jumlah ${productName} tetap ${after}.`;
+}
+
 
 function buildFallbackSummary(items = []) {
   const subtotal = (Array.isArray(items) ? items : []).reduce(
@@ -532,18 +552,23 @@ export default function CartClient({ initialItems, initialSummary }) {
   };
 
   const updateQty = async (itemId, newQty) => {
-    if (newQty < 1) return;
+    const targetItem = items.find((row) => Number(row?.id || 0) === Number(itemId));
+    const previousQty = Math.max(1, Number(targetItem?.qty || 1));
+    const safeQty = Math.max(1, Number(newQty) || 1);
+
+    if (!targetItem || safeQty === previousQty) return;
 
     const previousItems = items;
     const nextItems = items.map((row) => (
       Number(row?.id || 0) === Number(itemId)
         ? {
             ...row,
-            qty: newQty,
-            line_subtotal: Number(row?.unit_price || 0) * newQty,
+            qty: safeQty,
+            line_subtotal: Number(row?.unit_price || 0) * safeQty,
           }
         : row
     ));
+    const successMessage = buildQtyChangeMessage(targetItem, previousQty, safeQty);
 
     setSyncing(true);
 
@@ -553,18 +578,21 @@ export default function CartClient({ initialItems, initialSummary }) {
       notifyCustomerCartChanged({
         type: "update",
         item_id: itemId,
-        qty: newQty,
+        qty: safeQty,
         skipServerSync: true,
       });
 
       const json = await authFetch(`/api/v1/cart/items/${itemId}`, {
         method: "PATCH",
-        body: JSON.stringify({ qty: newQty }),
+        body: JSON.stringify({ qty: safeQty }),
         skipToast: true,
+        headers: {
+          "X-Skip-Toast": "true",
+        },
       });
 
       if (json?.success && Array.isArray(json?.data?.items)) {
-        showToast("Jumlah item di keranjang berhasil diperbarui", "success");
+        showToast(successMessage, safeQty > previousQty ? "success" : "info");
         applyNormalizedCart({ items: json.data.items, summary: json.data.summary || buildFallbackSummary(json.data.items) });
         notifyCustomerCartChanged({
           type: "server-snapshot",
@@ -579,7 +607,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       notifyCustomerCartChanged({ type: "refresh" });
 
       if (!markUnauthorizedIfNeeded(error)) {
-        showToast(error?.message || "Gagal update qty", "error");
+        showToast(error?.message || `Gagal memperbarui jumlah ${getCartProductName(targetItem)}`, "error");
       }
     } finally {
       setBusyItemId(null);
@@ -604,6 +632,9 @@ export default function CartClient({ initialItems, initialSummary }) {
       const json = await authFetch(`/api/v1/cart/items/${itemId}`, {
         method: "DELETE",
         skipToast: true,
+        headers: {
+          "X-Skip-Toast": "true",
+        },
       });
 
       if (json?.success && Array.isArray(json?.data?.items)) {

@@ -580,6 +580,10 @@ export default function CustomerProductContent({
       }
 
       writeCheckoutBootstrapCache({ checkout: checkout?.data || null })
+      showToast(
+        `${product?.name || "Produk"} siap dibeli (${safeQty} item). Melanjutkan ke checkout.`,
+        "success"
+      )
       router.push(CHECKOUT_PAGE_PATH)
     } catch (err) {
       console.error("buyNow:", err)
