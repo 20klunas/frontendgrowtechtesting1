@@ -190,7 +190,7 @@ export default function CustomerProductContent({
 
   const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null)
-  const [toastMessage, setToastMessage] = useState("")
+  const [toastMessage, setToastMessage] = useState(null)
 
   const [currentPage, setCurrentPage] = useState(Math.max(1, Number(initialPage || 1)))
   const [pagination, setPagination] = useState(
@@ -441,10 +441,11 @@ export default function CustomerProductContent({
     }
   }, [userTier])
 
-  const showToast = (message) => {
-    setToastMessage(message)
+  const showToast = (message, type = "success") => {
+    setToastMessage({ message, type })
+    showGlobalToast(message, type)
     window.clearTimeout(window.__gtCatalogToastTimer)
-    window.__gtCatalogToastTimer = window.setTimeout(() => setToastMessage(""), 2200)
+    window.__gtCatalogToastTimer = window.setTimeout(() => setToastMessage(null), 2200)
   }
 
   const updateFavoriteState = (updater) => {
@@ -503,7 +504,7 @@ export default function CustomerProductContent({
       const productName = products.find((item) => Number(item?.id) === Number(productId))?.name || "Produk"
       showToast(isFav
         ? `${productName} telah dihapus dari produk favorit`
-        : `${productName} telah ditambahkan ke produk favorit`)
+        : `${productName} telah ditambahkan ke produk favorit`, isFav ? "error" : "success")
     } catch (err) {
       console.error("toggleFavorite error:", err)
 
@@ -519,7 +520,7 @@ export default function CustomerProductContent({
         skipServerSync: true,
       })
 
-      showToast(err.message || "Gagal memperbarui favorite")
+      showToast(err.message || "Gagal memperbarui favorite", "error")
     } finally {
       setFavoriteLoadingId(null)
     }
@@ -543,7 +544,7 @@ export default function CustomerProductContent({
 
     const product = products.find((item) => item.id === productId)
     if (!product || Number(product.available_stock) <= 0) {
-      alert("Stok habis")
+      showToast("Stok produk habis", "warning")
       return
     }
 
@@ -583,7 +584,7 @@ export default function CustomerProductContent({
       router.push(CHECKOUT_PAGE_PATH)
     } catch (err) {
       console.error("buyNow:", err)
-      alert(err.message || "Gagal checkout")
+      showToast(err.message || "Gagal checkout", "error")
     } finally {
       actionLockRef.current = false
       setCheckoutLoadingId(null)
@@ -595,7 +596,7 @@ export default function CustomerProductContent({
 
     const product = products.find((item) => item.id === productId)
     if (!product || Number(product.available_stock) <= 0) {
-      alert("Stok habis")
+      showToast("Stok produk habis", "warning")
       return
     }
     const safeQty = Math.min(
@@ -635,7 +636,7 @@ export default function CustomerProductContent({
         notifyCustomerCartChanged({ type: "refresh" })
       }
       const productName = product?.name || "Produk"
-      showToast(`${productName} berhasil ditambahkan ke keranjang`)
+      showToast(`${productName} berhasil ditambahkan ke keranjang`, "success")
     } catch (err) {
       console.error("addToCart:", err)
 
@@ -653,7 +654,7 @@ export default function CustomerProductContent({
         notifyCustomerCartChanged({ type: "refresh" })
       }
 
-      alert(err?.data?.error?.message || err.message || "Gagal menambahkan ke keranjang")
+      showToast(err?.data?.error?.message || err.message || "Gagal menambahkan ke keranjang", "error")
     } finally {
       actionLockRef.current = false
       setAddingId(null)
@@ -683,7 +684,7 @@ export default function CustomerProductContent({
 
   return (
     <>
-      {toastMessage ? <Toast message={toastMessage} /> : null}
+      {toastMessage ? <Toast message={toastMessage.message} type={toastMessage.type} /> : null}
       <section className="mx-auto w-full max-w-7xl px-4 pb-12 pt-6 text-white sm:px-6 lg:px-8">
       <div className="mb-8 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <motion.div

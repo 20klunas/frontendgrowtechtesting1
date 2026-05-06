@@ -33,6 +33,7 @@ import {
 
 import { motion, AnimatePresence } from "framer-motion"
 import { authFetch } from "../../lib/authFetch"
+import { showGlobalToast } from "../../lib/actionToast"
 
 import { useSearchParams } from "next/navigation"
 
@@ -114,6 +115,7 @@ export default function ReferralPage() {
     } catch (err) {
 
       console.error(err)
+      showGlobalToast(err?.message || "Gagal memuat data referral", "error")
 
     } finally {
 
@@ -134,6 +136,7 @@ export default function ReferralPage() {
     } catch (err) {
 
         console.error(err)
+        showGlobalToast(err?.message || "Gagal memuat saldo referral", "error")
 
     }
 
@@ -199,7 +202,15 @@ export default function ReferralPage() {
 
   async function handleAttach() {
 
-    if (!attachCode) return
+    if (dashboard?.relation?.referrer) {
+      showGlobalToast("Referral sudah terpasang dan tidak dapat diganti.", "info")
+      return
+    }
+
+    if (!attachCode || !String(attachCode).trim()) {
+      showGlobalToast("Masukkan kode referral terlebih dahulu.", "warning")
+      return
+    }
 
     try {
 
@@ -207,7 +218,10 @@ export default function ReferralPage() {
 
       const normalizedCode = String(attachCode || "").trim().toUpperCase()
 
-      if (!normalizedCode) return
+      if (!normalizedCode) {
+        showGlobalToast("Masukkan kode referral terlebih dahulu.", "warning")
+        return
+      }
 
       const json = await authFetch(`/api/v1/referral/attach`, {
         method: "POST",
@@ -216,10 +230,12 @@ export default function ReferralPage() {
         }),
       })
 
+      const successMessage = json?.message || json?.data?.message || "Referral berhasil dipasang"
       setAttachMessage({
         type: "success",
-        text: json.message
+        text: successMessage
       })
+      showGlobalToast(successMessage, "success")
 
       fetchDashboard()
       setAttachCode("")
@@ -230,6 +246,7 @@ export default function ReferralPage() {
         type: "error",
         text: err.message
       })
+      showGlobalToast(err?.message || "Gagal memasang referral", "error")
 
     } finally {
 
@@ -259,6 +276,7 @@ export default function ReferralPage() {
     } catch (err) {
 
       console.error(err)
+      showGlobalToast(err?.message || "Gagal menghitung preview referral", "error")
 
     } finally {
 
@@ -272,21 +290,37 @@ export default function ReferralPage() {
 
   async function handleWithdraw() {
 
-    if (!withdrawAmount) return
+    if (!withdrawAmount || Number(withdrawAmount) <= 0) {
+      const text = "Withdraw referral tidak bisa diajukan dengan nominal 0."
+      setWithdrawMessage({ type: "error", text })
+      showGlobalToast(text, "warning")
+      return
+    }
+
+    if (availableWithdraw <= 0) {
+      const text = "Saldo referral kamu masih 0, withdraw belum bisa diajukan."
+      setWithdrawMessage({ type: "error", text })
+      showGlobalToast(text, "warning")
+      return
+    }
 
     if (withdrawBlockedByMinimum) {
+      const text = `Saldo referral kamu Rp ${availableWithdraw.toLocaleString()}, belum memenuhi minimal withdraw Rp ${minWithdraw.toLocaleString()}.`
       setWithdrawMessage({
         type: "error",
-        text: `Minimal withdraw adalah Rp ${minWithdraw.toLocaleString()}`
+        text
       })
+      showGlobalToast(text, "error")
       return
     }
 
     if (withdrawInvalidAmount) {
+      const text = `Nominal withdraw minimal Rp ${minWithdraw.toLocaleString()}.`
       setWithdrawMessage({
         type: "error",
-        text: `Nominal withdraw minimal Rp ${minWithdraw.toLocaleString()}`
+        text
       })
+      showGlobalToast(text, "error")
       return
     }
 
@@ -301,10 +335,12 @@ export default function ReferralPage() {
         }),
       })
 
+      const successMessage = json?.message || json?.data?.message || "Withdraw referral berhasil diajukan"
       setWithdrawMessage({
         type: "success",
-        text: json.message
+        text: successMessage
       })
+      showGlobalToast(successMessage, "success")
 
       setWithdrawAmount("")
       fetchWithdrawHistory()
@@ -316,6 +352,7 @@ export default function ReferralPage() {
         type: "error",
         text: err.message
       })
+      showGlobalToast(err?.message || "Gagal mengajukan withdraw referral", "error")
 
     } finally {
 
@@ -336,6 +373,7 @@ export default function ReferralPage() {
         type: "success",
         text: "Referral berhasil digunakan 🎉"
       })
+      showGlobalToast("Referral berhasil digunakan 🎉", "success")
 
       fetchDashboard()
     } catch (err) {
@@ -343,6 +381,7 @@ export default function ReferralPage() {
         type: "error",
         text: err.message
       })
+      showGlobalToast(err?.message || "Gagal memasang referral", "error")
     }
   }
 
@@ -356,11 +395,13 @@ export default function ReferralPage() {
         type: "success",
         text: successText
       })
+      showGlobalToast(successText, "success")
     } catch (err) {
       setAttachMessage({
         type: "error",
         text: err?.message || "Gagal menyalin"
       })
+      showGlobalToast(err?.message || "Gagal menyalin", "error")
     }
 
   }
@@ -678,12 +719,15 @@ export default function ReferralPage() {
           <input
             value={attachCode}
             onChange={(e)=>setAttachCode(e.target.value.toUpperCase())}
-            className="flex-1 rounded-xl bg-purple-900/40 border border-purple-700 px-4 py-2"
+            disabled={Boolean(relation)}
+            placeholder={relation ? "Referral sudah terpasang" : "Masukkan kode referral"}
+            className="flex-1 rounded-xl bg-purple-900/40 border border-purple-700 px-4 py-2 disabled:opacity-60"
           />
 
           <button
             onClick={handleAttach}
-            className="bg-purple-700 px-4 rounded-xl hover:bg-purple-600 transition"
+            className="bg-purple-700 px-4 rounded-xl hover:bg-purple-600 transition disabled:opacity-60"
+            disabled={attachLoading || Boolean(relation)}
           >
 
             {attachLoading
@@ -696,9 +740,12 @@ export default function ReferralPage() {
 
         {relation && (
 
-          <p className="text-sm text-gray-400 mt-2">
-            Referrer: {relation.name}
-          </p>
+          <div className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-100">
+            <div className="font-semibold text-white mb-1">Referral sudah terpasang</div>
+            <div>Kode referral dipakai: <span className="font-semibold">{relation.referral_code || relation.referrer?.referral_code || "-"}</span></div>
+            <div>Referral dari: <span className="font-semibold">{relation.name || relation.referrer?.name || "-"}</span></div>
+            <div>Email referrer: <span className="font-semibold">{relation.email || relation.referrer?.email || "-"}</span></div>
+          </div>
 
         )}
 
@@ -974,7 +1021,7 @@ export default function ReferralPage() {
 
           <button
             onClick={handleWithdraw}
-            disabled={withdrawLoading || withdrawBlockedByMinimum || withdrawInvalidAmount}
+            disabled={withdrawLoading}
             className="bg-purple-700 px-4 rounded-xl hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
 

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { clearCheckoutBootstrapCache } from '../../lib/clientBootstrap'
 import Cookies from "js-cookie"
 import PermissionGate from '../../components/admin/PermissionGate'
+import { showGlobalToast } from '../../lib/actionToast'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -76,7 +77,7 @@ export default function DataDepositPage() {
     { value: "OTHER", label: "Lainnya" },
   ]
 
-  const [manualTopup, setManualTopup] = useState({ user_id: '', amount: '', reason: 'Rescue topup (paid tapi saldo belum masuk)', reference: '', detail: '' })
+  const [manualTopup, setManualTopup] = useState({ user_id: '', amount: '', reason: '', reference: '', detail: '' })
   const [adjustForm, setAdjustForm] = useState({ user_id: '', direction: 'credit', amount: '', note: '' })
 
   const buildNote = (reason, reference, detail) => {
@@ -173,11 +174,28 @@ export default function DataDepositPage() {
       if (result?.data?.data) setUsers(result.data.data)
     } catch (err) {
       console.error(err)
+      showGlobalToast(err?.message || 'Gagal memuat user', 'error')
     }
   }
 
   const handleManualTopup = async (e) => {
     e.preventDefault()
+
+    if (!manualTopup.user_id) {
+      showGlobalToast('Pilih user terlebih dahulu.', 'warning')
+      return
+    }
+
+    if (!manualTopup.amount || Number(manualTopup.amount) <= 0) {
+      showGlobalToast('Nominal manual topup harus lebih dari 0.', 'warning')
+      return
+    }
+
+    if (!manualTopup.reason) {
+      showGlobalToast('Pilih alasan rescue/manual topup terlebih dahulu.', 'warning')
+      return
+    }
+
     try {
       const res = await fetch(`${API}/api/v1/admin/wallet/topup`, {
         method: 'POST',
@@ -187,13 +205,16 @@ export default function DataDepositPage() {
       const result = await res.json()
       if (result.success) {
         clearCheckoutBootstrapCache()
-        alert('Manual topup berhasil')
-        setManualTopup({ user_id: '', amount: '', reason: 'Rescue topup (paid tapi saldo belum masuk)', reference: '', detail: '' })
+        showGlobalToast('Manual topup berhasil', 'success')
+        setManualTopup({ user_id: '', amount: '', reason: '', reference: '', detail: '' })
         setUserSearch('')
         fetchLedger()
+      } else {
+        showGlobalToast(result?.message || result?.error?.message || 'Manual topup gagal', 'error')
       }
     } catch (err) {
       console.error(err)
+      showGlobalToast(err?.message || 'Manual topup gagal', 'error')
     }
   }
 
@@ -229,25 +250,25 @@ export default function DataDepositPage() {
           result?.errors?.user_id?.[0] ||
           'Gagal adjust balance'
 
-        alert(message)
+        showGlobalToast(message, 'error')
         console.error('Adjust balance error:', result)
         return
       }
 
       if (result?.success) {
         clearCheckoutBootstrapCache()
-        alert('Adjust balance berhasil')
+        showGlobalToast('Adjust balance berhasil', 'success')
         setAdjustForm({ user_id: '', direction: 'credit', amount: '', note: '' })
         setAdjustUserSearch('')
         fetchLedger()
         return
       }
 
-      alert(result?.message || 'Adjust balance gagal')
+      showGlobalToast(result?.message || 'Adjust balance gagal', 'error')
       console.error('Adjust balance failed:', result)
     } catch (err) {
       console.error(err)
-      alert('Terjadi kesalahan saat adjust balance')
+      showGlobalToast('Terjadi kesalahan saat adjust balance', 'error')
     }
   }
 
@@ -326,17 +347,17 @@ export default function DataDepositPage() {
             <UserSearchSelect label="User" value={manualTopup.user_id} search={userSearch} onSearchChange={setUserSearch} users={users} onChange={(value) => setManualTopup({ ...manualTopup, user_id: value })} />
             {selectedManualUser ? <div className="text-sm text-gray-300">User terpilih: <span className="font-semibold text-white">{selectedManualUser.email}</span></div> : null}
             <input className="input w-full" type="number" placeholder="Amount" value={manualTopup.amount} onChange={(e) => setManualTopup({ ...manualTopup, amount: e.target.value })} required />
-            <input
+            <select
               className="input w-full"
-              type="text"
-              placeholder="Alasan / Rescue topup"
               value={manualTopup.reason}
               onChange={(e) => setManualTopup({ ...manualTopup, reason: e.target.value })}
-              list="manual-topup-reason-suggestions"
-            />
-            <datalist id="manual-topup-reason-suggestions">
-              {REASONS.map((r) => <option key={r.value} value={r.label} />)}
-            </datalist>
+              required
+            >
+              <option value="">-- Pilih alasan / rescue topup --</option>
+              {REASONS.map((r) => (
+                <option key={r.value} value={r.label}>{r.label}</option>
+              ))}
+            </select>
             <input className="input w-full" placeholder="Reference (optional) contoh: topup_id=4 / order_id=TOPUP-123" value={manualTopup.reference} onChange={(e) => setManualTopup({ ...manualTopup, reference: e.target.value })} />
             <textarea className="input w-full" placeholder="Detail tambahan" rows={3} value={manualTopup.detail} onChange={(e) => setManualTopup({ ...manualTopup, detail: e.target.value })} />
             <div className="text-sm bg-gray-50 p-3 rounded"><div className="font-semibold text-black">Preview note:</div><div className="font-mono text-gray-700">{buildNote(manualTopup.reason, manualTopup.reference, manualTopup.detail) || '-'}</div></div>

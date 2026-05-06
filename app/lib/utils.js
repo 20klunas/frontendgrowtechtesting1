@@ -36,13 +36,18 @@ export async function apiFetch(url, options = {}) {
   const text = await res.text()
 
   try {
-    data = JSON.parse(text)
+    data = text ? JSON.parse(text) : null
   } catch {
-    data = { message: text } // kalau backend kirim HTML/error non-JSON
+    data = { message: text }
   }
 
   if (!res.ok) {
-    throw data
+    const message = data?.error?.message || data?.message || `HTTP ${res.status}`
+    const error = new Error(message)
+    error.status = res.status
+    error.data = data
+    error.details = data?.error?.details ?? data?.errors ?? null
+    throw error
   }
 
   return data

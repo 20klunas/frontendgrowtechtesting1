@@ -33,11 +33,10 @@ function SuccessContent() {
   const [countdown, setCountdown] = useState(DEFAULT_VIEW_DURATION);
   const [blurred, setBlurred] = useState(false);
   const [toast, setToast] = useState(null);
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(5);
   const [hover, setHover] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [existingRating, setExistingRating] = useState(null);
-  const [editingRating, setEditingRating] = useState(false);
   const [bootstrapRetries, setBootstrapRetries] = useState(0);
   const [bootstrapError, setBootstrapError] = useState("");
 
@@ -125,9 +124,9 @@ function SuccessContent() {
       if (value > 0) {
         setExistingRating(value);
         setRating(value);
-        setEditingRating(false);
       } else {
         setExistingRating(null);
+        setRating(5);
       }
     } catch (err) {
       console.error("loadExistingRating error:", err);
@@ -392,19 +391,26 @@ function SuccessContent() {
   };
 
   const handleSubmitRating = async () => {
-    if (!rateProductId || rating === 0) return;
+    if (!rateProductId) return;
+
+    if (existingRating) {
+      showToast("Rating produk sudah terkunci dan tidak dapat diubah.", "info");
+      return;
+    }
+
+    const finalRating = Number(rating || 5);
 
     try {
       setSubmittingRating(true);
       const res = await authFetch(`/api/v1/favorites`, {
         method: "POST",
-        body: JSON.stringify({ product_id: rateProductId, rating }),
+        body: JSON.stringify({ product_id: rateProductId, rating: finalRating }),
       });
 
       if (res?.success) {
-        showToast(existingRating ? "Rating berhasil diperbarui ⭐" : "Terima kasih atas rating kamu ⭐");
-        setExistingRating(rating);
-        setEditingRating(false);
+        showToast("Terima kasih atas rating kamu ⭐");
+        setExistingRating(finalRating);
+        setRating(finalRating);
       } else {
         showToast(res?.error?.message || "Gagal memberi rating", "error");
       }
@@ -489,27 +495,18 @@ function SuccessContent() {
         {rateProductId && (
           <div className="mt-8 rounded-2xl border border-yellow-500/40 p-6 bg-yellow-500/5 mb-6">
             <h2 className="text-lg font-semibold mb-4 text-center">
-              {existingRating && !editingRating ? "Rating Produk Kamu" : "Beri Rating Produk"}
+              {existingRating ? "Rating Produk Kamu" : "Beri Rating Produk"}
             </h2>
 
-            {existingRating && !editingRating ? (
+            {existingRating ? (
               <div className="text-center">
                 <div className="mb-3 text-3xl text-yellow-400">
                   {"★".repeat(existingRating)}
                   <span className="text-gray-600">{"★".repeat(5 - existingRating)}</span>
                 </div>
                 <p className="mb-4 text-sm text-gray-300">
-                  Kamu sudah pernah memberi rating untuk produk ini. Saat repeat order, kamu boleh mengubah rating yang sudah ada.
+                  Rating produk sudah terkunci dan tidak dapat diubah. Jika kamu belum memilih rating, sistem memakai default bintang 5.
                 </p>
-                <button
-                  onClick={() => {
-                    setEditingRating(true);
-                    setRating(existingRating);
-                  }}
-                  className="px-6 py-2 rounded-xl bg-yellow-500 text-black font-semibold"
-                >
-                  Ubah Rating
-                </button>
               </div>
             ) : (
               <>
@@ -529,10 +526,10 @@ function SuccessContent() {
                 <div className="text-center">
                   <button
                     onClick={handleSubmitRating}
-                    disabled={rating === 0 || submittingRating}
+                    disabled={submittingRating}
                     className="px-6 py-2 rounded-xl bg-yellow-500 text-black font-semibold disabled:opacity-50"
                   >
-                    {submittingRating ? "Mengirim..." : existingRating ? "Simpan Perubahan Rating" : "Kirim Rating"}
+                    {submittingRating ? "Mengirim..." : "Kirim Rating"}
                   </button>
                 </div>
               </>

@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { apiFetch } from '../../../../lib/utils'
+import { showGlobalToast } from '../../../../lib/actionToast'
 
 export default function EditAdminPage() {
   const router = useRouter()
@@ -16,6 +17,8 @@ export default function EditAdminPage() {
     full_name: '',
     name: '',
     role: 'admin',
+    login_method: 'email',
+    provider: null,
   })
 
   useEffect(() => {
@@ -34,16 +37,27 @@ export default function EditAdminPage() {
         full_name: admin.full_name || '',
         name: admin.name || '',
         role: admin.role === 'user' ? 'user' : 'admin',
+        login_method: admin.login_method || admin.provider || 'email',
+        provider: admin.provider || null,
       })
     } catch (error) {
       console.error('GET ADMIN ERROR:', error)
-      alert(error?.message || 'Gagal memuat data admin')
+      showGlobalToast(error?.message || 'Gagal memuat data admin', 'error')
     } finally {
       setLoading(false)
     }
   }
 
+  const isSocialAccount = useMemo(() => {
+    const method = String(form.login_method || form.provider || 'email').toLowerCase()
+    return ['google', 'discord'].includes(method)
+  }, [form.login_method, form.provider])
+
   const setField = (key, value) => {
+    if (key === 'email' && isSocialAccount) {
+      showGlobalToast('Email akun Google/Discord tidak dapat diubah dari admin.', 'warning')
+      return
+    }
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -54,23 +68,24 @@ export default function EditAdminPage() {
       await apiFetch(`/api/v1/admin/users/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          email: form.email,
+          ...(isSocialAccount ? {} : { email: form.email }),
           full_name: form.full_name,
           name: form.name,
           role: form.role,
         }),
       })
 
-      alert(
+      showGlobalToast(
         form.role === 'user'
           ? 'Role admin berhasil diubah menjadi user'
-          : 'Data admin berhasil diperbarui'
+          : 'Data admin berhasil diperbarui',
+        'success'
       )
 
       router.replace('/admin/admin-users')
     } catch (error) {
       console.error('UPDATE ADMIN ERROR:', error)
-      alert(error?.message || 'Gagal update admin')
+      showGlobalToast(error?.message || 'Gagal update admin', 'error')
     } finally {
       setSaving(false)
     }
@@ -103,7 +118,11 @@ export default function EditAdminPage() {
               className="input-primary"
               value={form.email}
               onChange={(e) => setField('email', e.target.value)}
+              disabled={isSocialAccount}
             />
+            {isSocialAccount ? (
+              <p className="mt-1 text-xs text-yellow-300">Email akun social login tidak dapat diubah dari admin.</p>
+            ) : null}
           </div>
 
           <div>

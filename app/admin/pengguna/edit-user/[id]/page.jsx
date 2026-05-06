@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
 import { useParams } from "next/navigation"
+import { showGlobalToast } from "../../../../lib/actionToast"
 
 export default function EditUserPage() {
   const params = useParams()
@@ -29,12 +30,13 @@ export default function EditUserPage() {
           }
         })
 
-        if (!res.ok) throw new Error("Gagal fetch user")
+        if (!res.ok) throw new Error("Gagal memuat data user")
 
         const data = await res.json()
         setForm(data.data)
       } catch (err) {
         console.error("FETCH USER ERROR:", err)
+        showGlobalToast(err?.message || "Gagal memuat data user", "error")
       } finally {
         setLoading(false)
       }
@@ -87,9 +89,11 @@ export default function EditUserPage() {
           result?.errors?.name?.[0] ||
           "Gagal update user"
         setErrorMessage(message)
+        showGlobalToast(message, "error")
         throw new Error(message)
       }
 
+      showGlobalToast("User berhasil diperbarui", "success")
       router.push("/admin/pengguna")
     } catch (err) {
       console.error("UPDATE USER ERROR:", err)

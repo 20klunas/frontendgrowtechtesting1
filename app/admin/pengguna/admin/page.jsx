@@ -10,6 +10,7 @@ import ConfirmDeleteModal from "../../../../app/components/admin/modal/ConfirmDe
 import PermissionGate from "../../../components/admin/PermissionGate"
 
 import { apiFetch } from "../../../lib/utils"
+import { showGlobalToast } from "../../../lib/actionToast"
 
 import {
   Plus,
@@ -18,6 +19,19 @@ import {
   Search
 } from "lucide-react"
 
+
+function getLoginMethodLabel(user) {
+  const method = String(user?.login_method || user?.provider || "email").toLowerCase()
+  if (method === "google") return "Google"
+  if (method === "discord") return "Discord"
+  return "Email"
+}
+
+function getRowNumber(index, meta, fallbackPage, fallbackLimit) {
+  const currentPage = Number(meta?.current_page || fallbackPage || 1)
+  const perPage = Number(meta?.per_page || fallbackLimit || 10)
+  return (currentPage - 1) * perPage + index + 1
+}
 export default function ManajemenAdminPage() {
   const router = useRouter()
 
@@ -53,7 +67,8 @@ export default function ManajemenAdminPage() {
     const result = data.filter(user =>
       user.name?.toLowerCase().includes(keyword) ||
       user.email?.toLowerCase().includes(keyword) ||
-      user.full_name?.toLowerCase().includes(keyword)
+      user.full_name?.toLowerCase().includes(keyword) ||
+      getLoginMethodLabel(user).toLowerCase().includes(keyword)
     )
 
     setFilteredData(result)
@@ -87,7 +102,7 @@ export default function ManajemenAdminPage() {
             full: err
         })
 
-        alert(err?.message || "Gagal mengambil data admin")
+        showGlobalToast(err?.message || "Gagal mengambil data admin", "error")
     } finally {
       setLoading(false)
     }
@@ -103,7 +118,7 @@ export default function ManajemenAdminPage() {
       setSelectedId(null)
       fetchData()
     } catch (err) {
-      alert("Gagal menghapus admin")
+      showGlobalToast(err?.message || "Gagal menghapus admin", "error")
     }
   }
 
@@ -171,17 +186,25 @@ export default function ManajemenAdminPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b border-purple-700/50 text-purple-300">
                       <tr>
-                        <th className="py-3">Username</th>
+                        <th className="py-3">No</th>
+                        <th>Username</th>
                         <th>Email</th>
+                        <th>Metode Login</th>
                         <th>Full Name</th>
                         <th>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredData.map(row => (
+                      {filteredData.map((row, index) => (
                         <tr key={row.id} className="border-b border-purple-900/40 hover:bg-purple-900/20 transition">
-                          <td className="py-3 text-center">{row.name ?? "-"}</td>
+                          <td className="py-3 text-center font-semibold text-purple-200">{getRowNumber(index, meta, page, limit)}</td>
+                          <td className="text-center">{row.name ?? "-"}</td>
                           <td className="text-center">{row.email ?? "-"}</td>
+                          <td className="text-center">
+                            <span className="inline-flex rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-100">
+                              {getLoginMethodLabel(row)}
+                            </span>
+                          </td>
                           <td className="text-center">{row.full_name ?? "-"}</td>
                           <td className="text-center space-x-2">
                             <button
@@ -209,12 +232,14 @@ export default function ManajemenAdminPage() {
 
                 {/* MOBILE CARD */}
                 <div className="md:hidden space-y-4">
-                  {filteredData.map(row => (
+                  {filteredData.map((row, index) => (
                     <div key={row.id}
                       className="p-4 rounded-xl bg-purple-900/20 border border-purple-700/40 space-y-2">
 
+                      <div><b>No:</b> {getRowNumber(index, meta, page, limit)}</div>
                       <div><b>Username:</b> {row.name ?? "-"}</div>
                       <div><b>Email:</b> {row.email ?? "-"}</div>
+                      <div><b>Metode Login:</b> {getLoginMethodLabel(row)}</div>
                       <div><b>Nama:</b> {row.full_name ?? "-"}</div>
 
                       <div className="flex gap-2 pt-2">

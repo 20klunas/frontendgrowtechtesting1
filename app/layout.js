@@ -6,6 +6,7 @@ import { WebsiteSettingsProvider } from "./context/WebsiteSettingsContext"
 import { getWebsiteSettingsServer } from "./lib/serverWebsiteSettings"
 import { getServerFeatureAccess } from "./lib/serverFeatureAccess"
 import { DEFAULT_MAINTENANCE_STATE } from "./lib/featureAccess"
+import GlobalToastProvider from "./components/ui/GlobalToastProvider"
 
 export const metadata = {
   title: "Growtech Central",
@@ -29,13 +30,15 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="id" className="dark" suppressHydrationWarning>
       <body>
-        <AppTransitionProvider>
-          <WebsiteSettingsProvider initialSettings={initialSettings}>
-            <MaintenanceProvider initialState={initialMaintenanceState}>
-              <AuthProvider>{children}</AuthProvider>
-            </MaintenanceProvider>
-          </WebsiteSettingsProvider>
-        </AppTransitionProvider>
+        <GlobalToastProvider>
+          <AppTransitionProvider>
+            <WebsiteSettingsProvider initialSettings={initialSettings}>
+              <MaintenanceProvider initialState={initialMaintenanceState}>
+                <AuthProvider>{children}</AuthProvider>
+              </MaintenanceProvider>
+            </WebsiteSettingsProvider>
+          </AppTransitionProvider>
+        </GlobalToastProvider>
       </body>
     </html>
   )

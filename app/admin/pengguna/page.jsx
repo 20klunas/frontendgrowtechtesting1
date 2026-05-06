@@ -10,6 +10,7 @@ import ConfirmDeleteModal from "../../../app/components/admin/modal/ConfirmDelet
 import PermissionGate from "../../components/admin/PermissionGate"
 
 import { apiFetch } from "../../lib/utils"
+import { showGlobalToast } from "../../lib/actionToast"
 
 import {
   Plus,
@@ -18,6 +19,19 @@ import {
   Search
 } from "lucide-react"
 
+
+function getLoginMethodLabel(user) {
+  const method = String(user?.login_method || user?.provider || "email").toLowerCase()
+  if (method === "google") return "Google"
+  if (method === "discord") return "Discord"
+  return "Email"
+}
+
+function getRowNumber(index, meta, fallbackPage, fallbackLimit) {
+  const currentPage = Number(meta?.current_page || fallbackPage || 1)
+  const perPage = Number(meta?.per_page || fallbackLimit || 10)
+  return (currentPage - 1) * perPage + index + 1
+}
 export default function ManajemenUserPage() {
   const router = useRouter()
 
@@ -54,7 +68,8 @@ export default function ManajemenUserPage() {
       user.name?.toLowerCase().includes(keyword) ||
       user.email?.toLowerCase().includes(keyword) ||
       user.full_name?.toLowerCase().includes(keyword) ||
-      user.address?.toLowerCase().includes(keyword)
+      user.address?.toLowerCase().includes(keyword) ||
+      getLoginMethodLabel(user).toLowerCase().includes(keyword)
     )
 
     setFilteredData(result)
@@ -65,7 +80,7 @@ export default function ManajemenUserPage() {
       setLoading(true)
 
       const res = await apiFetch(
-        `/api/v1/admin/users?page=${page}&limit=${limit}`,
+        `/api/v1/admin/users?page=${page}&per_page=${limit}&role=user`,
         { method: "GET" }
       )
 
@@ -91,7 +106,7 @@ export default function ManajemenUserPage() {
           full: err
         })
 
-      alert(err?.message || "Gagal mengambil data user")
+      showGlobalToast(err?.message || "Gagal mengambil data user", "error")
     } finally {
       setLoading(false)
     }
@@ -107,7 +122,7 @@ export default function ManajemenUserPage() {
       setSelectedId(null)
       fetchData()
     } catch (err) {
-      alert("Gagal menghapus data")
+      showGlobalToast(err?.message || "Gagal menghapus data", "error")
     }
   }
 
@@ -174,18 +189,26 @@ export default function ManajemenUserPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b border-purple-700/50 text-purple-300">
                       <tr>
-                        <th className="py-3">Username</th>
+                        <th className="py-3">No</th>
+                        <th>Username</th>
                         <th>Email</th>
+                        <th>Metode Login</th>
                         <th>Nama</th>
                         <th>Alamat</th>
                         <th>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredData.map(row => (
+                      {filteredData.map((row, index) => (
                         <tr key={row.id} className="border-b border-purple-900/40 hover:bg-purple-900/20 transition">
-                          <td className="py-3 text-center">{row.name ?? "-"}</td>
+                          <td className="py-3 text-center font-semibold text-purple-200">{getRowNumber(index, meta, page, limit)}</td>
+                          <td className="text-center">{row.name ?? "-"}</td>
                           <td className="text-center">{row.email ?? "-"}</td>
+                          <td className="text-center">
+                            <span className="inline-flex rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-100">
+                              {getLoginMethodLabel(row)}
+                            </span>
+                          </td>
                           <td className="text-center">{row.full_name ?? "-"}</td>
                           <td className="text-center">{row.address ?? "-"}</td>
                           <td className="text-center space-x-2">
@@ -214,12 +237,14 @@ export default function ManajemenUserPage() {
 
                 {/* MOBILE CARD */}
                 <div className="md:hidden space-y-4">
-                  {filteredData.map(row => (
+                  {filteredData.map((row, index) => (
                     <div key={row.id}
                       className="p-4 rounded-xl bg-purple-900/20 border border-purple-700/40 space-y-2">
 
+                      <div><b>No:</b> {getRowNumber(index, meta, page, limit)}</div>
                       <div><b>Username:</b> {row.name ?? "-"}</div>
                       <div><b>Email:</b> {row.email ?? "-"}</div>
+                      <div><b>Metode Login:</b> {getLoginMethodLabel(row)}</div>
                       <div><b>Nama:</b> {row.full_name ?? "-"}</div>
                       <div><b>Alamat:</b> {row.address ?? "-"}</div>
 

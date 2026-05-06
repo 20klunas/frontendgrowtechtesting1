@@ -179,7 +179,6 @@ function UnauthorizedState() {
       >
         Login Sekarang
       </Link>
-      {toastMessage ? <Toast message={toastMessage} /> : null}
     </main>
   );
 }
@@ -212,17 +211,17 @@ export default function CartClient({ initialItems, initialSummary }) {
   const [voucher, setVoucher] = useState("");
   const [voucherValid, setVoucherValid] = useState(null);
   const [busyItemId, setBusyItemId] = useState(null);
-  const [toastMessage, setToastMessage] = useState("");
+  const [toastMessage, setToastMessage] = useState(null);
 
   const { loading: accessLoading, allowed, message } = useCheckoutAccess();
   useEffect(() => {
     refreshNavbarCart({ force: true }).catch(() => {})
   }, [refreshNavbarCart])
 
-  const showToast = useCallback((message) => {
-    setToastMessage(message);
+  const showToast = useCallback((message, type = "success") => {
+    setToastMessage({ message, type });
     window.clearTimeout(window.__gtCartToastTimer);
-    window.__gtCartToastTimer = window.setTimeout(() => setToastMessage(""), 2200);
+    window.__gtCartToastTimer = window.setTimeout(() => setToastMessage(null), 2200);
   }, []);
 
 
@@ -495,7 +494,7 @@ export default function CartClient({ initialItems, initialSummary }) {
     try {
 
       if (!items.length) {
-        alert("Keranjang kosong");
+        showToast("Keranjang masih kosong.", "warning");
         return;
       }
 
@@ -505,7 +504,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       const latestCart = await authFetch("/api/v1/cart")
 
       if (!latestCart?.data?.items?.length) {
-        alert("Cart kosong (backend belum sync)");
+        showToast("Keranjang belum sinkron dengan server. Coba muat ulang keranjang.", "warning");
         return;
       }
 
@@ -524,7 +523,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       console.error("Checkout error:", error?.message || error);
 
       if (!markUnauthorizedIfNeeded(error)) {
-        alert(error?.message || "Checkout gagal");
+        showToast(error?.message || "Checkout gagal", "error");
       }
     } finally {
       setCheckoutLoading(false);
@@ -563,7 +562,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       });
 
       if (json?.success && Array.isArray(json?.data?.items)) {
-        showToast("Item berhasil dihapus dari keranjang");
+        showToast("Item berhasil dihapus dari keranjang", "error");
         applyNormalizedCart({ items: json.data.items, summary: json.data.summary || buildFallbackSummary(json.data.items) });
         notifyCustomerCartChanged({
           type: "server-snapshot",
@@ -578,7 +577,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       notifyCustomerCartChanged({ type: "refresh" });
 
       if (!markUnauthorizedIfNeeded(error)) {
-        showToast(error?.message || "Gagal update qty");
+        showToast(error?.message || "Gagal update qty", "error");
       }
     } finally {
       setBusyItemId(null);
@@ -605,7 +604,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       });
 
       if (json?.success && Array.isArray(json?.data?.items)) {
-        showToast("Jumlah item di keranjang berhasil diperbarui");
+        showToast("Jumlah item di keranjang berhasil diperbarui", "success");
         applyNormalizedCart({ items: json.data.items, summary: json.data.summary || buildFallbackSummary(json.data.items) });
         notifyCustomerCartChanged({
           type: "server-snapshot",
@@ -620,7 +619,7 @@ export default function CartClient({ initialItems, initialSummary }) {
       notifyCustomerCartChanged({ type: "refresh" });
 
       if (!markUnauthorizedIfNeeded(error)) {
-        showToast(error?.message || "Gagal hapus item");
+        showToast(error?.message || "Gagal hapus item", "error");
       }
     } finally {
       setBusyItemId(null);
@@ -888,7 +887,7 @@ export default function CartClient({ initialItems, initialSummary }) {
           }
         }
       `}</style>
-      {toastMessage ? <Toast message={toastMessage} /> : null}
+      {toastMessage ? <Toast message={toastMessage.message} type={toastMessage.type} /> : null}
     </main>
   );
 }

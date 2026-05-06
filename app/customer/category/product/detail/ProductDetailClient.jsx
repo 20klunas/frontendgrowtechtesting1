@@ -54,12 +54,12 @@ export default function ProductDetailClient({ productId = null, initialProduct =
   const [adding, setAdding] = useState(false);
   const [buying, setBuying] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [toastMessage, setToastMessage] = useState("");
+  const [toastMessage, setToastMessage] = useState(null);
 
-  const showToast = (message) => {
-    setToastMessage(message);
+  const showToast = (message, type = "success") => {
+    setToastMessage({ message, type });
     window.clearTimeout(window.__gtToastTimer);
-    window.__gtToastTimer = window.setTimeout(() => setToastMessage(""), 2200);
+    window.__gtToastTimer = window.setTimeout(() => setToastMessage(null), 2200);
   };
 
   const product = initialProduct;
@@ -104,10 +104,10 @@ export default function ProductDetailClient({ productId = null, initialProduct =
       }
 
       writeCheckoutBootstrapCache({ checkout: checkout?.data || null });
-      showToast(`${product?.name || "Produk"} siap dibeli (${quantity} item)`);
+      showToast(`${product?.name || "Produk"} siap dibeli (${quantity} item)`, "success");
       router.push(CHECKOUT_PAGE_PATH);
     } catch (error) {
-      showToast(error?.message || "Gagal checkout");
+      showToast(error?.message || "Gagal checkout", "error");
     } finally {
       setBuying(false);
     }
@@ -141,7 +141,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
         notifyCustomerCartChanged({ type: "refresh" });
       }
 
-      showToast(`${product?.name || "Produk"} telah ditambahkan ke keranjang (${quantity} item)`);
+      showToast(`${product?.name || "Produk"} telah ditambahkan ke keranjang (${quantity} item)`, "success");
       router.push("/customer/category/product/detail/cart");
     } catch (error) {
       const serverItems = error?.data?.error?.details?.items;
@@ -158,7 +158,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
         notifyCustomerCartChanged({ type: "refresh" });
       }
 
-      showToast(error?.data?.error?.message || error?.message || "Gagal menambahkan ke keranjang");
+      showToast(error?.data?.error?.message || error?.message || "Gagal menambahkan ke keranjang", "error");
     } finally {
       setAdding(false);
     }
@@ -289,7 +289,7 @@ export default function ProductDetailClient({ productId = null, initialProduct =
           {adding ? "Menambahkan..." : "Masukkan Ke Keranjang"}
         </button>
       </div>
-      {toastMessage ? <Toast message={toastMessage} /> : null}
+      {toastMessage ? <Toast message={toastMessage.message} type={toastMessage.type} /> : null}
     </section>
   );
 }

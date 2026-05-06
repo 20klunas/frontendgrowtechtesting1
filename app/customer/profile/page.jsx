@@ -6,6 +6,7 @@ import ChangePasswordModal from "../../components/customer/ChangePasswordModal";
 import { User, Mail, MapPin, Pencil, Filter, ReceiptText } from "lucide-react";
 import { useAuth } from "../../../app/hooks/useAuth";
 import { apiFetch } from "../../../app/lib/utils";
+import { showGlobalToast } from "../../../app/lib/actionToast";
 
 const STATUS_OPTIONS = ["", "pending", "paid", "fulfilled", "cancelled", "failed", "expired", "refunded"];
 
@@ -155,7 +156,10 @@ export default function ProfilePage() {
     email: "",
     address: "",
     tier: "member",
+    login_method: "email",
+    provider: null,
   });
+  const [currentPassword, setCurrentPassword] = useState("");
 
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyItems, setHistoryItems] = useState([]);
@@ -195,6 +199,8 @@ export default function ProfilePage() {
           email: data?.email || "",
           address: data?.address || "",
           tier: data?.tier || "member",
+          login_method: data?.login_method || data?.provider || "email",
+          provider: data?.provider || null,
         };
 
         setForm(profileData);
@@ -202,7 +208,7 @@ export default function ProfilePage() {
         setUser(data);
       } catch (err) {
         console.error("GET PROFILE ERROR:", err);
-        alert(err?.message || "Gagal mengambil data profil");
+        showGlobalToast(err?.message || "Gagal mengambil data profil", "error");
       }
     };
 
@@ -248,10 +254,10 @@ export default function ProfilePage() {
         });
 
         setUser(profileRes.data);
-        alert("Avatar berhasil diperbarui");
+        showGlobalToast("Avatar berhasil diperbarui", "success");
       } catch (err) {
         console.error("UPLOAD AVATAR ERROR:", err);
-        alert(err?.message || "Gagal upload avatar");
+        showGlobalToast(err?.message || "Gagal upload avatar", "error");
       } finally {
         setUploadingAvatar(false);
         setAvatarFile(null);
@@ -325,12 +331,12 @@ export default function ProfilePage() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("File harus berupa gambar");
+      showGlobalToast("File harus berupa gambar", "warning");
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Ukuran maksimal 2MB");
+      showGlobalToast("Ukuran maksimal 2MB", "warning");
       return;
     }
 
@@ -347,13 +353,34 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const emailChanged = initialForm && form.email !== initialForm.email;
+      const payload = {
+        name: form.name,
+        full_name: form.full_name,
+        address: form.address,
+      };
+
+      if (emailChanged) {
+        const method = String(form.login_method || form.provider || "email").toLowerCase();
+        if (["google", "discord"].includes(method)) {
+          showGlobalToast("Email akun Google/Discord tidak dapat diubah.", "warning");
+          setSaving(false);
+          return;
+        }
+
+        if (!currentPassword.trim()) {
+          showGlobalToast("Masukkan password saat ini untuk mengganti email.", "warning");
+          setSaving(false);
+          return;
+        }
+
+        payload.email = form.email;
+        payload.current_password = currentPassword;
+      }
+
       const res = await apiFetch("/api/v1/auth/me/profile", {
         method: "PATCH",
-        body: JSON.stringify({
-          name: form.name,
-          full_name: form.full_name,
-          address: form.address,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = res.data;
@@ -369,11 +396,12 @@ export default function ProfilePage() {
       setForm(updated);
       setInitialForm(updated);
       setUser(data);
+      setCurrentPassword("");
 
-      alert("Profil berhasil diperbarui");
+      showGlobalToast("Profil berhasil diperbarui", "success");
     } catch (err) {
       console.error("UPDATE PROFILE ERROR:", err);
-      alert(err?.message || "Gagal update profil");
+      showGlobalToast(err?.message || "Gagal update profil", "error");
     } finally {
       setSaving(false);
     }
@@ -409,6 +437,9 @@ export default function ProfilePage() {
 
   const avatarSrc = user?.avatar_url || user?.avatar || null;
   const appliedFilterCount = Object.values(appliedFilters).filter(Boolean).length;
+  const loginMethod = String(form.login_method || form.provider || "email").toLowerCase();
+  const isSocialLogin = ["google", "discord"].includes(loginMethod);
+  const emailChanged = initialForm && form.email !== initialForm.email;
 
   if (loading) return null;
   if (!user) return <p className="text-white text-center">User tidak ditemukan</p>;
@@ -473,7 +504,35 @@ export default function ProfilePage() {
                 changed={isChanged("full_name")}
               />
 
-              <Input icon={<Mail />} label="Email" name="email" value={form.email} disabled filled />
+              <Input
+                icon={<Mail />}
+                label={`Email ${isSocialLogin ? `(terkunci karena login ${loginMethod})` : ""}`}
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                disabled={isSocialLogin}
+                filled
+                changed={isChanged("email")}
+              />
+
+              {!isSocialLogin && emailChanged && (
+                <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4">
+                  <label className="block text-sm text-yellow-200 mb-2">Password saat ini wajib diisi untuk mengganti email</label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full rounded-xl bg-black border border-yellow-600/40 px-4 py-2 text-white outline-none"
+                    placeholder="Masukkan password saat ini"
+                  />
+                </div>
+              )}
+
+              {isSocialLogin && (
+                <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-4 text-sm text-sky-100">
+                  Akun ini menggunakan login {loginMethod}. Email tidak bisa diubah dari profil maupun admin agar tetap sinkron dengan provider.
+                </div>
+              )}
 
               <Input
                 icon={<MapPin />}
