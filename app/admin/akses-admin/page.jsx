@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
+import { clearTrustedDeviceCredential } from "../../lib/trustedDevicePreference";
 import toast from "react-hot-toast";
 import {
   AlertTriangle,
@@ -33,6 +34,41 @@ function buildUrl(path) {
   return `${API}/api/v1${path}`;
 }
 
+
+function clearAdminSession() {
+  Cookies.remove("token", { path: "/" });
+  Cookies.remove("role", { path: "/" });
+  Cookies.remove("is_admin", { path: "/" });
+  Cookies.remove("admin_role_id", { path: "/" });
+  Cookies.remove("user_name", { path: "/" });
+  Cookies.remove("user_email", { path: "/" });
+
+  try {
+    clearTrustedDeviceCredential();
+  } catch {}
+}
+
+function shouldForceLogout(path, status, json) {
+  const targetPath = String(path || "").toLowerCase();
+  const details = String(json?.error?.details || "").toLowerCase();
+
+  if (status === 401) return true;
+  if (!targetPath.includes("/admin/")) return false;
+
+  return status === 403 && (
+    details.includes("admin role not assigned") ||
+    details.includes("insufficient role")
+  );
+}
+
+function forceLogout() {
+  clearAdminSession();
+
+  if (typeof window !== "undefined") {
+    window.location.replace("/login");
+  }
+}
+
 async function fetchJson(path, options = {}) {
   const token = Cookies.get("token");
 
@@ -48,6 +84,11 @@ async function fetchJson(path, options = {}) {
   });
 
   const json = await res.json().catch(() => ({}));
+
+  if (shouldForceLogout(path, res.status, json)) {
+    forceLogout();
+    throw new Error("Session admin berakhir. Silakan login ulang.");
+  }
 
   if (!res.ok || json?.success === false) {
     throw new Error(
@@ -303,7 +344,9 @@ export default function AksesAdminPage() {
   }, [editablePermissions]);
 
   const assignableRoles = useMemo(() => {
-    return roles.filter((role) => !role.is_super);
+    return roles.filter(
+      (role) => !role.is_super && !String(role.slug || "").startsWith("custom_user_")
+    );
   }, [roles]);
 
   const selectedPermissionKeys = Array.isArray(selected?.permission_keys)

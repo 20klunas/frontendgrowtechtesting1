@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import Cookies from "js-cookie";
+import { clearTrustedDeviceCredential } from "../lib/trustedDevicePreference";
 
 const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
@@ -33,8 +34,14 @@ function getToken() {
 function clearAdminSession() {
   Cookies.remove("token", { path: "/" });
   Cookies.remove("role", { path: "/" });
+  Cookies.remove("is_admin", { path: "/" });
+  Cookies.remove("admin_role_id", { path: "/" });
   Cookies.remove("user_name", { path: "/" });
   Cookies.remove("user_email", { path: "/" });
+
+  try {
+    clearTrustedDeviceCredential();
+  } catch {}
 }
 
 function resetAdminCache() {
@@ -87,7 +94,14 @@ async function loadAdminMe(force = false) {
     .then(async (res) => {
       const json = await res.json().catch(() => ({}));
 
-      if (res.status === 401) {
+      const details = String(json?.error?.details || "").toLowerCase();
+      const shouldForceLogout =
+        res.status === 401 ||
+        (res.status === 403 &&
+          (details.includes("admin role not assigned") ||
+            details.includes("insufficient role")));
+
+      if (shouldForceLogout) {
         clearAdminSession();
         throw new Error("Session expired");
       }
@@ -135,7 +149,7 @@ export function AdminAuthProvider({ children }) {
   }, []);
 
   const refreshAdminAuth = useCallback(
-    async ({ force = true } = {}) => {
+    async ({ force = true, silent = false } = {}) => {
       const token = getToken();
 
       if (!token) {
@@ -146,7 +160,7 @@ export function AdminAuthProvider({ children }) {
       }
 
       try {
-        setLoading(true);
+        if (!silent) setLoading(true);
         const payload = await loadAdminMe(force);
         applyPayload(payload);
         return payload;
@@ -161,7 +175,7 @@ export function AdminAuthProvider({ children }) {
 
         return { admin: null, permissions: [] };
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     },
     [applyPayload]
@@ -223,6 +237,25 @@ export function AdminAuthProvider({ children }) {
       active = false;
     };
   }, [applyPayload]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const verifySession = () => {
+      if (!getToken()) return;
+      refreshAdminAuth({ force: true, silent: true }).catch(() => {});
+    };
+
+    const interval = window.setInterval(verifySession, 45000);
+    window.addEventListener("focus", verifySession);
+    window.addEventListener("visibilitychange", verifySession);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", verifySession);
+      window.removeEventListener("visibilitychange", verifySession);
+    };
+  }, [refreshAdminAuth]);
 
   const can = useCallback(
     (key) => {

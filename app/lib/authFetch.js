@@ -2,7 +2,10 @@ import Cookies from "js-cookie"
 import { handleMaintenance } from "./maintenanceHandler"
 import { buildApiUrl } from "./apiUrl"
 import { getDeviceFingerprint } from "./deviceFingerprint"
-import { getTrustedDeviceCredential } from "./trustedDevicePreference"
+import {
+  clearTrustedDeviceCredential,
+  getTrustedDeviceCredential,
+} from "./trustedDevicePreference"
 
 const pendingRequests = new Map()
 const responseCache = new Map()
@@ -244,8 +247,14 @@ export async function authFetch(url, options = {}) {
         isRedirecting = true
         Cookies.remove("token", { path: "/" })
         Cookies.remove("role", { path: "/" })
+        Cookies.remove("is_admin", { path: "/" })
+        Cookies.remove("admin_role_id", { path: "/" })
         Cookies.remove("user_name", { path: "/" })
         Cookies.remove("user_email", { path: "/" })
+
+        try {
+          clearTrustedDeviceCredential()
+        } catch {}
 
         if (typeof window !== "undefined") {
           window.location.replace("/login")

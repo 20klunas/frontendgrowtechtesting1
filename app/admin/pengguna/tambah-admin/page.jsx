@@ -1,14 +1,11 @@
 'use client'
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { PERMISSIONS } from "../../../lib/permissions"
 import { apiFetch } from "../../../lib/utils"
 
 export default function TambahAdminPage() {
   const router = useRouter()
-  const permissionList = useMemo(() => Object.values(PERMISSIONS), [])
-
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     email: "",
@@ -16,19 +13,9 @@ export default function TambahAdminPage() {
     name: "",
     password: "",
     role: "admin",
-    permissions: [],
   })
 
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
-
-  const togglePermission = (permission) => {
-    setForm((prev) => ({
-      ...prev,
-      permissions: prev.permissions.includes(permission)
-        ? prev.permissions.filter((item) => item !== permission)
-        : [...prev.permissions, permission],
-    }))
-  }
 
   const handleSubmit = async () => {
     if (!form.email || !form.name || !form.password) {
@@ -52,14 +39,11 @@ export default function TambahAdminPage() {
 
       const adminId = created?.data?.id
 
-      if (adminId && form.permissions.length > 0) {
-        await apiFetch(`/api/v1/admin/users/${adminId}`, {
-          method: "PATCH",
-          body: JSON.stringify({ permissions: form.permissions }),
-        }).catch(() => {})
-      }
-
-      alert("Admin berhasil ditambahkan")
+      alert(
+        adminId
+          ? "Admin berhasil ditambahkan. Default akses masih kosong, silakan atur permission di halaman Akses Admin."
+          : "Admin berhasil ditambahkan"
+      )
       router.replace("/admin/admin-users")
     } catch (error) {
       alert(error?.message || "Gagal menambahkan admin")
@@ -85,14 +69,9 @@ export default function TambahAdminPage() {
           <input type="password" className="input-primary md:col-span-2" placeholder="Password" value={form.password} onChange={(e) => setField("password", e.target.value)} />
         </div>
 
-        <h3 className="font-semibold mb-3">Hak Akses</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          {permissionList.map((p) => (
-            <label key={p} className="flex items-center gap-2">
-              <input type="checkbox" checked={form.permissions.includes(p)} onChange={() => togglePermission(p)} />
-              {p}
-            </label>
-          ))}
+        <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+          Admin baru dibuat dengan default akses kosong tanpa checklist permission.
+          Atur role preset atau custom permission melalui halaman <b>Akses Admin</b> setelah akun berhasil dibuat.
         </div>
 
         <div className="flex justify-end gap-3 mt-8">
